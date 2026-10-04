@@ -247,5 +247,6 @@
   "stats.totalTraffic": "总流量",
   "stats.byInbound": "按入站流量",
   "stats.topUsers": "流量最高用户",
-  "stats.noData": "暂无数据"
+  "stats.noData": "暂无数据",
+  "online.unblock": "解除封锁"
 }

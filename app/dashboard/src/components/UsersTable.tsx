@@ -360,16 +360,23 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                           <OnlineBadge lastOnline={user.online_at} />
                           <Text isTruncated>{user.username}</Text>
                         </div>
-                        {isSudo && user.admin?.username && (
-                          <Text
-                            fontSize="xs"
-                            color="gray.500"
-                            isTruncated
-                            pl="20px"
-                          >
-                            {user.admin.username}
-                          </Text>
-                        )}
+                        <HStack pl="20px" spacing={2} mt="1px">
+                          {isSudo && user.admin?.username && (
+                            <Text fontSize="xs" color="gray.500" isTruncated>
+                              👤 {user.admin.username}
+                            </Text>
+                          )}
+                          {!!user.hwid_limit && (
+                            <Text fontSize="xs" color="gray.500">
+                              📱 {user.hwid_limit}
+                            </Text>
+                          )}
+                          {!!user.ip_limit && (
+                            <Text fontSize="xs" color="gray.500">
+                              IP {user.ip_limit}
+                            </Text>
+                          )}
+                        </HStack>
                       </Td>
                       <Td borderBottom={0} minW="50px" pl={0} pr={0}>
                         <StatusBadge

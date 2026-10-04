@@ -6,6 +6,7 @@ from pathlib import Path
 from app import app
 from config import DEBUG, VITE_BASE_API, DASHBOARD_PATH
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
 
 base_dir = Path(__file__).parent
 build_dir = base_dir / 'build'
@@ -35,13 +36,25 @@ def run_dev():
     atexit.register(proc.terminate)
 
 
+class NoCacheHTMLStatics(StaticFiles):
+    """Serve hashed assets with long cache, but never let the browser cache
+    index.html / html pages — otherwise a deployed update is invisible until a
+    manual hard refresh."""
+    async def get_response(self, path, scope):
+        response: Response = await super().get_response(path, scope)
+        media = response.headers.get("content-type", "")
+        if path.endswith(".html") or media.startswith("text/html"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
+
 def run_build():
     if not build_dir.is_dir():
         build()
 
     app.mount(
         DASHBOARD_PATH,
-        StaticFiles(directory=build_dir, html=True),
+        NoCacheHTMLStatics(directory=build_dir, html=True),
         name="dashboard"
     )
     app.mount(

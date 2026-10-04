@@ -251,5 +251,6 @@
   "stats.totalTraffic": "کل ترافیک",
   "stats.byInbound": "ترافیک بر اساس اینباند",
   "stats.topUsers": "کاربران برتر",
-  "stats.noData": "داده‌ای نیست"
+  "stats.noData": "داده‌ای نیست",
+  "online.unblock": "رفع مسدودی"
 }

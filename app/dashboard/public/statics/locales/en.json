@@ -246,5 +246,6 @@
   "stats.totalTraffic": "Total traffic",
   "stats.byInbound": "Traffic by inbound",
   "stats.topUsers": "Top users",
-  "stats.noData": "No data yet"
+  "stats.noData": "No data yet",
+  "online.unblock": "Unblock"
 }

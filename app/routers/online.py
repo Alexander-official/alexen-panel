@@ -107,17 +107,32 @@ def disconnect_user_ip(ip: str, bg: BackgroundTasks,
     return {"detail": f"{ip} disconnected"}
 
 
+@router.post("/user/{username}/online-ips/{ip}/unblock",
+             responses={403: responses._403, 404: responses._404})
+def unblock_user_ip(ip: str, dbuser: UserResponse = Depends(get_validated_user)):
+    """Lift a manual block on an IP so it can connect again right away"""
+    ip_limit.unban_ip(dbuser.id, ip)
+    ip_limit.enforce_now()
+    return {"detail": f"{ip} unblocked"}
+
+
 @router.get("/user/{username}/online-ips", response_model=UserOnlineIPs,
             responses={403: responses._403, 404: responses._404})
 def get_user_online_ips(dbuser: UserResponse = Depends(get_validated_user)):
     """IPs the user is connected from right now"""
+    user_ips = online.get_user_ips(dbuser.id)
+    blocked = set(ip_limit.blocked_ips.get(dbuser.id, ()))
     ips = [
         OnlineIP(ip=ip, nodes=entry["nodes"], inbounds=entry["inbounds"],
                  last_seen=datetime.utcfromtimestamp(entry["last_seen"]),
                  connected_seconds=int(time.time() - (entry.get("first_seen") or entry["last_seen"])),
                  provider=entry.get("provider"),
-                 blocked=ip in ip_limit.blocked_ips.get(dbuser.id, ()))
-        for ip, entry in online.get_user_ips(dbuser.id).items()
+                 blocked=ip in blocked)
+        for ip, entry in user_ips.items()
     ]
-    ips.sort(key=lambda i: (i.blocked, -i.last_seen.timestamp()))
+    # blocked IPs that already dropped offline still need an "unblock" entry
+    for ip in blocked - set(user_ips):
+        ips.append(OnlineIP(ip=ip, nodes=[], inbounds=[],
+                            last_seen=datetime.utcfromtimestamp(0), blocked=True))
+    ips.sort(key=lambda i: (not i.blocked, -i.last_seen.timestamp()))
     return UserOnlineIPs(username=dbuser.username, ip_limit=dbuser.ip_limit, ips=ips)

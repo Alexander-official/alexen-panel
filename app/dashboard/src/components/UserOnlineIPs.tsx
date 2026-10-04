@@ -9,7 +9,7 @@ import {
   Wrap,
   chakra,
 } from "@chakra-ui/react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
+import { ArrowPathIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import dayjs from "dayjs";
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
@@ -27,6 +27,7 @@ type OnlineIP = {
 };
 
 const KickIcon = chakra(XMarkIcon, { baseStyle: { w: 4, h: 4 } });
+const UnblockIcon = chakra(ArrowPathIcon, { baseStyle: { w: 4, h: 4 } });
 
 export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
   const { t } = useTranslation();
@@ -40,6 +41,10 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
     fetch(`/user/${username}/online-ips/${ip}`, { method: "DELETE" }).then(() =>
       refetch()
     );
+  const unblock = (ip: string) =>
+    fetch(`/user/${username}/online-ips/${ip}/unblock`, {
+      method: "POST",
+    }).then(() => refetch());
 
   return (
     <VStack alignItems="flex-start" w="full" spacing={2}>
@@ -76,16 +81,29 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
               <Text fontSize="xs" color="gray.500">
                 {dayjs.utc(ip.last_seen).local().format("HH:mm:ss")}
               </Text>
-              <Tooltip label={t("online.disconnect")}>
-                <IconButton
-                  aria-label="disconnect"
-                  size="xs"
-                  variant="ghost"
-                  colorScheme="red"
-                  icon={<KickIcon />}
-                  onClick={() => kick(ip.ip)}
-                />
-              </Tooltip>
+              {ip.blocked ? (
+                <Tooltip label={t("online.unblock")}>
+                  <IconButton
+                    aria-label="unblock"
+                    size="xs"
+                    variant="ghost"
+                    colorScheme="green"
+                    icon={<UnblockIcon />}
+                    onClick={() => unblock(ip.ip)}
+                  />
+                </Tooltip>
+              ) : (
+                <Tooltip label={t("online.disconnect")}>
+                  <IconButton
+                    aria-label="disconnect"
+                    size="xs"
+                    variant="ghost"
+                    colorScheme="red"
+                    icon={<KickIcon />}
+                    onClick={() => kick(ip.ip)}
+                  />
+                </Tooltip>
+              )}
             </HStack>
           </HStack>
           {(ip.provider || ip.connected_seconds > 0) && (

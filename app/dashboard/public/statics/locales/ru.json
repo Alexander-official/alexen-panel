@@ -246,5 +246,6 @@
   "stats.totalTraffic": "Весь трафик",
   "stats.byInbound": "Трафик по инбаундам",
   "stats.topUsers": "Топ юзеров",
-  "stats.noData": "Пока нет данных"
+  "stats.noData": "Пока нет данных",
+  "online.unblock": "Разблокировать"
 }
