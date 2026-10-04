@@ -270,9 +270,17 @@ def restart_node(node_id, config=None):
             pass
 
 
+def reset_user_sessions(dbuser: "DBUser"):
+    """Drop the user's live sessions by removing and re-adding them on every core.
+    Combined with an IP route block, this makes a terminated IP actually disconnect."""
+    remove_user(dbuser)
+    add_user(dbuser)
+
+
 __all__ = [
     "add_user",
     "remove_user",
+    "reset_user_sessions",
     "add_node",
     "remove_node",
     "connect_node",

@@ -127,6 +127,13 @@ def _sync_core(name: str, api: XRayAPI, rules: Dict[str, Tuple[list, str]]):
                 logger.warning(f"IP limit: unable to block {ip} on {name}: {exc.details}")
 
 
+def enforce_now():
+    """Re-push rules right away using the last known cores (for an immediate manual kick)"""
+    from app.xray import online
+    if online._last_apis:
+        enforce(online._last_apis, online.online_users)
+
+
 def enforce(apis: Dict[str, XRayAPI], online_users: Dict[int, Dict[str, dict]]):
     global blocked_ips
 

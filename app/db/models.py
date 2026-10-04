@@ -49,6 +49,10 @@ class Admin(Base):
     # reseller limits, null means unlimited
     users_limit = Column(Integer, nullable=True, default=None)
     traffic_limit = Column(BigInteger, nullable=True, default=None)
+    expire_date = Column(DateTime, nullable=True, default=None)
+    # per-user caps this reseller may assign (null = no cap)
+    max_user_ip_limit = Column(Integer, nullable=True, default=None)
+    max_user_hwid_limit = Column(Integer, nullable=True, default=None)
     # host groups the admin's users get in their subscription, empty means every host
     host_groups = Column(JSON, nullable=True, default=list)
 
@@ -90,6 +94,7 @@ class User(Base):
     sub_revoked_at = Column(DateTime, nullable=True, default=None)
     sub_updated_at = Column(DateTime, nullable=True, default=None)
     sub_last_user_agent = Column(String(512), nullable=True, default=None)
+    sub_request_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     note = Column(String(500), nullable=True, default=None)
     online_at = Column(DateTime, nullable=True, default=None)

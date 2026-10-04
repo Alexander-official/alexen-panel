@@ -37,6 +37,9 @@ type AdminItem = {
   users_usage: number;
   users_limit: number | null;
   traffic_limit: number | null;
+  expire_date: string | null;
+  max_user_ip_limit: number | null;
+  max_user_hwid_limit: number | null;
   host_groups: string[];
 };
 
@@ -46,6 +49,9 @@ type FormState = {
   is_sudo: boolean;
   users_limit: string;
   traffic_limit: string; // in GB
+  expire_date: string; // yyyy-mm-dd
+  max_user_ip_limit: string;
+  max_user_hwid_limit: string;
   host_groups: string; // comma separated
 };
 
@@ -55,6 +61,9 @@ const emptyForm: FormState = {
   is_sudo: false,
   users_limit: "",
   traffic_limit: "",
+  expire_date: "",
+  max_user_ip_limit: "",
+  max_user_hwid_limit: "",
   host_groups: "",
 };
 
@@ -94,6 +103,13 @@ export const AdminsModal: FC = () => {
       traffic_limit: admin.traffic_limit
         ? String(admin.traffic_limit / 1073741824)
         : "",
+      expire_date: admin.expire_date ? admin.expire_date.slice(0, 10) : "",
+      max_user_ip_limit: admin.max_user_ip_limit
+        ? String(admin.max_user_ip_limit)
+        : "",
+      max_user_hwid_limit: admin.max_user_hwid_limit
+        ? String(admin.max_user_hwid_limit)
+        : "",
       host_groups: (admin.host_groups || []).join(", "),
     });
     setEditing(admin.username);
@@ -106,6 +122,15 @@ export const AdminsModal: FC = () => {
       users_limit: form.users_limit ? parseInt(form.users_limit) : 0,
       traffic_limit: form.traffic_limit
         ? Math.round(parseFloat(form.traffic_limit) * 1073741824)
+        : 0,
+      expire_date: form.expire_date
+        ? new Date(form.expire_date + "T00:00:00").toISOString()
+        : null,
+      max_user_ip_limit: form.max_user_ip_limit
+        ? parseInt(form.max_user_ip_limit)
+        : 0,
+      max_user_hwid_limit: form.max_user_hwid_limit
+        ? parseInt(form.max_user_hwid_limit)
         : 0,
       host_groups: form.host_groups
         .split(",")
@@ -238,6 +263,50 @@ export const AdminsModal: FC = () => {
                       />
                     </FormControl>
                   </HStack>
+                  <HStack>
+                    <FormControl>
+                      <FormLabel fontSize="sm">
+                        {t("admins.maxUserIp")}
+                      </FormLabel>
+                      <Input
+                        size="sm"
+                        type="number"
+                        placeholder="0 = ∞"
+                        value={form.max_user_ip_limit}
+                        onChange={(e) =>
+                          setForm({ ...form, max_user_ip_limit: e.target.value })
+                        }
+                      />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel fontSize="sm">
+                        {t("admins.maxUserHwid")}
+                      </FormLabel>
+                      <Input
+                        size="sm"
+                        type="number"
+                        placeholder="0 = ∞"
+                        value={form.max_user_hwid_limit}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            max_user_hwid_limit: e.target.value,
+                          })
+                        }
+                      />
+                    </FormControl>
+                  </HStack>
+                  <FormControl>
+                    <FormLabel fontSize="sm">{t("admins.expireDate")}</FormLabel>
+                    <Input
+                      size="sm"
+                      type="date"
+                      value={form.expire_date}
+                      onChange={(e) =>
+                        setForm({ ...form, expire_date: e.target.value })
+                      }
+                    />
+                  </FormControl>
                   <FormControl>
                     <FormLabel fontSize="sm">
                       {t("admins.hostGroups")}

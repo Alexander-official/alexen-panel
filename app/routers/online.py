@@ -1,17 +1,21 @@
+import time
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends
+from sqlalchemy import func
+
+from fastapi import APIRouter, BackgroundTasks, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.db.models import Admin as DBAdmin
-from app.db.models import User
+from app.db.models import User, UserHWIDDevice
 from app.dependencies import get_validated_user
 from app.models.admin import Admin
 from app.models.user import UserResponse
 from app.utils import responses
+from app import xray
 from app.xray import ip_limit, online
 
 router = APIRouter(tags=["Online"], prefix="/api", responses={401: responses._401})
@@ -22,6 +26,8 @@ class OnlineIP(BaseModel):
     nodes: List[str]
     inbounds: List[str]
     last_seen: datetime
+    connected_seconds: int = 0
+    provider: Optional[str] = None
     blocked: bool = False
 
 
@@ -35,6 +41,7 @@ class OnlineUser(BaseModel):
     username: str
     admin: Optional[str] = None
     ip_count: int
+    device_count: int = 0
     ip_limit: Optional[int] = None
     blocked_ips: int = 0
 
@@ -58,24 +65,32 @@ def _visible_ip_counts(db: Session, admin: Admin) -> dict:
     if not admin.is_sudo:
         query = query.filter(DBAdmin.username == admin.username)
 
-    return {uid: (username, admin_username, counts[uid], limit)
-            for uid, username, admin_username, limit in query.all()}
+    rows = query.all()
+    device_counts = dict(
+        db.query(UserHWIDDevice.user_id, func.count(UserHWIDDevice.id))
+        .filter(UserHWIDDevice.user_id.in_([r[0] for r in rows]))
+        .group_by(UserHWIDDevice.user_id).all()
+    ) if rows else {}
+    return {uid: (username, admin_username, counts[uid], limit, device_counts.get(uid, 0))
+            for uid, username, admin_username, limit in rows}
 
 
 @router.get("/online", response_model=OnlineSummary)
 def get_online_summary(
     limit: int = 50,
+    sort: str = "ip",
     db: Session = Depends(get_db),
     admin: Admin = Depends(Admin.get_current),
 ):
-    """Online users right now (main core and nodes), the ones with the most IPs first"""
+    """Online users right now (main core and nodes). sort: 'ip' (default) or 'devices'."""
     visible = _visible_ip_counts(db, admin)
-    users = sorted(
-        (OnlineUser(username=username, admin=admin_username, ip_count=count, ip_limit=user_ip_limit,
-                    blocked_ips=len(ip_limit.blocked_ips.get(uid, ())))
-         for uid, (username, admin_username, count, user_ip_limit) in visible.items()),
-        key=lambda u: u.ip_count, reverse=True,
-    )
+    users = [
+        OnlineUser(username=username, admin=admin_username, ip_count=count, ip_limit=user_ip_limit,
+                   device_count=devices, blocked_ips=len(ip_limit.blocked_ips.get(uid, ())))
+        for uid, (username, admin_username, count, user_ip_limit, devices) in visible.items()
+    ]
+    key = (lambda u: u.device_count) if sort == "devices" else (lambda u: u.ip_count)
+    users.sort(key=key, reverse=True)
     return OnlineSummary(
         online_users=len(users),
         online_ips=sum(u.ip_count for u in users),
@@ -85,9 +100,12 @@ def get_online_summary(
 
 
 @router.delete("/user/{username}/online-ips/{ip}", responses={403: responses._403, 404: responses._404})
-def disconnect_user_ip(ip: str, dbuser: UserResponse = Depends(get_validated_user)):
-    """Kick one online IP of the user: it's blocked for a few minutes so its sessions drop"""
+def disconnect_user_ip(ip: str, bg: BackgroundTasks,
+                       dbuser: UserResponse = Depends(get_validated_user)):
+    """Kick one online IP of the user: block it, then drop the user's live sessions so it really disconnects"""
     ip_limit.ban_ip(dbuser.id, ip)
+    ip_limit.enforce_now()  # push the block immediately instead of waiting for the next tick
+    bg.add_task(xray.operations.reset_user_sessions, dbuser=dbuser)
     return {"detail": f"{ip} disconnected"}
 
 
@@ -98,6 +116,8 @@ def get_user_online_ips(dbuser: UserResponse = Depends(get_validated_user)):
     ips = [
         OnlineIP(ip=ip, nodes=entry["nodes"], inbounds=entry["inbounds"],
                  last_seen=datetime.utcfromtimestamp(entry["last_seen"]),
+                 connected_seconds=int(time.time() - (entry.get("first_seen") or entry["last_seen"])),
+                 provider=entry.get("provider"),
                  blocked=ip in ip_limit.blocked_ips.get(dbuser.id, ()))
         for ip, entry in online.get_user_ips(dbuser.id).items()
     ]

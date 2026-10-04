@@ -226,5 +226,12 @@
   "usersTable.noUserMatched": "没有找到您搜索的用户",
   "usersTable.status": "状态",
   "usersTable.sortByExpire": "按过期时间排序",
-  "usersTable.total": "总共"
+  "usersTable.total": "总共",
+  "online.sortByIp": "按IP",
+  "online.sortByDevice": "按设备",
+  "online.devices": "设备",
+  "admins.maxUserIp": "每用户最大IP",
+  "admins.maxUserHwid": "每用户最大设备",
+  "admins.expireDate": "到期日",
+  "userDialog.subUpdatedCount": "订阅更新次数"
 }

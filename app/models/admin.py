@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import Depends, HTTPException, status
@@ -27,6 +28,9 @@ class Admin(BaseModel):
     users_limit: Optional[int] = Field(None, ge=0, description="max users, null/0 means unlimited")
     traffic_limit: Optional[int] = Field(
         None, ge=0, description="max data limit (bytes) the admin can hand out in total, null/0 means unlimited")
+    expire_date: Optional[datetime] = None
+    max_user_ip_limit: Optional[int] = Field(None, ge=0, description="cap for each user's ip_limit")
+    max_user_hwid_limit: Optional[int] = Field(None, ge=0, description="cap for each user's hwid_limit")
     host_groups: List[str] = Field(default_factory=list, description="host groups of the admin's users, empty means all")
     model_config = ConfigDict(from_attributes=True)
 
@@ -122,6 +126,9 @@ class AdminModify(BaseModel):
     discord_webhook: Optional[str] = None
     users_limit: Optional[int] = Field(None, ge=0)
     traffic_limit: Optional[int] = Field(None, ge=0)
+    expire_date: Optional[datetime] = None
+    max_user_ip_limit: Optional[int] = Field(None, ge=0)
+    max_user_hwid_limit: Optional[int] = Field(None, ge=0)
     host_groups: Optional[List[str]] = None
 
     @property

@@ -225,5 +225,12 @@
   "usersTable.noUser": "В системе нет созданных пользователей",
   "usersTable.noUserMatched": "Похоже, нет пользователя, соответствующего вашему запросу",
   "usersTable.status": "Статус",
-  "usersTable.total": "Всего"
+  "usersTable.total": "Всего",
+  "online.sortByIp": "По IP",
+  "online.sortByDevice": "По устройствам",
+  "online.devices": "Устройства",
+  "admins.maxUserIp": "Макс IP / юзер",
+  "admins.maxUserHwid": "Макс устр. / юзер",
+  "admins.expireDate": "Истекает",
+  "userDialog.subUpdatedCount": "Обновлений подписки"
 }

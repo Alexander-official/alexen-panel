@@ -61,6 +61,9 @@ def add_user(
     if reason:
         raise HTTPException(status_code=403, detail=reason)
 
+    new_user.ip_limit, new_user.hwid_limit = crud.clamp_user_limits_to_admin(
+        dbadmin, new_user.ip_limit, new_user.hwid_limit)
+
     try:
         dbuser = crud.create_user(db, new_user, admin=dbadmin)
     except IntegrityError:
@@ -112,6 +115,11 @@ def modify_user(
                 status_code=400,
                 detail=f"Protocol {proxy_type} is disabled on your server",
             )
+
+    if not admin.is_sudo:
+        dbadmin = crud.get_admin(db, admin.username)
+        modified_user.ip_limit, modified_user.hwid_limit = crud.clamp_user_limits_to_admin(
+            dbadmin, modified_user.ip_limit, modified_user.hwid_limit)
 
     old_status = dbuser.status
     dbuser = crud.update_user(db, dbuser, modified_user)

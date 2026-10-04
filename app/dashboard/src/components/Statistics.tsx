@@ -19,7 +19,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import { fetch } from "service/http";
 import { formatBytes, numberWithCommas } from "utils/formatByte";
-import { OnlineUser, OnlineUsersModal } from "./OnlineUsersModal";
+import { OnlineUsersModal } from "./OnlineUsersModal";
 
 const TotalUsersIcon = chakra(UsersIcon, {
   baseStyle: {
@@ -154,7 +154,7 @@ export const Statistics: FC<BoxProps> = (props) => {
   const { data: onlineData } = useQuery<{
     online_users: number;
     online_ips: number;
-    users: OnlineUser[];
+    users: any[];
   }>({
     queryKey: "online-query-key",
     queryFn: () => fetch("/online"),
@@ -247,7 +247,6 @@ export const Statistics: FC<BoxProps> = (props) => {
       <OnlineUsersModal
         isOpen={onlineModal.isOpen}
         onClose={onlineModal.onClose}
-        users={onlineData?.users ?? []}
       />
     </HStack>
   );

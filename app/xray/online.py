@@ -1,4 +1,5 @@
 """In memory view of who is connected right now, refreshed from the main core and every node"""
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Dict, Optional
@@ -7,6 +8,7 @@ from app import xray
 from app.db import GetDB
 from app.db.models import Node
 from app.xray import ip_limit
+from app.xray import geoip
 from xray_api import XRay as XRayAPI
 from xray_api import exc as xray_exc
 
@@ -15,6 +17,7 @@ MASTER_NAME = "Master"
 # user id -> ip -> {"nodes": [...], "inbounds": [...], "last_seen": unix time}
 online_users: Dict[int, Dict[str, dict]] = {}
 updated_at: Optional[datetime] = None
+_last_apis: Dict[str, object] = {}
 
 
 def _fetch(api: XRayAPI):
@@ -50,15 +53,25 @@ def refresh():
             inbound_tag = user.email.split('|', 1)[1] if '|' in user.email else None
 
             for ip, last_seen in user.ips.items():
-                entry = users.setdefault(uid, {}).setdefault(ip, {"nodes": [], "inbounds": [], "last_seen": 0})
+                entry = users.setdefault(uid, {}).setdefault(
+                    ip, {"nodes": [], "inbounds": [], "last_seen": 0, "first_seen": None, "provider": None})
                 if node_name not in entry["nodes"]:
                     entry["nodes"].append(node_name)
                 if inbound_tag and inbound_tag not in entry["inbounds"]:
                     entry["inbounds"].append(inbound_tag)
                 entry["last_seen"] = max(entry["last_seen"], last_seen)
 
+    # carry first_seen across refreshes; look up each IP's provider (cached)
+    now = time.time()
+    for uid, ips in users.items():
+        prev = online_users.get(uid, {})
+        for ip, entry in ips.items():
+            entry["first_seen"] = prev.get(ip, {}).get("first_seen") or now
+            entry["provider"] = geoip.provider(ip)
+
     online_users = users
     updated_at = datetime.utcnow()
+    _last_apis.clear(); _last_apis.update(apis)
 
     ip_limit.enforce(apis, users)
 

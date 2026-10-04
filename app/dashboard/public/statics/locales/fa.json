@@ -230,5 +230,12 @@
   "usersTable.noUser": "کاربری افزوده نشده است",
   "usersTable.noUserMatched": "به‌نظر میرسه کاربری که جستجو کردید، وجود ندارد",
   "usersTable.status": "وضعیت",
-  "usersTable.total": "مجموع"
+  "usersTable.total": "مجموع",
+  "online.sortByIp": "بر اساس IP",
+  "online.sortByDevice": "بر اساس دستگاه",
+  "online.devices": "دستگاه‌ها",
+  "admins.maxUserIp": "حداکثر IP هر کاربر",
+  "admins.maxUserHwid": "حداکثر دستگاه هر کاربر",
+  "admins.expireDate": "تاریخ انقضا",
+  "userDialog.subUpdatedCount": "تعداد به‌روزرسانی اشتراک"
 }

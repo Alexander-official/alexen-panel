@@ -21,6 +21,8 @@ type OnlineIP = {
   nodes: string[];
   inbounds: string[];
   last_seen: string;
+  connected_seconds: number;
+  provider: string | null;
   blocked: boolean;
 };
 
@@ -42,8 +44,7 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
   return (
     <VStack alignItems="flex-start" w="full" spacing={2}>
       <Text fontSize="sm" fontWeight="medium">
-        {t("online.connectedIps")} ({ips.length}
-        {data?.ip_limit ? ` / ${data.ip_limit}` : ""})
+        {t("online.connectedIps")} ({ips.length})
       </Text>
       {ips.length === 0 && (
         <Text fontSize="xs" color="gray.500">
@@ -87,6 +88,17 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
               </Tooltip>
             </HStack>
           </HStack>
+          {(ip.provider || ip.connected_seconds > 0) && (
+            <Text fontSize="xs" color="gray.500">
+              {ip.provider || ""}
+              {ip.provider && ip.connected_seconds > 0 ? " · " : ""}
+              {ip.connected_seconds > 0
+                ? `${Math.floor(ip.connected_seconds / 60)}m ${
+                    ip.connected_seconds % 60
+                  }s`
+                : ""}
+            </Text>
+          )}
           <Wrap mt={1} spacing={1}>
             {ip.nodes.map((node) => (
               <Badge key={node} colorScheme="purple" fontSize="2xs">

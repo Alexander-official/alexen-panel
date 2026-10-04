@@ -839,6 +839,10 @@ export const UserDialog: FC<UserDialogProps> = () => {
                 </GridItem>
                 {isEditing && editingUser && (
                   <GridItem pt={4} colSpan={{ base: 1, md: 2 }}>
+                    <Text fontSize="xs" color="gray.500" mb={2}>
+                      {t("userDialog.subUpdatedCount")}:{" "}
+                      {(editingUser as any).sub_request_count ?? 0}
+                    </Text>
                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                       <UserOnlineIPs username={editingUser.username} />
                       <UserDevices username={editingUser.username} />

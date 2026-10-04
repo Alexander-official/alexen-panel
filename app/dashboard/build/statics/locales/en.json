@@ -225,5 +225,12 @@
   "usersTable.noUser": "There is no user added to the system",
   "usersTable.noUserMatched": "It seems there is no user matched with what you are looking for",
   "usersTable.status": "status",
-  "usersTable.total": "Total"
+  "usersTable.total": "Total",
+  "online.sortByIp": "By IP",
+  "online.sortByDevice": "By device",
+  "online.devices": "Devices",
+  "admins.maxUserIp": "Max IP / user",
+  "admins.maxUserHwid": "Max devices / user",
+  "admins.expireDate": "Expires on",
+  "userDialog.subUpdatedCount": "Subscription updates"
 }

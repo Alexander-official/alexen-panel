@@ -1,5 +1,7 @@
 import {
   Badge,
+  Button,
+  HStack,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -16,8 +18,9 @@ import {
   Tr,
 } from "@chakra-ui/react";
 import { useDashboard } from "contexts/DashboardContext";
-import { FC } from "react";
+import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "react-query";
 import { fetch } from "service/http";
 import { User } from "types/User";
 
@@ -25,6 +28,7 @@ export type OnlineUser = {
   username: string;
   admin: string | null;
   ip_count: number;
+  device_count: number;
   ip_limit: number | null;
   blocked_ips: number;
 };
@@ -32,15 +36,22 @@ export type OnlineUser = {
 type OnlineUsersModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  users: OnlineUser[];
 };
 
 export const OnlineUsersModal: FC<OnlineUsersModalProps> = ({
   isOpen,
   onClose,
-  users,
 }) => {
   const { t } = useTranslation();
+  const [sort, setSort] = useState<"ip" | "devices">("ip");
+  const { data } = useQuery<{ users: OnlineUser[] }>({
+    queryKey: ["online-modal", sort],
+    queryFn: () => fetch(`/online?sort=${sort}&limit=100`),
+    enabled: isOpen,
+    refetchInterval: isOpen ? 5000 : false,
+  });
+  const users = data?.users ?? [];
+
   const openUser = (username: string) => {
     fetch<User>(`/user/${username}`).then((user) => {
       onClose();
@@ -53,9 +64,27 @@ export const OnlineUsersModal: FC<OnlineUsersModalProps> = ({
       <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
       <ModalContent mx="3">
         <ModalHeader pt={6}>
-          <Text fontWeight="semibold" fontSize="lg">
-            {t("online.title")}
-          </Text>
+          <HStack justifyContent="space-between" pr={8}>
+            <Text fontWeight="semibold" fontSize="lg">
+              {t("online.title")}
+            </Text>
+            <HStack spacing={1}>
+              <Button
+                size="xs"
+                variant={sort === "ip" ? "solid" : "ghost"}
+                onClick={() => setSort("ip")}
+              >
+                {t("online.sortByIp")}
+              </Button>
+              <Button
+                size="xs"
+                variant={sort === "devices" ? "solid" : "ghost"}
+                onClick={() => setSort("devices")}
+              >
+                {t("online.sortByDevice")}
+              </Button>
+            </HStack>
+          </HStack>
         </ModalHeader>
         <ModalCloseButton mt={3} />
         <ModalBody pb={6}>
@@ -71,6 +100,7 @@ export const OnlineUsersModal: FC<OnlineUsersModalProps> = ({
                     <Th>{t("username")}</Th>
                     <Th>{t("online.admin")}</Th>
                     <Th isNumeric>{t("online.ips")}</Th>
+                    <Th isNumeric>{t("online.devices")}</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -94,9 +124,9 @@ export const OnlineUsersModal: FC<OnlineUsersModalProps> = ({
                           }
                         >
                           {user.ip_count}
-                          {user.ip_limit ? ` / ${user.ip_limit}` : ""}
                         </Badge>
                       </Td>
+                      <Td isNumeric>{user.device_count}</Td>
                     </Tr>
                   ))}
                 </Tbody>

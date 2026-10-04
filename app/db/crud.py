@@ -653,6 +653,7 @@ def update_user_sub(db: Session, dbuser: User, user_agent: str) -> User:
     """
     dbuser.sub_updated_at = datetime.utcnow()
     dbuser.sub_last_user_agent = user_agent
+    dbuser.sub_request_count = (dbuser.sub_request_count or 0) + 1
 
     db.commit()
     db.refresh(dbuser)
@@ -948,6 +949,9 @@ def create_admin(db: Session, admin: AdminCreate) -> Admin:
         discord_webhook=admin.discord_webhook if admin.discord_webhook else None,
         users_limit=admin.users_limit or None,
         traffic_limit=admin.traffic_limit or None,
+        expire_date=admin.expire_date,
+        max_user_ip_limit=admin.max_user_ip_limit or None,
+        max_user_hwid_limit=admin.max_user_hwid_limit or None,
         host_groups=admin.host_groups,
     )
     db.add(dbadmin)
@@ -978,6 +982,9 @@ def update_admin(db: Session, dbadmin: Admin, modified_admin: AdminModify) -> Ad
         dbadmin.discord_webhook = modified_admin.discord_webhook
     dbadmin.users_limit = modified_admin.users_limit or None
     dbadmin.traffic_limit = modified_admin.traffic_limit or None
+    dbadmin.expire_date = modified_admin.expire_date
+    dbadmin.max_user_ip_limit = modified_admin.max_user_ip_limit or None
+    dbadmin.max_user_hwid_limit = modified_admin.max_user_hwid_limit or None
     if modified_admin.host_groups is not None:
         dbadmin.host_groups = modified_admin.host_groups
 
@@ -1011,6 +1018,12 @@ def partial_update_admin(db: Session, dbadmin: Admin, modified_admin: AdminParti
         dbadmin.users_limit = modified_admin.users_limit or None
     if modified_admin.traffic_limit is not None:
         dbadmin.traffic_limit = modified_admin.traffic_limit or None
+    if modified_admin.expire_date is not None:
+        dbadmin.expire_date = modified_admin.expire_date
+    if modified_admin.max_user_ip_limit is not None:
+        dbadmin.max_user_ip_limit = modified_admin.max_user_ip_limit or None
+    if modified_admin.max_user_hwid_limit is not None:
+        dbadmin.max_user_hwid_limit = modified_admin.max_user_hwid_limit or None
     if modified_admin.host_groups is not None:
         dbadmin.host_groups = modified_admin.host_groups
 
@@ -1577,8 +1590,21 @@ def check_reseller_can_add_user(db: Session, admin: Admin) -> Optional[str]:
     """None if the reseller may create one more user, otherwise the reason it can't (sudoers are never limited)"""
     if admin.is_sudo:
         return None
+    if admin.expire_date and admin.expire_date < datetime.utcnow():
+        return "Your admin account has expired"
     if admin.users_limit and reseller_user_count(db, admin) >= admin.users_limit:
         return f"User limit reached ({admin.users_limit})"
     if admin.traffic_limit and (admin.users_usage or 0) >= admin.traffic_limit:
         return "Traffic quota reached"
     return None
+
+
+def clamp_user_limits_to_admin(admin: Admin, ip_limit, hwid_limit):
+    """A reseller can't assign a per-user ip/hwid limit above its own cap (0/None = unlimited)."""
+    if admin.is_sudo:
+        return ip_limit, hwid_limit
+    if admin.max_user_ip_limit:
+        ip_limit = min(ip_limit or admin.max_user_ip_limit, admin.max_user_ip_limit)
+    if admin.max_user_hwid_limit:
+        hwid_limit = min(hwid_limit or admin.max_user_hwid_limit, admin.max_user_hwid_limit)
+    return ip_limit, hwid_limit
