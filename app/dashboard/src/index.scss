@@ -318,13 +318,30 @@ table thead {
   100% { transform: translate3d(-2vmax,2vmax,0) scale(1.05) rotate(-6deg); }
 }
 
+/* when glass is on but no background picked, still give a subtle backdrop so the blur reads */
+.theme-glass:not(.has-bg) body {
+  background:
+    radial-gradient(60vmax 60vmax at 15% 0%, rgba(99,140,255,0.16), transparent 55%),
+    radial-gradient(55vmax 55vmax at 100% 20%, rgba(180,120,255,0.14), transparent 55%),
+    #f3f5f9 !important;
+  background-attachment: fixed !important;
+}
+.chakra-ui-dark.theme-glass:not(.has-bg) body,
+.theme-glass:not(.has-bg) .chakra-ui-dark body {
+  background:
+    radial-gradient(60vmax 60vmax at 15% 0%, rgba(99,140,255,0.20), transparent 55%),
+    radial-gradient(55vmax 55vmax at 100% 20%, rgba(150,90,255,0.18), transparent 55%),
+    #0f1420 !important;
+  background-attachment: fixed !important;
+}
+
 /* liquid glass surfaces */
 .theme-glass {
   .chakra-modal__content,
   .chakra-menu__menu-list,
   .chakra-card,
   .chakra-popover__content {
-    background-color: rgba(255,255,255,0.45) !important;
+    background-color: rgba(255,255,255,0.38) !important;
     backdrop-filter: blur(22px) saturate(180%);
     -webkit-backdrop-filter: blur(22px) saturate(180%);
     border: 1px solid rgba(255,255,255,0.55) !important;
@@ -357,7 +374,7 @@ table thead {
   .chakra-menu__menu-list,
   .chakra-card,
   .chakra-popover__content {
-    background-color: rgba(26,32,44,0.45) !important;
+    background-color: rgba(26,32,44,0.40) !important;
     border: 1px solid rgba(255,255,255,0.10) !important;
     box-shadow:
       0 8px 32px rgba(0,0,0,0.35),
