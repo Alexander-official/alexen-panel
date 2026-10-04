@@ -236,5 +236,9 @@
   "userDialog.subUpdatedCount": "订阅更新次数",
   "header.appearance": "外观",
   "header.styleGlass": "玻璃拟态",
-  "header.styleMinimal": "极简"
+  "header.styleMinimal": "极简",
+  "header.accentColor": "主色",
+  "header.background": "背景",
+  "header.animationsOff": "关闭动画",
+  "header.animationsOn": "开启动画"
 }

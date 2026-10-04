@@ -235,5 +235,9 @@
   "userDialog.subUpdatedCount": "Обновлений подписки",
   "header.appearance": "Оформление",
   "header.styleGlass": "Стекло (glass)",
-  "header.styleMinimal": "Минимализм"
+  "header.styleMinimal": "Минимализм",
+  "header.accentColor": "Акцентный цвет",
+  "header.background": "Фон",
+  "header.animationsOff": "Выключить анимации",
+  "header.animationsOn": "Включить анимации"
 }

@@ -103,9 +103,7 @@ def get_online_summary(
 def disconnect_user_ip(ip: str, bg: BackgroundTasks,
                        dbuser: UserResponse = Depends(get_validated_user)):
     """Kick one online IP of the user: block it, then drop the user's live sessions so it really disconnects"""
-    ip_limit.ban_ip(dbuser.id, ip)
-    ip_limit.enforce_now()  # push the block immediately instead of waiting for the next tick
-    bg.add_task(xray.operations.reset_user_sessions, dbuser=dbuser)
+    bg.add_task(xray.operations.terminate_ip, dbuser=dbuser, ip=ip)
     return {"detail": f"{ip} disconnected"}
 
 

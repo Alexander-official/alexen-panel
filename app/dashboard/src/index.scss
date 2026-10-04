@@ -284,29 +284,96 @@ table thead {
   justify-content: start;
   gap: .7rem;
 }
-/* Glassmorphism surface theme (opt-in via .theme-glass on <html>) */
+
+
+/* ============ Alexen appearance (liquid glass, backgrounds, animations) ============ */
+:root { --app-bg: ""; }
+
+.has-bg body {
+  background: var(--app-bg) !important;
+  background-attachment: fixed !important;
+}
+
+/* animated aurora blobs behind everything (only with a background + animations on) */
+.has-bg.theme-animated body::before {
+  content: "";
+  position: fixed;
+  inset: -20vmax;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38vmax 38vmax at 18% 22%, var(--chakra-colors-primary-400), transparent 60%),
+    radial-gradient(32vmax 32vmax at 82% 30%, var(--chakra-colors-primary-200), transparent 60%),
+    radial-gradient(42vmax 42vmax at 60% 85%, var(--chakra-colors-primary-600), transparent 62%);
+  opacity: 0.22;
+  filter: blur(40px) saturate(130%);
+  animation: alexen-float 24s ease-in-out infinite alternate;
+}
+.chakra-ui-dark.has-bg.theme-animated body::before,
+.has-bg.theme-animated .chakra-ui-dark body::before { opacity: 0.30; }
+
+@keyframes alexen-float {
+  0%   { transform: translate3d(0,0,0) scale(1) rotate(0deg); }
+  50%  { transform: translate3d(2vmax,-3vmax,0) scale(1.12) rotate(8deg); }
+  100% { transform: translate3d(-2vmax,2vmax,0) scale(1.05) rotate(-6deg); }
+}
+
+/* liquid glass surfaces */
 .theme-glass {
   .chakra-modal__content,
   .chakra-menu__menu-list,
-  .css-0 .chakra-card,
-  .chakra-card {
-    background-color: rgba(255, 255, 255, 0.55) !important;
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    border: 1px solid rgba(255, 255, 255, 0.35) !important;
-    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.12) !important;
+  .chakra-card,
+  .chakra-popover__content {
+    background-color: rgba(255,255,255,0.45) !important;
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.55) !important;
+    box-shadow:
+      0 8px 32px rgba(31,38,135,0.14),
+      inset 0 1px 0 rgba(255,255,255,0.65) !important;
+    position: relative;
+    overflow: hidden;
   }
-  table thead th {
-    backdrop-filter: blur(8px);
+  /* specular sheen sweeping across glass (iOS-like), gated by animations */
+  &.theme-animated .chakra-card::after,
+  &.theme-animated .chakra-modal__content::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -60%;
+    width: 50%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
+    transform: skewX(-18deg);
+    animation: alexen-sheen 7s ease-in-out infinite;
+    pointer-events: none;
   }
 }
-.theme-glass[data-theme="dark"],
+@keyframes alexen-sheen {
+  0%, 70% { left: -60%; }
+  100% { left: 140%; }
+}
 .chakra-ui-dark.theme-glass,
 .theme-glass .chakra-ui-dark {
   .chakra-modal__content,
   .chakra-menu__menu-list,
-  .chakra-card {
-    background-color: rgba(26, 32, 44, 0.55) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  .chakra-card,
+  .chakra-popover__content {
+    background-color: rgba(26,32,44,0.45) !important;
+    border: 1px solid rgba(255,255,255,0.10) !important;
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.08) !important;
   }
+}
+
+/* smooth transitions when animations are on */
+.theme-animated {
+  .chakra-card,
+  .chakra-button,
+  .chakra-modal__content { transition: transform .25s ease, box-shadow .25s ease, background-color .25s ease; }
+  .chakra-card:hover { transform: translateY(-2px); }
+}
+/* animations off: kill all motion */
+html:not(.theme-animated) * {
+  animation: none !important;
+  transition: none !important;
 }

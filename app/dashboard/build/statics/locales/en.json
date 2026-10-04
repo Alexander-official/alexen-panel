@@ -235,5 +235,9 @@
   "userDialog.subUpdatedCount": "Subscription updates",
   "header.appearance": "Appearance",
   "header.styleGlass": "Glassmorphism style",
-  "header.styleMinimal": "Minimalist style"
+  "header.styleMinimal": "Minimalist style",
+  "header.accentColor": "Accent color",
+  "header.background": "Background",
+  "header.animationsOff": "Turn off animations",
+  "header.animationsOn": "Turn on animations"
 }

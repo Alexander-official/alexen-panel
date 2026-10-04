@@ -240,5 +240,9 @@
   "userDialog.subUpdatedCount": "تعداد به‌روزرسانی اشتراک",
   "header.appearance": "ظاهر",
   "header.styleGlass": "حالت شیشه‌ای",
-  "header.styleMinimal": "حالت مینیمال"
+  "header.styleMinimal": "حالت مینیمال",
+  "header.accentColor": "رنگ شاخص",
+  "header.background": "پس‌زمینه",
+  "header.animationsOff": "خاموش کردن انیمیشن‌ها",
+  "header.animationsOn": "روشن کردن انیمیشن‌ها"
 }

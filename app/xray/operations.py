@@ -270,17 +270,47 @@ def restart_node(node_id, config=None):
             pass
 
 
-def reset_user_sessions(dbuser: "DBUser"):
-    """Drop the user's live sessions by removing and re-adding them on every core.
-    Combined with an IP route block, this makes a terminated IP actually disconnect."""
-    remove_user(dbuser)
-    add_user(dbuser)
+def terminate_ip(dbuser: "DBUser", ip: str):
+    """Hard-kick one IP: block it, then restart the cores it's connected to so the
+    live session is dropped, then re-apply the block. Other users reconnect in ~1s."""
+    import time
+    from app import xray
+    from app.xray import ip_limit, online
+
+    ip_limit.ban_ip(dbuser.id, ip)
+    ip_limit.enforce_now()
+
+    node_names = {e for e in online.get_user_ips(dbuser.id).get(ip, {}).get("nodes", [])}
+    config = xray.config.include_db_users()
+
+    if not node_names or online.MASTER_NAME in node_names:
+        try:
+            xray.core.restart(config)
+        except Exception as exc:
+            logger.warning(f"terminate: master core restart failed: {exc}")
+
+    if node_names:
+        with GetDB() as db:
+            from app.db.models import Node
+            ids = {name: nid for nid, name in db.query(Node.id, Node.name).all()}
+        for name in node_names:
+            if name == online.MASTER_NAME:
+                continue
+            nid = ids.get(name)
+            if nid is not None:
+                try:
+                    xray.operations.restart_node(nid, config)
+                except Exception as exc:
+                    logger.warning(f"terminate: node {name} restart failed: {exc}")
+
+    time.sleep(2)
+    ip_limit.enforce_now()
 
 
 __all__ = [
     "add_user",
     "remove_user",
-    "reset_user_sessions",
+    "terminate_ip",
     "add_node",
     "remove_node",
     "connect_node",

@@ -29,7 +29,7 @@ import { DONATION_URL, REPO_URL } from "constants/Project";
 import { useDashboard } from "contexts/DashboardContext";
 import differenceInDays from "date-fns/differenceInDays";
 import isValid from "date-fns/isValid";
-import { FC, ReactNode, useState } from "react";
+import { FC, ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { updateThemeColor } from "utils/themeColor";
@@ -37,6 +37,9 @@ import {
   ACCENTS,
   AccentName,
   applyAppearance,
+  Appearance,
+  BACKGROUNDS,
+  Background,
   getAppearance,
   Surface,
 } from "utils/appearance";
@@ -110,15 +113,15 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
   } = useDashboard();
   const { t } = useTranslation();
   const [appearance, setAppearance] = useState(getAppearance());
-  const setAccent = (accent: AccentName) => {
-    applyAppearance(accent, appearance.surface);
-    setAppearance({ accent, surface: appearance.surface });
-  };
-  const setSurface = (surface: Surface) => {
-    applyAppearance(appearance.accent, surface);
-    setAppearance({ accent: appearance.accent, surface });
+  const update = (patch: Partial<Appearance>) => {
+    const next = { ...appearance, ...patch };
+    applyAppearance(next);
+    setAppearance(next);
   };
   const { colorMode, toggleColorMode } = useColorMode();
+  useEffect(() => {
+    applyAppearance(getAppearance());
+  }, [colorMode]);
   const [showDonationNotif, setShowDonationNotif] = useState(
     shouldShowDonation()
   );
@@ -205,7 +208,7 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
                 </>
               )}
               <MenuDivider />
-              <MenuGroup title={t("header.appearance")} fontSize="xs">
+              <MenuGroup title={t("header.accentColor")} fontSize="xs">
                 <Box px={3} py={1} display="flex" gap={2}>
                   {(Object.keys(ACCENTS) as AccentName[]).map((name) => (
                     <Box
@@ -219,23 +222,53 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
                       borderColor={
                         appearance.accent === name ? "gray.500" : "transparent"
                       }
-                      onClick={() => setAccent(name)}
+                      onClick={() => update({ accent: name })}
                     />
                   ))}
                 </Box>
-                <MenuItem
-                  fontSize="sm"
-                  onClick={() =>
-                    setSurface(
-                      appearance.surface === "glass" ? "minimal" : "glass"
-                    )
-                  }
-                >
-                  {appearance.surface === "glass"
-                    ? t("header.styleMinimal")
-                    : t("header.styleGlass")}
-                </MenuItem>
               </MenuGroup>
+              <MenuGroup title={t("header.background")} fontSize="xs">
+                <Box px={3} py={1} display="flex" gap={2}>
+                  {(Object.keys(BACKGROUNDS) as Background[]).map((name) => (
+                    <Box
+                      key={name}
+                      as="button"
+                      w="18px"
+                      h="18px"
+                      borderRadius="md"
+                      bg={BACKGROUNDS[name].swatch}
+                      border="2px solid"
+                      borderColor={
+                        appearance.background === name
+                          ? "gray.500"
+                          : "transparent"
+                      }
+                      onClick={() => update({ background: name })}
+                    />
+                  ))}
+                </Box>
+              </MenuGroup>
+              <MenuItem
+                fontSize="sm"
+                onClick={() =>
+                  update({
+                    surface:
+                      appearance.surface === "glass" ? "minimal" : "glass",
+                  })
+                }
+              >
+                {appearance.surface === "glass"
+                  ? t("header.styleMinimal")
+                  : t("header.styleGlass")}
+              </MenuItem>
+              <MenuItem
+                fontSize="sm"
+                onClick={() => update({ animations: !appearance.animations })}
+              >
+                {appearance.animations
+                  ? t("header.animationsOff")
+                  : t("header.animationsOn")}
+              </MenuItem>
               <MenuDivider />
               <Link to={DONATION_URL} target="_blank">
                 <MenuItem
