@@ -10,6 +10,7 @@ from app.models.user import SubscriptionUserResponse, UserResponse
 from app.subscription.share import encode_title, generate_subscription
 from app.templates import render_template
 from config import (
+    HWID_LIMIT_REACHED_TEXT,
     SUB_PROFILE_TITLE,
     SUB_SUPPORT_URL,
     SUB_UPDATE_INTERVAL,
@@ -45,6 +46,26 @@ def get_subscription_user_info(user: UserResponse) -> dict:
     }
 
 
+def register_device(request: Request, db: Session, dbuser, user_agent: str) -> bool:
+    """Remembers the device (from the HWID headers Happ, v2rayNG, etc. send);
+    False when it's a new device over the user's device limit. Clients without a HWID are let through."""
+    hwid = request.headers.get("x-hwid", "").strip()
+    if not hwid:
+        return True
+    return crud.register_hwid_device(
+        db, dbuser, hwid,
+        platform=request.headers.get("x-device-os"),
+        os_version=request.headers.get("x-ver-os"),
+        device_model=request.headers.get("x-device-model"),
+        user_agent=user_agent,
+    )
+
+
+def device_limit_response(response_headers: dict) -> Response:
+    headers = {**response_headers, "announce": encode_title(HWID_LIMIT_REACHED_TEXT), "x-hwid-limit": "true"}
+    return Response(content="", media_type="text/plain", headers=headers)
+
+
 @router.get("/{token}/")
 @router.get("/{token}", include_in_schema=False)
 def user_subscription(
@@ -77,6 +98,9 @@ def user_subscription(
             for key, val in get_subscription_user_info(user).items()
         )
     }
+
+    if not register_device(request, db, dbuser, user_agent):
+        return device_limit_response(response_headers)
 
     if re.match(r'^([Cc]lash-verge|[Cc]lash[-\.]?[Mm]eta|[Ff][Ll][Cc]lash|[Mm]ihomo)', user_agent):
         conf = generate_subscription(user=user, config_format="clash-meta", as_base64=False, reverse=False)
@@ -184,6 +208,9 @@ def user_subscription_with_client_type(
             for key, val in get_subscription_user_info(user).items()
         )
     }
+
+    if not register_device(request, db, dbuser, user_agent):
+        return device_limit_response(response_headers)
 
     config = client_config.get(client_type)
     conf = generate_subscription(user=user,

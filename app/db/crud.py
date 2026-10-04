@@ -26,6 +26,7 @@ from app.db.models import (
     ProxyTypes,
     System,
     User,
+    UserHWIDDevice,
     UserTemplate,
     UserUsageResetLogs,
 )
@@ -383,6 +384,8 @@ def create_user(db: Session, user: UserCreate, admin: Admin = None) -> User:
         proxies=proxies,
         status=user.status,
         data_limit=(user.data_limit or None),
+        ip_limit=(user.ip_limit or None),
+        hwid_limit=(user.hwid_limit or None),
         expire=(user.expire or None),
         admin=admin,
         data_limit_reset_strategy=user.data_limit_reset_strategy,
@@ -506,6 +509,12 @@ def update_user(db: Session, dbuser: User, modify: UserModify) -> User:
     if modify.note is not None:
         dbuser.note = modify.note or None
 
+    if modify.ip_limit is not None:
+        dbuser.ip_limit = modify.ip_limit or None
+
+    if modify.hwid_limit is not None:
+        dbuser.hwid_limit = modify.hwid_limit or None
+
     if modify.data_limit_reset_strategy is not None:
         dbuser.data_limit_reset_strategy = modify.data_limit_reset_strategy.value
 
@@ -551,6 +560,7 @@ def reset_user_data_usage(db: Session, dbuser: User) -> User:
 
     dbuser.used_traffic = 0
     dbuser.node_usages.clear()
+    dbuser.inbound_usages.clear()
     if dbuser.status not in (UserStatus.expired or UserStatus.disabled):
         dbuser.status = UserStatus.active.value
 
@@ -586,6 +596,7 @@ def reset_user_by_next(db: Session, dbuser: User) -> User:
     db.add(usage_log)
 
     dbuser.node_usages.clear()
+    dbuser.inbound_usages.clear()
     dbuser.status = UserStatus.active.value
 
     dbuser.data_limit = dbuser.next_plan.data_limit + \
@@ -665,6 +676,7 @@ def reset_all_users_data_usage(db: Session, admin: Optional[Admin] = None):
             dbuser.status = UserStatus.active
         dbuser.usage_logs.clear()
         dbuser.node_usages.clear()
+        dbuser.inbound_usages.clear()
         if dbuser.next_plan:
             db.delete(dbuser.next_plan)
             dbuser.next_plan = None
@@ -931,7 +943,10 @@ def create_admin(db: Session, admin: AdminCreate) -> Admin:
         hashed_password=admin.hashed_password,
         is_sudo=admin.is_sudo,
         telegram_id=admin.telegram_id if admin.telegram_id else None,
-        discord_webhook=admin.discord_webhook if admin.discord_webhook else None
+        discord_webhook=admin.discord_webhook if admin.discord_webhook else None,
+        users_limit=admin.users_limit or None,
+        traffic_limit=admin.traffic_limit or None,
+        host_groups=admin.host_groups,
     )
     db.add(dbadmin)
     db.commit()
@@ -951,8 +966,7 @@ def update_admin(db: Session, dbadmin: Admin, modified_admin: AdminModify) -> Ad
     Returns:
         Admin: The updated admin object.
     """
-    if modified_admin.is_sudo:
-        dbadmin.is_sudo = modified_admin.is_sudo
+    dbadmin.is_sudo = modified_admin.is_sudo
     if modified_admin.password is not None and dbadmin.hashed_password != modified_admin.hashed_password:
         dbadmin.hashed_password = modified_admin.hashed_password
         dbadmin.password_reset_at = datetime.utcnow()
@@ -960,6 +974,10 @@ def update_admin(db: Session, dbadmin: Admin, modified_admin: AdminModify) -> Ad
         dbadmin.telegram_id = modified_admin.telegram_id
     if modified_admin.discord_webhook:
         dbadmin.discord_webhook = modified_admin.discord_webhook
+    dbadmin.users_limit = modified_admin.users_limit or None
+    dbadmin.traffic_limit = modified_admin.traffic_limit or None
+    if modified_admin.host_groups is not None:
+        dbadmin.host_groups = modified_admin.host_groups
 
     db.commit()
     db.refresh(dbadmin)
@@ -987,6 +1005,12 @@ def partial_update_admin(db: Session, dbadmin: Admin, modified_admin: AdminParti
         dbadmin.telegram_id = modified_admin.telegram_id
     if modified_admin.discord_webhook is not None:
         dbadmin.discord_webhook = modified_admin.discord_webhook
+    if modified_admin.users_limit is not None:
+        dbadmin.users_limit = modified_admin.users_limit or None
+    if modified_admin.traffic_limit is not None:
+        dbadmin.traffic_limit = modified_admin.traffic_limit or None
+    if modified_admin.host_groups is not None:
+        dbadmin.host_groups = modified_admin.host_groups
 
     db.commit()
     db.refresh(dbadmin)
@@ -1498,3 +1522,46 @@ def count_online_users(db: Session, hours: int = 24):
     query = db.query(func.count(User.id)).filter(User.online_at.isnot(
         None), User.online_at >= twenty_four_hours_ago)
     return query.scalar()
+
+
+def register_hwid_device(db: Session, dbuser: User, hwid: str, platform: Optional[str] = None,
+                         os_version: Optional[str] = None, device_model: Optional[str] = None,
+                         user_agent: Optional[str] = None) -> bool:
+    """
+    Remembers the device a subscription was requested from.
+
+    Returns:
+        bool: False if it's a new device and the user already reached its device limit.
+    """
+    device = db.query(UserHWIDDevice).filter(
+        UserHWIDDevice.user_id == dbuser.id, UserHWIDDevice.hwid == hwid).first()
+
+    if device is None:
+        if dbuser.hwid_limit and db.query(UserHWIDDevice).filter(
+                UserHWIDDevice.user_id == dbuser.id).count() >= dbuser.hwid_limit:
+            return False
+        device = UserHWIDDevice(user_id=dbuser.id, hwid=hwid)
+        db.add(device)
+
+    device.platform = (platform or None) and platform[:64]
+    device.os_version = (os_version or None) and os_version[:64]
+    device.device_model = (device_model or None) and device_model[:128]
+    device.user_agent = (user_agent or None) and user_agent[:512]
+    device.updated_at = datetime.utcnow()
+    db.commit()
+    return True
+
+
+def get_hwid_devices(db: Session, dbuser: User) -> List[UserHWIDDevice]:
+    return db.query(UserHWIDDevice).filter(UserHWIDDevice.user_id == dbuser.id) \
+        .order_by(UserHWIDDevice.created_at).all()
+
+
+def remove_hwid_devices(db: Session, dbuser: User, device_id: Optional[int] = None) -> int:
+    """Removes one device of the user, or all of them when device_id is None"""
+    query = db.query(UserHWIDDevice).filter(UserHWIDDevice.user_id == dbuser.id)
+    if device_id is not None:
+        query = query.filter(UserHWIDDevice.id == device_id)
+    count = query.delete(synchronize_session=False)
+    db.commit()
+    return count

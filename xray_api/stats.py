@@ -51,7 +51,23 @@ class OutboundStatsResponse:
     downlink: int
 
 
+@dataclass
+class OnlineUserResponse:
+    email: str
+    ips: typing.Dict[str, int]  # ip -> last seen (unix time)
+
+
 class Stats(XRayBase):
+    def get_online_users(self, timeout: int = None) -> typing.List[OnlineUserResponse]:
+        """Users with at least one open connection and their IPs (needs Xray v25.x+ GetUsersStats)"""
+        try:
+            stub = command_pb2_grpc.StatsServiceStub(self._channel)
+            r = stub.GetUsersStats(command_pb2.GetUsersStatsRequest(include_traffic=False), timeout=timeout)
+        except grpc.RpcError as e:
+            raise RelatedError(e)
+
+        return [OnlineUserResponse(email=u.email, ips={i.ip: i.last_seen for i in u.ips}) for u in r.users]
+
     def get_sys_stats(self, timeout: int = None) -> SysStatsResponse:
         try:
             stub = command_pb2_grpc.StatsServiceStub(self._channel)

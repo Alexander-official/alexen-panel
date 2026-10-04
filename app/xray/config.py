@@ -17,6 +17,16 @@ from app.utils.crypto import get_cert_SANs
 from config import DEBUG, XRAY_EXCLUDE_INBOUND_TAGS, XRAY_FALLBACKS_INBOUND_TAG
 
 
+# blackhole outbound that the IP limit routes extra IPs of a user to
+IP_LIMIT_OUTBOUND_TAG = "IP_LIMIT_BLOCK"
+
+
+def user_email(user_id: int, username: str, inbound_tag: str) -> str:
+    """Xray client email; the inbound tag in it lets Xray stats be split per inbound.
+    Usernames can't contain «|», so everything before the first «|» is "<id>.<username>"."""
+    return f"{user_id}.{username}|{inbound_tag}"
+
+
 def merge_dicts(a, b):  # B will override A dictionary key and values
     for key, value in b.items():
         if isinstance(value, dict) and key in a and isinstance(a[key], dict):
@@ -60,6 +70,11 @@ class XRayConfig(dict):
         self._resolve_inbounds()
 
         self._apply_api()
+        self._apply_ip_limit_outbound()
+
+    def _apply_ip_limit_outbound(self):
+        if not self.get_outbound(IP_LIMIT_OUTBOUND_TAG):
+            self["outbounds"].append({"protocol": "blackhole", "tag": IP_LIMIT_OUTBOUND_TAG})
 
     def _apply_api(self):
         api_inbound = self.get_inbound("API_INBOUND")
@@ -73,7 +88,8 @@ class XRayConfig(dict):
             "services": [
                 "HandlerService",
                 "StatsService",
-                "LoggerService"
+                "LoggerService",
+                "RoutingService"
             ],
             "tag": "API"
         }
@@ -82,7 +98,8 @@ class XRayConfig(dict):
             "levels": {
                 "0": {
                     "statsUserUplink": True,
-                    "statsUserDownlink": True
+                    "statsUserDownlink": True,
+                    "statsUserOnline": True
                 }
             },
             "system": {
@@ -415,7 +432,7 @@ class XRayConfig(dict):
                             continue
 
                         client = {
-                            "email": f"{user_id}.{username}",
+                            "email": user_email(user_id, username, inbound['tag']),
                             **settings
                         }
 

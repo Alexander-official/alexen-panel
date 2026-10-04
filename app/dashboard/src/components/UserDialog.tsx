@@ -21,6 +21,7 @@ import {
   ModalHeader,
   ModalOverlay,
   Select,
+  SimpleGrid,
   Spinner,
   Switch,
   Text,
@@ -59,6 +60,8 @@ import { Icon } from "./Icon";
 import { Input } from "./Input";
 import { RadioGroup } from "./RadioGroup";
 import { UsageFilter, createUsageConfig } from "./UsageFilter";
+import { UserDevices } from "./UserDevices";
+import { UserOnlineIPs } from "./UserOnlineIPs";
 import { ReloadIcon } from "./Filters";
 import classNames from "classnames";
 
@@ -113,6 +116,8 @@ const getDefaultValues = (): FormType => {
     expire: null,
     username: "",
     data_limit_reset_strategy: "no_reset",
+    ip_limit: null,
+    hwid_limit: null,
     status: "active",
     on_hold_expire_duration: null,
     note: "",
@@ -177,6 +182,16 @@ const baseSchema = {
     }),
   expire: z.number().nullable(),
   data_limit_reset_strategy: z.string(),
+  ip_limit: z
+    .string()
+    .or(z.number())
+    .nullable()
+    .transform((value) => (value ? parseInt(String(value)) || 0 : 0)),
+  hwid_limit: z
+    .string()
+    .or(z.number())
+    .nullable()
+    .transform((value) => (value ? parseInt(String(value)) || 0 : 0)),
   inbounds: z.record(z.string(), z.array(z.string())).transform((ins) => {
     Object.keys(ins).forEach((protocol) => {
       if (Array.isArray(ins[protocol]) && !ins[protocol]?.length)
@@ -222,6 +237,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
     onCreateUser,
     editUser,
     fetchUserUsage,
+    fetchUserInboundUsage,
     onEditingUser,
     createUser,
     onDeletingUser,
@@ -276,6 +292,21 @@ export const UserDialog: FC<UserDialogProps> = () => {
     });
   };
 
+  const [inboundUsage, setInboundUsage] = useState(
+    createUsageConfig(colorMode, usageTitle)
+  );
+  const fetchInboundUsage = () => {
+    fetchUserInboundUsage(editingUser!).then((data: any) => {
+      const labels = [];
+      const series = [];
+      for (const usage of data.usages) {
+        series.push(usage.used_traffic);
+        labels.push(usage.inbound_tag);
+      }
+      setInboundUsage(createUsageConfig(colorMode, usageTitle, series, labels));
+    });
+  };
+
   useEffect(() => {
     if (editingUser) {
       form.reset(formatUser(editingUser));
@@ -283,6 +314,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
       fetchUsageWithFilter({
         start: dayjs().utc().subtract(30, "day").format("YYYY-MM-DDTHH:00:00"),
       });
+      fetchInboundUsage();
     }
   }, [editingUser]);
 
@@ -695,6 +727,44 @@ export const UserDialog: FC<UserDialogProps> = () => {
                         )}
                       </FormControl>
 
+                      <FormControl mb={"10px"}>
+                        <FormLabel>{t("userDialog.ipLimit")}</FormLabel>
+                        <Controller
+                          control={form.control}
+                          name="ip_limit"
+                          render={({ field }) => (
+                            <Input
+                              type="number"
+                              size="sm"
+                              borderRadius="6px"
+                              placeholder={t("userDialog.ipLimitPlaceholder")}
+                              onChange={field.onChange}
+                              disabled={disabled}
+                              value={field.value ? String(field.value) : ""}
+                            />
+                          )}
+                        />
+                      </FormControl>
+
+                      <FormControl mb={"10px"}>
+                        <FormLabel>{t("userDialog.hwidLimit")}</FormLabel>
+                        <Controller
+                          control={form.control}
+                          name="hwid_limit"
+                          render={({ field }) => (
+                            <Input
+                              type="number"
+                              size="sm"
+                              borderRadius="6px"
+                              placeholder={t("userDialog.ipLimitPlaceholder")}
+                              onChange={field.onChange}
+                              disabled={disabled}
+                              value={field.value ? String(field.value) : ""}
+                            />
+                          )}
+                        />
+                      </FormControl>
+
                       <FormControl
                         mb={"10px"}
                         isInvalid={!!form.formState.errors.note}
@@ -767,6 +837,14 @@ export const UserDialog: FC<UserDialogProps> = () => {
                     </FormErrorMessage>
                   </FormControl>
                 </GridItem>
+                {isEditing && editingUser && (
+                  <GridItem pt={4} colSpan={{ base: 1, md: 2 }}>
+                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                      <UserOnlineIPs username={editingUser.username} />
+                      <UserDevices username={editingUser.username} />
+                    </SimpleGrid>
+                  </GridItem>
+                )}
                 {isEditing && usageVisible && (
                   <GridItem pt={6} colSpan={{ base: 1, md: 2 }}>
                     <VStack gap={4}>
@@ -777,16 +855,36 @@ export const UserDialog: FC<UserDialogProps> = () => {
                           fetchUsageWithFilter(query);
                         }}
                       />
-                      <Box
-                        width={{ base: "100%", md: "70%" }}
-                        justifySelf="center"
+                      <SimpleGrid
+                        columns={{ base: 1, md: 2 }}
+                        spacing={4}
+                        w="full"
                       >
-                        <ReactApexChart
-                          options={usage.options}
-                          series={usage.series}
-                          type="donut"
-                        />
-                      </Box>
+                        <VStack>
+                          <Text fontSize="sm" fontWeight="medium">
+                            {t("userDialog.usageByNode")}
+                          </Text>
+                          <Box w="full">
+                            <ReactApexChart
+                              options={usage.options}
+                              series={usage.series}
+                              type="donut"
+                            />
+                          </Box>
+                        </VStack>
+                        <VStack>
+                          <Text fontSize="sm" fontWeight="medium">
+                            {t("userDialog.usageByInbound")}
+                          </Text>
+                          <Box w="full">
+                            <ReactApexChart
+                              options={inboundUsage.options}
+                              series={inboundUsage.series}
+                              type="donut"
+                            />
+                          </Box>
+                        </VStack>
+                      </SimpleGrid>
                     </VStack>
                   </GridItem>
                 )}

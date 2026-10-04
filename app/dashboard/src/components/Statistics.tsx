@@ -1,7 +1,16 @@
-import { Box, BoxProps, Card, chakra, HStack, Text } from "@chakra-ui/react";
+import {
+  Box,
+  BoxProps,
+  Card,
+  chakra,
+  HStack,
+  Text,
+  useDisclosure,
+} from "@chakra-ui/react";
 import {
   ChartBarIcon,
   ChartPieIcon,
+  SignalIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
 import { useDashboard } from "contexts/DashboardContext";
@@ -10,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import { fetch } from "service/http";
 import { formatBytes, numberWithCommas } from "utils/formatByte";
+import { OnlineUser, OnlineUsersModal } from "./OnlineUsersModal";
 
 const TotalUsersIcon = chakra(UsersIcon, {
   baseStyle: {
@@ -21,6 +31,15 @@ const TotalUsersIcon = chakra(UsersIcon, {
 });
 
 const NetworkIcon = chakra(ChartBarIcon, {
+  baseStyle: {
+    w: 5,
+    h: 5,
+    position: "relative",
+    zIndex: "2",
+  },
+});
+
+const OnlineIcon = chakra(SignalIcon, {
   baseStyle: {
     w: 5,
     h: 5,
@@ -42,15 +61,19 @@ type StatisticCardProps = {
   title: string;
   content: ReactNode;
   icon: ReactElement;
+  onClick?: () => void;
 };
 
 const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
   title,
   content,
   icon,
+  onClick,
 }) => {
   return (
     <Card
+      onClick={onClick}
+      cursor={onClick ? "pointer" : undefined}
       p={6}
       borderWidth="1px"
       borderColor="light-border"
@@ -128,6 +151,16 @@ export const Statistics: FC<BoxProps> = (props) => {
         useDashboard.setState({ version: currentVersion });
     },
   });
+  const { data: onlineData } = useQuery<{
+    online_users: number;
+    online_ips: number;
+    users: OnlineUser[];
+  }>({
+    queryKey: "online-query-key",
+    queryFn: () => fetch("/online"),
+    refetchInterval: 10000,
+  });
+  const onlineModal = useDisclosure();
   const { t } = useTranslation();
   return (
     <HStack
@@ -170,6 +203,27 @@ export const Statistics: FC<BoxProps> = (props) => {
         icon={<NetworkIcon />}
       />
       <StatisticCard
+        title={t("online.title")}
+        onClick={onlineModal.onOpen}
+        content={
+          onlineData && (
+            <HStack alignItems="flex-end">
+              <Text>{numberWithCommas(onlineData.online_users)}</Text>
+              <Text
+                fontWeight="normal"
+                fontSize="lg"
+                as="span"
+                display="inline-block"
+                pb="5px"
+              >
+                / {numberWithCommas(onlineData.online_ips)} IP
+              </Text>
+            </HStack>
+          )
+        }
+        icon={<OnlineIcon />}
+      />
+      <StatisticCard
         title={t("memoryUsage")}
         content={
           systemData && (
@@ -189,6 +243,11 @@ export const Statistics: FC<BoxProps> = (props) => {
           )
         }
         icon={<MemoryIcon />}
+      />
+      <OnlineUsersModal
+        isOpen={onlineModal.isOpen}
+        onClose={onlineModal.onClose}
+        users={onlineData?.users ?? []}
       />
     </HStack>
   );

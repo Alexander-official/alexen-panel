@@ -1,9 +1,9 @@
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.db import Session, crud, get_db
 from app.utils.jwt import get_admin_payload
@@ -24,7 +24,16 @@ class Admin(BaseModel):
     telegram_id: Optional[int] = None
     discord_webhook: Optional[str] = None
     users_usage: Optional[int] = None
+    users_limit: Optional[int] = Field(None, ge=0, description="max users, null/0 means unlimited")
+    traffic_limit: Optional[int] = Field(
+        None, ge=0, description="max data limit (bytes) the admin can hand out in total, null/0 means unlimited")
+    host_groups: List[str] = Field(default_factory=list, description="host groups of the admin's users, empty means all")
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("host_groups", mode="before")
+    @classmethod
+    def none_to_list(cls, v):
+        return v or []
 
     @field_validator("users_usage",  mode='before')
     def cast_to_int(cls, v):
@@ -111,6 +120,9 @@ class AdminModify(BaseModel):
     is_sudo: bool
     telegram_id: Optional[int] = None
     discord_webhook: Optional[str] = None
+    users_limit: Optional[int] = Field(None, ge=0)
+    traffic_limit: Optional[int] = Field(None, ge=0)
+    host_groups: Optional[List[str]] = None
 
     @property
     def hashed_password(self):

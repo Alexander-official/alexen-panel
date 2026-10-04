@@ -49,6 +49,8 @@ export type User = {
   expire: number | null;
   data_limit: number | null;
   data_limit_reset_strategy: DataLimitResetStrategy;
+  ip_limit: number | null;
+  hwid_limit: number | null;
   on_hold_expire_duration: number | null;
   lifetime_used_traffic: number;
   username: string;
@@ -68,6 +70,8 @@ export type UserCreate = Pick<
   | "expire"
   | "data_limit"
   | "data_limit_reset_strategy"
+  | "ip_limit"
+  | "hwid_limit"
   | "on_hold_expire_duration"
   | "username"
   | "status"

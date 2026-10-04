@@ -66,6 +66,7 @@ type DashboardStateType = {
   createUser: (user: UserCreate) => Promise<void>;
   editUser: (user: UserCreate) => Promise<void>;
   fetchUserUsage: (user: User, query: FilterUsageType) => Promise<void>;
+  fetchUserInboundUsage: (user: User) => Promise<any>;
   setQRCode: (links: string[] | null) => void;
   setSubLink: (subscribeURL: string | null) => void;
   onEditingHosts: (isEditingHosts: boolean) => void;
@@ -186,6 +187,9 @@ export const useDashboard = create(
           delete query[key as keyof FilterUsageType];
       }
       return fetch(`/user/${body.username}/usage`, { method: "GET", query });
+    },
+    fetchUserInboundUsage: (body: User) => {
+      return fetch(`/user/${body.username}/inbound-usage`, { method: "GET" });
     },
     onEditingHosts: (isEditingHosts: boolean) => {
       set({ isEditingHosts });

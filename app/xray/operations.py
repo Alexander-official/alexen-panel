@@ -8,6 +8,7 @@ from app.db import GetDB, crud
 from app.models.node import NodeStatus
 from app.models.user import UserResponse
 from app.utils.concurrency import threaded_function
+from app.xray.config import user_email
 from app.xray.node import XRayNode
 from xray_api import XRay as XRayAPI
 from xray_api.types.account import Account, XTLSFlows
@@ -58,7 +59,6 @@ def _alter_inbound_user(api: XRayAPI, inbound_tag: str, account: Account):
 
 def add_user(dbuser: "DBUser"):
     user = UserResponse.model_validate(dbuser)
-    email = f"{dbuser.id}.{dbuser.username}"
 
     for proxy_type, inbound_tags in user.inbounds.items():
         for inbound_tag in inbound_tags:
@@ -68,7 +68,8 @@ def add_user(dbuser: "DBUser"):
                 proxy_settings = user.proxies[proxy_type].dict(no_obj=True)
             except KeyError:
                 pass
-            account = proxy_type.account_model(email=email, **proxy_settings)
+            account = proxy_type.account_model(
+                email=user_email(dbuser.id, dbuser.username, inbound_tag), **proxy_settings)
 
             # XTLS currently only supports transmission methods of TCP and mKCP
             if getattr(account, 'flow', None) and (
@@ -91,9 +92,8 @@ def add_user(dbuser: "DBUser"):
 
 
 def remove_user(dbuser: "DBUser"):
-    email = f"{dbuser.id}.{dbuser.username}"
-
     for inbound_tag in xray.config.inbounds_by_tag:
+        email = user_email(dbuser.id, dbuser.username, inbound_tag)
         _remove_user_from_inbound(xray.api, inbound_tag, email)
         for node in list(xray.nodes.values()):
             if node.connected and node.started:
@@ -102,7 +102,6 @@ def remove_user(dbuser: "DBUser"):
 
 def update_user(dbuser: "DBUser"):
     user = UserResponse.model_validate(dbuser)
-    email = f"{dbuser.id}.{dbuser.username}"
 
     active_inbounds = []
     for proxy_type, inbound_tags in user.inbounds.items():
@@ -114,7 +113,8 @@ def update_user(dbuser: "DBUser"):
                 proxy_settings = user.proxies[proxy_type].dict(no_obj=True)
             except KeyError:
                 pass
-            account = proxy_type.account_model(email=email, **proxy_settings)
+            account = proxy_type.account_model(
+                email=user_email(dbuser.id, dbuser.username, inbound_tag), **proxy_settings)
 
             # XTLS currently only supports transmission methods of TCP and mKCP
             if getattr(account, 'flow', None) and (
@@ -139,6 +139,7 @@ def update_user(dbuser: "DBUser"):
         if inbound_tag in active_inbounds:
             continue
         # remove disabled inbounds
+        email = user_email(dbuser.id, dbuser.username, inbound_tag)
         _remove_user_from_inbound(xray.api, inbound_tag, email)
         for node in list(xray.nodes.values()):
             if node.connected and node.started:

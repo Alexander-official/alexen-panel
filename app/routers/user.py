@@ -10,6 +10,8 @@ from app.dependencies import get_expired_users_list, get_validated_user, validat
 from app.models.admin import Admin
 from app.models.user import (
     UserCreate,
+    UserHWIDDevicesResponse,
+    UserInboundUsagesResponse,
     UserModify,
     UserResponse,
     UsersResponse,
@@ -269,6 +271,49 @@ def get_user_usage(
     usages = crud.get_user_usages(db, dbuser, start, end)
 
     return {"usages": usages, "username": dbuser.username}
+
+
+@router.get("/user/{username}/inbound-usage", response_model=UserInboundUsagesResponse,
+            responses={403: responses._403, 404: responses._404})
+def get_user_inbound_usage(dbuser: UserResponse = Depends(get_validated_user)):
+    """Get users usage per inbound (since the last usage reset)"""
+    usages = []
+    for usage in dbuser.inbound_usages:
+        inbound = xray.config.inbounds_by_tag.get(usage.inbound_tag, {})
+        usages.append({
+            "inbound_tag": usage.inbound_tag,
+            "protocol": inbound.get("protocol"),
+            "network": inbound.get("network"),
+            "used_traffic": usage.used_traffic or 0,
+        })
+    usages.sort(key=lambda u: u["used_traffic"], reverse=True)
+    return {"usages": usages, "username": dbuser.username}
+
+
+@router.get("/user/{username}/devices", response_model=UserHWIDDevicesResponse,
+            responses={403: responses._403, 404: responses._404})
+def get_user_devices(dbuser: UserResponse = Depends(get_validated_user), db: Session = Depends(get_db)):
+    """Devices (HWID) the user fetched the subscription from"""
+    return {"username": dbuser.username, "hwid_limit": dbuser.hwid_limit,
+            "devices": crud.get_hwid_devices(db, dbuser)}
+
+
+@router.delete("/user/{username}/devices", responses={403: responses._403, 404: responses._404})
+def remove_user_devices(dbuser: UserResponse = Depends(get_validated_user), db: Session = Depends(get_db)):
+    """Forget all devices of the user"""
+    count = crud.remove_hwid_devices(db, dbuser)
+    logger.info(f'{count} device(s) of user "{dbuser.username}" removed')
+    return {"detail": f"{count} device(s) removed"}
+
+
+@router.delete("/user/{username}/devices/{device_id}", responses={403: responses._403, 404: responses._404})
+def remove_user_device(device_id: int, dbuser: UserResponse = Depends(get_validated_user),
+                       db: Session = Depends(get_db)):
+    """Forget one device of the user, so another one can take its place"""
+    if not crud.remove_hwid_devices(db, dbuser, device_id):
+        raise HTTPException(status_code=404, detail="Device not found")
+    logger.info(f'Device {device_id} of user "{dbuser.username}" removed')
+    return {"detail": "Device removed"}
 
 
 @router.post("/user/{username}/active-next", response_model=UserResponse, responses={403: responses._403, 404: responses._404})

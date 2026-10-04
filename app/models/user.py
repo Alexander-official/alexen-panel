@@ -66,6 +66,12 @@ class User(BaseModel):
         UserDataLimitResetStrategy.no_reset
     )
     inbounds: Dict[ProxyTypes, List[str]] = {}
+    ip_limit: Optional[int] = Field(
+        ge=0, default=None, description="max simultaneous IPs, 0 or null means unlimited"
+    )
+    hwid_limit: Optional[int] = Field(
+        ge=0, default=None, description="max devices (HWID) that can fetch the subscription, 0 or null means unlimited"
+    )
     note: Optional[str] = Field(None, nullable=True)
     sub_updated_at: Optional[datetime] = Field(None, nullable=True)
     sub_last_user_agent: Optional[str] = Field(None, nullable=True)
@@ -360,6 +366,36 @@ class UserUsageResponse(BaseModel):
 class UserUsagesResponse(BaseModel):
     username: str
     usages: List[UserUsageResponse]
+
+
+class UserHWIDDeviceResponse(BaseModel):
+    id: int
+    hwid: str
+    platform: Optional[str] = None
+    os_version: Optional[str] = None
+    device_model: Optional[str] = None
+    user_agent: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserHWIDDevicesResponse(BaseModel):
+    username: str
+    hwid_limit: Optional[int] = None
+    devices: List[UserHWIDDeviceResponse]
+
+
+class UserInboundUsageResponse(BaseModel):
+    inbound_tag: str
+    protocol: Optional[str] = None
+    network: Optional[str] = None
+    used_traffic: int
+
+
+class UserInboundUsagesResponse(BaseModel):
+    username: str
+    usages: List[UserInboundUsageResponse]
 
 
 class UsersUsagesResponse(BaseModel):

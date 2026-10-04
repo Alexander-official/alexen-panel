@@ -11,7 +11,7 @@ from sqlalchemy.sql.dml import Insert
 
 from app import scheduler, xray
 from app.db import GetDB
-from app.db.models import Admin, NodeUsage, NodeUserUsage, System, User
+from app.db.models import Admin, NodeUsage, NodeUserUsage, System, User, UserInboundUsage
 from config import (
     DISABLE_RECORDING_NODE_USAGE,
     JOB_RECORD_NODE_USAGES_INTERVAL,
@@ -108,14 +108,45 @@ def record_node_stats(params: dict, node_id: Union[int, None]):
 
 
 def get_users_stats(api: XRayAPI):
+    """Returns users usage, and the same usage split per inbound (from the «|<inbound tag>» part of the email)"""
     try:
         params = defaultdict(int)
+        inbound_params = defaultdict(int)
         for stat in filter(attrgetter('value'), api.get_users_stats(reset=True, timeout=30)):
-            params[stat.name.split('.', 1)[0]] += stat.value
+            uid = stat.name.split('.', 1)[0]
+            params[uid] += stat.value
+            if '|' in stat.name:
+                inbound_params[(uid, stat.name.split('|', 1)[1])] += stat.value
         params = list({"uid": uid, "value": value} for uid, value in params.items())
-        return params
+        inbound_params = list({"uid": uid, "tag": tag, "value": value}
+                              for (uid, tag), value in inbound_params.items())
+        return params, inbound_params
     except xray_exc.XrayError:
-        return []
+        return [], []
+
+
+def record_user_inbound_stats(params: list):
+    if not params:
+        return
+
+    with GetDB() as db:
+        select_stmt = select(UserInboundUsage.user_id, UserInboundUsage.inbound_tag) \
+            .where(UserInboundUsage.user_id.in_({int(p['uid']) for p in params}))
+        existings = set(db.execute(select_stmt).fetchall())
+        rows_to_insert = {(int(p['uid']), p['tag']) for p in params} - existings
+        if rows_to_insert:
+            stmt = insert(UserInboundUsage).values(
+                user_id=bindparam('uid'),
+                inbound_tag=bindparam('tag'),
+                used_traffic=0
+            )
+            safe_execute(db, stmt, [{'uid': uid, 'tag': tag} for uid, tag in rows_to_insert])
+
+        stmt = update(UserInboundUsage) \
+            .values(used_traffic=UserInboundUsage.used_traffic + bindparam('value')) \
+            .where(and_(UserInboundUsage.user_id == bindparam('uid'),
+                        UserInboundUsage.inbound_tag == bindparam('tag')))
+        safe_execute(db, stmt, params)
 
 
 def get_outbounds_stats(api: XRayAPI):
@@ -138,7 +169,14 @@ def record_user_usages():
 
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {node_id: executor.submit(get_users_stats, api) for node_id, api in api_instances.items()}
-    api_params = {node_id: future.result() for node_id, future in futures.items()}
+    results = {node_id: future.result() for node_id, future in futures.items()}
+    api_params = {node_id: result[0] for node_id, result in results.items()}
+
+    inbounds_usage = defaultdict(int)
+    for node_id, (_, inbound_params) in results.items():
+        coefficient = usage_coefficient.get(node_id, 1)
+        for param in inbound_params:
+            inbounds_usage[(int(param['uid']), param['tag'])] += int(param['value'] * coefficient)
 
     users_usage = defaultdict(int)
     for node_id, params in api_params.items():
@@ -169,12 +207,19 @@ def record_user_usages():
 
         safe_execute(db, stmt, users_usage)
 
+        # users that got deleted meanwhile have no row to reference
+        existing_uids = {uid for (uid,) in db.query(User.id).filter(
+            User.id.in_({uid for uid, _ in inbounds_usage})).all()}
+
         admin_data = [{"admin_id": admin_id, "value": value} for admin_id, value in admin_usage.items()]
         if admin_data:
             admin_update_stmt = update(Admin). \
                 where(Admin.id == bindparam('admin_id')). \
                 values(users_usage=Admin.users_usage + bindparam('value'))
             safe_execute(db, admin_update_stmt, admin_data)
+
+    record_user_inbound_stats([{"uid": uid, "tag": tag, "value": value}
+                               for (uid, tag), value in inbounds_usage.items() if uid in existing_uids])
 
     if DISABLE_RECORDING_NODE_USAGE:
         return

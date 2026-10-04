@@ -46,6 +46,11 @@ class Admin(Base):
     discord_webhook = Column(String(1024), nullable=True, default=None)
     users_usage = Column(BigInteger, nullable=False, default=0)
     usage_logs = relationship("AdminUsageLogs", back_populates="admin")
+    # reseller limits, null means unlimited
+    users_limit = Column(Integer, nullable=True, default=None)
+    traffic_limit = Column(BigInteger, nullable=True, default=None)
+    # host groups the admin's users get in their subscription, empty means every host
+    host_groups = Column(JSON, nullable=True, default=list)
 
 
 class AdminUsageLogs(Base):
@@ -67,8 +72,12 @@ class User(Base):
     status = Column(Enum(UserStatus), nullable=False, default=UserStatus.active)
     used_traffic = Column(BigInteger, default=0)
     node_usages = relationship("NodeUserUsage", back_populates="user", cascade="all, delete-orphan")
+    inbound_usages = relationship("UserInboundUsage", back_populates="user", cascade="all, delete-orphan")
     notification_reminders = relationship("NotificationReminder", back_populates="user", cascade="all, delete-orphan")
     data_limit = Column(BigInteger, nullable=True)
+    ip_limit = Column(Integer, nullable=True, default=None)
+    hwid_limit = Column(Integer, nullable=True, default=None)
+    hwid_devices = relationship("UserHWIDDevice", back_populates="user", cascade="all, delete-orphan")
     data_limit_reset_strategy = Column(
         Enum(UserDataLimitResetStrategy),
         nullable=False,
@@ -230,6 +239,7 @@ class ProxyHost(Base):
     id = Column(Integer, primary_key=True)
     remark = Column(String(256), unique=False, nullable=False)
     address = Column(String(256), unique=False, nullable=False)
+    group_name = Column(String(64), nullable=True, default=None)
     port = Column(Integer, nullable=True)
     path = Column(String(256), unique=False, nullable=True)
     sni = Column(String(1000), unique=False, nullable=True)
@@ -309,6 +319,37 @@ class Node(Base):
     user_usages = relationship("NodeUserUsage", back_populates="node", cascade="all, delete-orphan")
     usages = relationship("NodeUsage", back_populates="node", cascade="all, delete-orphan")
     usage_coefficient = Column(Float, nullable=False, server_default=text("1.0"), default=1)
+
+
+class UserHWIDDevice(Base):
+    __tablename__ = "user_hwid_devices"
+    __table_args__ = (
+        UniqueConstraint('user_id', 'hwid'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user = relationship("User", back_populates="hwid_devices")
+    hwid = Column(String(256), nullable=False)
+    platform = Column(String(64), nullable=True)
+    os_version = Column(String(64), nullable=True)
+    device_model = Column(String(128), nullable=True)
+    user_agent = Column(String(512), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class UserInboundUsage(Base):
+    __tablename__ = "user_inbound_usages"
+    __table_args__ = (
+        UniqueConstraint('user_id', 'inbound_tag'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user = relationship("User", back_populates="inbound_usages")
+    inbound_tag = Column(String(256), nullable=False)
+    used_traffic = Column(BigInteger, default=0)
 
 
 class NodeUserUsage(Base):
