@@ -313,6 +313,8 @@ class SingBoxConfiguration(str):
                     alpn=alpn.rsplit(sep=",") if alpn else ["h3"],
                     ais=inbound.get('ais', ''),
                 ),
+                **({"obfs": {"type": "salamander", "password": inbound['obfs_password']}}
+                   if inbound.get('obfs') == 'salamander' else {}),
             })
             return
 

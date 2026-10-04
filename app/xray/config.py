@@ -325,6 +325,12 @@ class XRayConfig(dict):
                     settings['host'] = net_settings.get('host') or net_settings.get('Host', '')
                     settings['path'] = net_settings.get('path', '')
 
+                elif net == 'hysteria':
+                    for mask in (stream.get('finalmask') or {}).get('udp') or []:
+                        if mask.get('type') == 'salamander':
+                            settings['obfs'] = 'salamander'
+                            settings['obfs_password'] = (mask.get('settings') or {}).get('password', '')
+
                 else:
                     settings['path'] = net_settings.get('path', '')
                     host = net_settings.get(

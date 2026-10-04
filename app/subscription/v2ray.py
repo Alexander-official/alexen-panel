@@ -165,6 +165,8 @@ class V2rayShareLink(str):
                 sni=inbound.get("sni", ""),
                 alpn=inbound.get("alpn", ""),
                 ais=inbound.get("ais", ""),
+                obfs=inbound.get("obfs", ""),
+                obfs_password=inbound.get("obfs_password", ""),
             )
         else:
             return
@@ -505,6 +507,8 @@ class V2rayShareLink(str):
             sni='',
             alpn='',
             ais='',
+            obfs='',
+            obfs_password='',
     ):
         payload = {}
         if sni:
@@ -512,6 +516,15 @@ class V2rayShareLink(str):
         payload["alpn"] = alpn or "h3"
         if ais:
             payload["insecure"] = 1
+        if obfs:
+            payload["obfs"] = obfs
+            payload["obfs-password"] = obfs_password
+            # Xray based clients read the obfs from finalmask (fm) instead
+            payload["fm"] = json.dumps(
+                {"udp": [{"type": obfs, "settings": {"password": obfs_password}}]},
+                separators=(",", ":"),
+            )
+        payload["security"] = "tls"
 
         return (
             "hysteria2://"
@@ -1127,6 +1140,10 @@ class V2rayJsonConfig(str):
                 "version": 2,
                 "auth": settings['auth'],
             }
+            if inbound.get('obfs') == 'salamander':
+                outbound["streamSettings"]["finalmask"] = {
+                    "udp": [{"type": "salamander", "settings": {"password": inbound['obfs_password']}}]
+                }
 
         mux_json = json.loads(self.mux_template)
         mux_config = mux_json["v2ray"]
