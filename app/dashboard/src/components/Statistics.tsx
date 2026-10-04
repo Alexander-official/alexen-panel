@@ -4,6 +4,7 @@ import {
   Card,
   chakra,
   HStack,
+  SimpleGrid,
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
@@ -74,10 +75,10 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
     <Card
       onClick={onClick}
       cursor={onClick ? "pointer" : undefined}
-      p={6}
+      p={{ base: 3, md: 6 }}
       borderWidth="1px"
       borderColor="light-border"
-      bg="#F9FAFB"
+      bg="var(--app-surface-2)"
       _dark={{ borderColor: "gray.600", bg: "gray.750" }}
       borderStyle="solid"
       boxShadow="none"
@@ -85,9 +86,12 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
       width="full"
       display="flex"
       justifyContent="space-between"
-      flexDirection="row"
+      flexDirection={{ base: "column", md: "row" }}
+      alignItems={{ base: "flex-start", md: "stretch" }}
+      gap={{ base: 1, md: 0 }}
+      minW={0}
     >
-      <HStack alignItems="center" columnGap="4">
+      <HStack alignItems="center" columnGap={{ base: 3, md: 4 }} minW={0}>
         <Box
           p="2"
           position="relative"
@@ -128,12 +132,13 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
           }}
           fontWeight="medium"
           textTransform="capitalize"
-          fontSize="sm"
+          fontSize={{ base: "xs", md: "sm" }}
+          isTruncated
         >
           {title}
         </Text>
       </HStack>
-      <Box fontSize="3xl" fontWeight="semibold" mt="2">
+      <Box fontSize={{ base: "xl", md: "3xl" }} fontWeight="semibold" mt={{ base: 0, md: 2 }}>
         {content}
       </Box>
     </Card>
@@ -145,7 +150,7 @@ export const Statistics: FC<BoxProps> = (props) => {
   const { data: systemData } = useQuery({
     queryKey: StatisticsQueryKey,
     queryFn: () => fetch("/system"),
-    refetchInterval: 5000,
+    refetchInterval: 10000,
     onSuccess: ({ version: currentVersion }) => {
       if (version !== currentVersion)
         useDashboard.setState({ version: currentVersion });
@@ -163,27 +168,23 @@ export const Statistics: FC<BoxProps> = (props) => {
   const onlineModal = useDisclosure();
   const { t } = useTranslation();
   return (
-    <HStack
-      justifyContent="space-between"
-      gap={0}
-      columnGap={{ lg: 4, md: 0 }}
-      rowGap={{ lg: 0, base: 4 }}
-      display="flex"
-      flexDirection={{ lg: "row", base: "column" }}
+    <SimpleGrid
+      columns={{ base: 2, lg: 4 }}
+      spacing={{ base: 2, md: 4 }}
       {...props}
     >
       <StatisticCard
         title={t("activeUsers")}
         content={
           systemData && (
-            <HStack alignItems="flex-end">
+            <HStack alignItems="flex-end" spacing={1} flexWrap="wrap">
               <Text>{numberWithCommas(systemData.users_active)}</Text>
               <Text
                 fontWeight="normal"
-                fontSize="lg"
+                fontSize={{ base: "xs", md: "lg" }}
                 as="span"
                 display="inline-block"
-                pb="5px"
+                pb={{ base: "3px", md: "5px" }}
               >
                 / {numberWithCommas(systemData.total_user)}
               </Text>
@@ -196,7 +197,7 @@ export const Statistics: FC<BoxProps> = (props) => {
         title={t("dataUsage")}
         content={
           systemData && (
-            <HStack alignItems="flex-end">
+            <HStack alignItems="flex-end" spacing={1} flexWrap="wrap">
               <Text>
                 {formatBytes(
                   systemData.incoming_bandwidth + systemData.outgoing_bandwidth
@@ -205,10 +206,10 @@ export const Statistics: FC<BoxProps> = (props) => {
               {systemData.traffic_limit ? (
                 <Text
                   fontWeight="normal"
-                  fontSize="lg"
+                  fontSize={{ base: "xs", md: "lg" }}
                   as="span"
                   display="inline-block"
-                  pb="5px"
+                  pb={{ base: "3px", md: "5px" }}
                 >
                   / {formatBytes(systemData.traffic_limit)}
                 </Text>
@@ -223,7 +224,7 @@ export const Statistics: FC<BoxProps> = (props) => {
         onClick={onlineModal.onOpen}
         content={
           onlineData && (
-            <HStack alignItems="flex-end">
+            <HStack alignItems="flex-end" spacing={1} flexWrap="wrap">
               <Text>{numberWithCommas(onlineData.online_users)}</Text>
             </HStack>
           )
@@ -234,14 +235,14 @@ export const Statistics: FC<BoxProps> = (props) => {
         title={t("memoryUsage")}
         content={
           systemData && (
-            <HStack alignItems="flex-end">
+            <HStack alignItems="flex-end" spacing={1} flexWrap="wrap">
               <Text>{formatBytes(systemData.mem_used, 1, true)[0]}</Text>
               <Text
                 fontWeight="normal"
-                fontSize="lg"
+                fontSize={{ base: "xs", md: "lg" }}
                 as="span"
                 display="inline-block"
-                pb="5px"
+                pb={{ base: "3px", md: "5px" }}
               >
                 {formatBytes(systemData.mem_used, 1, true)[1]} /{" "}
                 {formatBytes(systemData.mem_total, 1)}
@@ -255,6 +256,6 @@ export const Statistics: FC<BoxProps> = (props) => {
         isOpen={onlineModal.isOpen}
         onClose={onlineModal.onClose}
       />
-    </HStack>
+    </SimpleGrid>
   );
 };

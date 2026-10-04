@@ -248,7 +248,7 @@ export const UsageFilter: FC<UsageFilterProps> = ({
         borderWidth="1px"
         position="absolute"
         zIndex="1"
-        backgroundColor="white"
+        backgroundColor="var(--app-surface)"
         _dark={{
           backgroundColor: "gray.700",
         }}

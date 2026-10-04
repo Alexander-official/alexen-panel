@@ -71,15 +71,15 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
       }}
       position="sticky"
       top={0}
-      mx="-6"
-      px="6"
-      rowGap={4}
+      mx={{ base: -3, md: -6 }}
+      px={{ base: 3, md: 6 }}
+      rowGap={{ base: 2, md: 4 }}
       gap={{
         lg: 4,
         base: 0,
       }}
       bg="var(--chakra-colors-chakra-body-bg)"
-      py={4}
+      py={{ base: 2, md: 4 }}
       zIndex="docked"
       {...props}
     >
@@ -112,7 +112,9 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
         <HStack justifyContent="flex-end" alignItems="center" h="full">
           <Select
             size="sm"
-            maxW="190px"
+            maxW={{ base: "none", md: "190px" }}
+            flex={{ base: 1, md: "initial" }}
+            minW={0}
             borderColor="light-border"
             value={filters.sort || "-created_at"}
             onChange={(e) => onFilterChange({ sort: e.target.value, offset: 0 })}
@@ -141,7 +143,8 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
             colorScheme="primary"
             size="sm"
             onClick={() => onCreateUser(true)}
-            px={5}
+            px={{ base: 3, md: 5 }}
+            flexShrink={0}
           >
             {t("createUser")}
           </Button>

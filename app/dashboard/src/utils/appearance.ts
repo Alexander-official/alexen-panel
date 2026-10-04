@@ -4,7 +4,7 @@
 
 export type AccentName = "blue" | "teal" | "purple" | "green" | "rose" | "amber";
 export type Surface = "minimal" | "glass";
-export type Background = "default" | "slate" | "midnight" | "aurora" | "sunset";
+export type Background = "default" | "slate" | "midnight" | "aurora" | "sunset" | "amoled";
 
 export const ACCENTS: Record<AccentName, Record<number, string>> = {
   blue: {
@@ -33,29 +33,81 @@ export const ACCENTS: Record<AccentName, Record<number, string>> = {
   },
 };
 
-export const BACKGROUNDS: Record<Background, { light: string; dark: string; swatch: string }> = {
+// Each background also retints the panel itself, not just the page behind it:
+//  - dark mode: Chakra's gray scale (600 borders, 700 modals/menus/inputs,
+//    750 table heads/stat cards, 800 page/cards, 900) is replaced by a tinted one
+//  - light mode: gray 50-200 (hover/borders) and the surface colors are tinted
+// Every component reads these through CSS variables, so all blocks follow.
+type Tint = {
+  light: Record<string, string>;
+  dark: Record<string, string>;
+};
+
+export const BACKGROUNDS: Record<
+  Background,
+  { light: string; dark: string; swatch: string; tint?: Tint }
+> = {
   default: { light: "", dark: "", swatch: "#e2e8f0" },
   slate: {
     light: "linear-gradient(160deg,#eef2f7,#e2e8f0)",
     dark: "linear-gradient(160deg,#161b26,#0f1218)",
     swatch: "#64748b",
+    tint: {
+      light: { "gray-50": "#f4f6f9", "gray-100": "#e9edf2", "gray-200": "#dbe1e9",
+               border: "#cfd6e0", surface: "#fbfcfd", "surface-2": "#f2f5f8" },
+      dark: { "gray-600": "#3a4252", "gray-700": "#262c38", "gray-750": "#1f242e",
+              "gray-800": "#181c24", "gray-900": "#111419" },
+    },
   },
   midnight: {
     light: "linear-gradient(160deg,#e7edff,#dfe6fb)",
     dark: "linear-gradient(160deg,#0b1437,#0a0f26)",
     swatch: "#1e3a8a",
+    tint: {
+      light: { "gray-50": "#f2f5ff", "gray-100": "#e6ebfb", "gray-200": "#d5ddf5",
+               border: "#c9d3ef", surface: "#fbfcff", "surface-2": "#eef2fd" },
+      dark: { "gray-600": "#2b3a6b", "gray-700": "#18234a", "gray-750": "#141d3d",
+              "gray-800": "#0f1631", "gray-900": "#0a0f24" },
+    },
   },
   aurora: {
     light: "linear-gradient(135deg,#e0f7fa,#e8eaf6,#fce4ec)",
     dark: "linear-gradient(135deg,#0d2b2e,#141833,#2a1030)",
     swatch: "#2dd4bf",
+    tint: {
+      light: { "gray-50": "#f1fbfb", "gray-100": "#e3f4f4", "gray-200": "#cfe8ea",
+               border: "#c3dfe2", surface: "#fbfefe", "surface-2": "#edf7f8" },
+      dark: { "gray-600": "#2c4a52", "gray-700": "#1b2e38", "gray-750": "#17262f",
+              "gray-800": "#121e26", "gray-900": "#0d161c" },
+    },
   },
   sunset: {
     light: "linear-gradient(135deg,#fff1e6,#ffe3ec,#f3e8ff)",
     dark: "linear-gradient(135deg,#2a160f,#2a1020,#1a1030)",
     swatch: "#fb7185",
+    tint: {
+      light: { "gray-50": "#fff6f2", "gray-100": "#fdebe6", "gray-200": "#f6d8d3",
+               border: "#efcac4", surface: "#fffcfb", "surface-2": "#fdf1ee" },
+      dark: { "gray-600": "#553040", "gray-700": "#3a1f2c", "gray-750": "#301a25",
+              "gray-800": "#26141e", "gray-900": "#1c0f16" },
+    },
+  },
+  // pure black for OLED phones; in light mode it behaves like default
+  amoled: {
+    light: "",
+    dark: "#000000",
+    swatch: "#000000",
+    tint: {
+      light: {},
+      dark: { "gray-600": "#2a2a2a", "gray-700": "#161616", "gray-750": "#0e0e0e",
+              "gray-800": "#000000", "gray-900": "#000000" },
+    },
   },
 };
+
+const TINT_VARS = [
+  "gray-50", "gray-100", "gray-200", "gray-600", "gray-700", "gray-750", "gray-800", "gray-900",
+];
 
 export type Appearance = {
   accent: AccentName;
@@ -92,11 +144,26 @@ export const applyAppearance = (a: Appearance) => {
     root.classList.contains("chakra-ui-dark") ||
     document.body.classList.contains("chakra-ui-dark") ||
     document.documentElement.getAttribute("data-theme") === "dark";
-  root.style.setProperty("--app-bg", (dark ? bg.dark : bg.light) || "");
+  const pageBg = (dark ? bg.dark : bg.light) || "";
+  root.style.setProperty("--app-bg", pageBg);
+
+  // reset, then apply this background's tint for the current color mode
+  TINT_VARS.forEach((v) => root.style.removeProperty(`--chakra-colors-${v}`));
+  root.style.removeProperty("--chakra-colors-light-border");
+  root.style.removeProperty("--app-surface");
+  root.style.removeProperty("--app-surface-2");
+  const tint = bg.tint ? (dark ? bg.tint.dark : bg.tint.light) : {};
+  Object.entries(tint).forEach(([k, v]) => {
+    if (k === "border") root.style.setProperty("--chakra-colors-light-border", v);
+    else if (k === "surface" || k === "surface-2") root.style.setProperty(`--app-${k}`, v);
+    else root.style.setProperty(`--chakra-colors-${k}`, v);
+  });
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta && dark) meta.setAttribute("content", tint["gray-800"] || "#1A202C");
 
   root.classList.toggle("theme-glass", a.surface === "glass");
   root.classList.toggle("theme-animated", a.animations);
-  root.classList.toggle("has-bg", a.background !== "default");
+  root.classList.toggle("has-bg", !!pageBg);
 
   try {
     localStorage.setItem(KEY, JSON.stringify(a));

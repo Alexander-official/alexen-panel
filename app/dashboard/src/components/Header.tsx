@@ -196,7 +196,9 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
                       bg={ACCENTS[name][500]}
                       border="2px solid"
                       borderColor={
-                        appearance.accent === name ? "gray.500" : "transparent"
+                        appearance.accent === name
+                          ? colorMode === "dark" ? "white" : "gray.700"
+                          : "transparent"
                       }
                       onClick={() => update({ accent: name })}
                     />
@@ -216,8 +218,10 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
                       border="2px solid"
                       borderColor={
                         appearance.background === name
-                          ? "gray.500"
-                          : "transparent"
+                          ? "primary.500"
+                          : colorMode === "dark"
+                          ? "whiteAlpha.400"
+                          : "blackAlpha.200"
                       }
                       onClick={() => update({ background: name })}
                     />

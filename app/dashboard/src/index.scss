@@ -286,15 +286,51 @@ table thead {
 }
 
 
-/* ============ Alexen appearance (liquid glass, backgrounds, animations) ============ */
-:root { --app-bg: ""; }
-
-.has-bg body {
-  background: var(--app-bg) !important;
-  background-attachment: fixed !important;
+/* ============ Alexen appearance (themes, glass, backgrounds, animations) ============
+   Performance rules for this block:
+   - no backdrop-filter on anything that repeats (table cells, rows); only on a
+     handful of large surfaces, and never on phones
+   - no CSS filter on full-screen layers; the page background and aurora live
+     on fixed layers so scrolling never repaints them
+*/
+:root {
+  --app-bg: "";
+  --app-surface: #ffffff;
+  --app-surface-2: #f9fafb;
 }
 
-/* animated aurora blobs behind everything (only with a background + animations on) */
+/* page background on a fixed layer (cheaper than background-attachment: fixed) */
+.has-bg body,
+.theme-glass body {
+  background: transparent !important;
+}
+.has-bg body::after,
+.theme-glass body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: var(--app-bg);
+}
+/* glass without a picked background still needs something for the blur to show */
+.theme-glass:not(.has-bg) body::after {
+  background:
+    radial-gradient(60vmax 60vmax at 15% 0%, rgba(99,140,255,0.16), transparent 55%),
+    radial-gradient(55vmax 55vmax at 100% 20%, rgba(180,120,255,0.14), transparent 55%),
+    #f3f5f9;
+}
+.chakra-ui-dark.theme-glass:not(.has-bg) body::after,
+.theme-glass:not(.has-bg) .chakra-ui-dark::after,
+.theme-glass:not(.has-bg) body.chakra-ui-dark::after {
+  background:
+    radial-gradient(60vmax 60vmax at 15% 0%, rgba(99,140,255,0.20), transparent 55%),
+    radial-gradient(55vmax 55vmax at 100% 20%, rgba(150,90,255,0.18), transparent 55%),
+    var(--chakra-colors-gray-900);
+}
+
+/* slow accent glow behind everything: gradients are already soft, so no blur
+   filter; only transform is animated, which stays on the GPU */
 .has-bg.theme-animated body::before {
   content: "";
   position: fixed;
@@ -305,108 +341,164 @@ table thead {
     radial-gradient(38vmax 38vmax at 18% 22%, var(--chakra-colors-primary-400), transparent 60%),
     radial-gradient(32vmax 32vmax at 82% 30%, var(--chakra-colors-primary-200), transparent 60%),
     radial-gradient(42vmax 42vmax at 60% 85%, var(--chakra-colors-primary-600), transparent 62%);
-  opacity: 0.22;
-  filter: blur(40px) saturate(130%);
-  animation: alexen-float 24s ease-in-out infinite alternate;
+  opacity: 0.16;
+  will-change: transform;
+  animation: alexen-float 30s ease-in-out infinite alternate;
 }
-.chakra-ui-dark.has-bg.theme-animated body::before,
-.has-bg.theme-animated .chakra-ui-dark body::before { opacity: 0.30; }
+.has-bg.theme-animated body.chakra-ui-dark::before { opacity: 0.22; }
 
 @keyframes alexen-float {
-  0%   { transform: translate3d(0,0,0) scale(1) rotate(0deg); }
-  50%  { transform: translate3d(2vmax,-3vmax,0) scale(1.12) rotate(8deg); }
-  100% { transform: translate3d(-2vmax,2vmax,0) scale(1.05) rotate(-6deg); }
+  0%   { transform: translate3d(0,0,0) scale(1); }
+  50%  { transform: translate3d(2vmax,-3vmax,0) scale(1.08); }
+  100% { transform: translate3d(-2vmax,2vmax,0) scale(1.04); }
 }
 
-/* when glass is on but no background picked, still give a subtle backdrop so the blur reads */
-.theme-glass:not(.has-bg) body {
-  background:
-    radial-gradient(60vmax 60vmax at 15% 0%, rgba(99,140,255,0.16), transparent 55%),
-    radial-gradient(55vmax 55vmax at 100% 20%, rgba(180,120,255,0.14), transparent 55%),
-    #f3f5f9 !important;
-  background-attachment: fixed !important;
+/* ---- surfaces follow the theme (light mode; dark mode is done by the gray vars) ---- */
+body:not(.chakra-ui-dark) {
+  .chakra-modal__content,
+  .chakra-menu__menu-list,
+  .chakra-popover__content,
+  .alexen-sidebar {
+    background-color: var(--app-surface);
+  }
+  .chakra-card { background-color: var(--app-surface); }
 }
-.chakra-ui-dark.theme-glass:not(.has-bg) body,
-.theme-glass:not(.has-bg) .chakra-ui-dark body {
-  background:
-    radial-gradient(60vmax 60vmax at 15% 0%, rgba(99,140,255,0.20), transparent 55%),
-    radial-gradient(55vmax 55vmax at 100% 20%, rgba(150,90,255,0.18), transparent 55%),
-    #0f1420 !important;
-  background-attachment: fixed !important;
+body.chakra-ui-dark {
+  .chakra-modal__content,
+  .chakra-menu__menu-list,
+  .chakra-popover__content {
+    background-color: var(--chakra-colors-gray-700);
+  }
+  .alexen-sidebar { background-color: var(--chakra-colors-gray-800); }
+}
+/* themed page: the sticky toolbar and table head blend with the backdrop
+   (translucent tint, no blur: a blur per header cell is what made it lag) */
+.has-bg #filters,
+.theme-glass #filters {
+  background: color-mix(in srgb, var(--app-surface) 72%, transparent) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.has-bg body.chakra-ui-dark #filters,
+.theme-glass body.chakra-ui-dark #filters {
+  background: color-mix(in srgb, var(--chakra-colors-gray-800) 72%, transparent) !important;
+}
+.has-bg #users-table td,
+.theme-glass #users-table td {
+  background-color: color-mix(in srgb, var(--app-surface) 55%, transparent);
+}
+.has-bg body.chakra-ui-dark #users-table td,
+.theme-glass body.chakra-ui-dark #users-table td {
+  background-color: color-mix(in srgb, var(--chakra-colors-gray-800) 55%, transparent);
 }
 
-/* liquid glass surfaces */
+/* ---- liquid glass (desktop): a few big surfaces only ---- */
 .theme-glass {
   .chakra-modal__content,
   .chakra-menu__menu-list,
-  .chakra-card,
-  .chakra-popover__content {
-    background-color: rgba(255,255,255,0.38) !important;
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+  .chakra-popover__content,
+  .alexen-sidebar,
+  .chakra-card {
+    background-color: color-mix(in srgb, var(--app-surface) 55%, transparent) !important;
     border: 1px solid rgba(255,255,255,0.55) !important;
-    box-shadow:
-      0 8px 32px rgba(31,38,135,0.14),
-      inset 0 1px 0 rgba(255,255,255,0.65) !important;
-    position: relative;
-    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(31,38,135,0.12), inset 0 1px 0 rgba(255,255,255,0.6) !important;
   }
-}
-.chakra-ui-dark.theme-glass,
-.theme-glass .chakra-ui-dark {
   .chakra-modal__content,
   .chakra-menu__menu-list,
-  .chakra-card,
-  .chakra-popover__content {
-    background-color: rgba(26,32,44,0.40) !important;
-    border: 1px solid rgba(255,255,255,0.10) !important;
-    box-shadow:
-      0 8px 32px rgba(0,0,0,0.35),
-      inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  .chakra-popover__content,
+  .alexen-sidebar {
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+  }
+  .chakra-modal__content { overflow: hidden; }
+  /* cards sit on the page, a tint is enough and costs nothing */
+}
+.theme-glass body.chakra-ui-dark {
+  .chakra-modal__content,
+  .chakra-menu__menu-list,
+  .chakra-popover__content,
+  .alexen-sidebar,
+  .chakra-card {
+    background-color: color-mix(in srgb, var(--chakra-colors-gray-700) 60%, transparent) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06) !important;
   }
 }
 
-/* smooth transitions when animations are on */
-.theme-animated {
-  .chakra-card,
-  .chakra-button,
-  .chakra-modal__content { transition: transform .25s ease, box-shadow .25s ease, background-color .25s ease; }
-  .chakra-card:hover { transform: translateY(-2px); }
+/* ---- motion ---- */
+@media (hover: hover) {
+  .theme-animated {
+    .chakra-card { transition: transform .2s ease, box-shadow .2s ease; }
+    .chakra-card:hover { transform: translateY(-2px); }
+  }
 }
-/* animations off: kill all motion */
 html:not(.theme-animated) * {
   animation: none !important;
   transition: none !important;
 }
-
-
-/* themed backgrounds: make the sticky toolbar and table header blend instead of
-   showing a solid color band */
-.has-bg #filters,
-.theme-glass #filters {
-  background: transparent !important;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-.has-bg thead th,
-.theme-glass thead th {
-  background-color: transparent !important;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none !important; }
 }
 
-/* sidebar blends into themed / glass backgrounds */
-.has-bg .alexen-sidebar,
-.theme-glass .alexen-sidebar {
-  background-color: rgba(255,255,255,0.45) !important;
-  backdrop-filter: blur(22px) saturate(180%);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  border-color: rgba(255,255,255,0.55) !important;
-}
-.chakra-ui-dark.has-bg .alexen-sidebar,
-.chakra-ui-dark.theme-glass .alexen-sidebar,
-.has-bg .chakra-ui-dark .alexen-sidebar,
-.theme-glass .chakra-ui-dark .alexen-sidebar {
-  background-color: rgba(26,32,44,0.45) !important;
-  border-color: rgba(255,255,255,0.10) !important;
+/* ============ phones ============ */
+@media (max-width: 47.99em) {
+  /* backdrop blur is the most expensive thing on mobile GPUs: use opaque-ish
+     tinted surfaces instead */
+  .theme-glass,
+  .has-bg {
+    .chakra-modal__content,
+    .chakra-menu__menu-list,
+    .chakra-popover__content,
+    .alexen-sidebar,
+    #filters {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .chakra-modal__content,
+    .chakra-menu__menu-list,
+    .chakra-popover__content,
+    .alexen-sidebar {
+      background-color: var(--app-surface) !important;
+    }
+    #filters {
+      background: color-mix(in srgb, var(--app-surface) 94%, transparent) !important;
+    }
+  }
+  .theme-glass body.chakra-ui-dark,
+  .has-bg body.chakra-ui-dark {
+    .chakra-modal__content,
+    .chakra-menu__menu-list,
+    .chakra-popover__content {
+      background-color: var(--chakra-colors-gray-700) !important;
+    }
+    .alexen-sidebar { background-color: var(--chakra-colors-gray-800) !important; }
+    #filters {
+      background: color-mix(in srgb, var(--chakra-colors-gray-800) 94%, transparent) !important;
+    }
+  }
+  /* the floating glow costs battery on phones */
+  .has-bg.theme-animated body::before { animation: none; }
+
+  /* iOS zooms into any input under 16px: keep them at 16px */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* modals: use the whole width, keep the bottom bar clear, scroll inside */
+  .chakra-modal__content-container { align-items: flex-start !important; }
+  .chakra-modal__content {
+    margin: 8px !important;
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    margin-bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+  }
+  .chakra-modal__body { padding-left: 14px !important; padding-right: 14px !important; }
+  .chakra-modal__header { padding-left: 14px !important; padding-right: 44px !important; }
+  .chakra-modal__footer {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* comfortable tap targets */
+  .chakra-menu__menuitem { min-height: 40px; }
 }

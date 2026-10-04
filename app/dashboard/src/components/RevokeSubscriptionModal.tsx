@@ -67,7 +67,7 @@ export const RevokeSubscriptionModal: FC<RevokeSubscriptionModalProps> = () => {
       <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
       <ModalContent mx="3">
         <ModalHeader pt={6}>
-          <Icon color="blue">
+          <Icon color="primary">
             <ResetIcon />
           </Icon>
         </ModalHeader>
@@ -96,7 +96,7 @@ export const RevokeSubscriptionModal: FC<RevokeSubscriptionModalProps> = () => {
           <Button
             size="sm"
             w="full"
-            colorScheme="blue"
+            colorScheme="primary"
             onClick={onReset}
             leftIcon={loading ? <Spinner size="xs" /> : undefined}
           >

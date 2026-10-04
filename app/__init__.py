@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 
@@ -25,6 +26,8 @@ scheduler = BackgroundScheduler(
 )
 logger = logging.getLogger("uvicorn.error")
 
+# the dashboard bundle is ~2.8MB raw, ~0.8MB gzipped
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,

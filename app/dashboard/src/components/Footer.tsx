@@ -14,7 +14,7 @@ export const Footer: FC<BoxProps> = (props) => {
         color="gray.500"
         fontSize="xs"
       >
-        <Link color="blue.400" href={REPO_URL}>
+        <Link color="primary.400" href={REPO_URL}>
           {BRAND_NAME}
         </Link>
         {version ? ` (v${version})` : ""} · {BRAND_VENDOR}

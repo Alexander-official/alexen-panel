@@ -45,6 +45,9 @@ class NoCacheHTMLStatics(StaticFiles):
         media = response.headers.get("content-type", "")
         if path.endswith(".html") or media.startswith("text/html"):
             response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        elif path.startswith("statics/") and "/locales/" not in path:
+            # vite puts a content hash in these names, so they never change
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         return response
 
 

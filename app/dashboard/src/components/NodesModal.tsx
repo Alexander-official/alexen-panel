@@ -73,7 +73,7 @@ import { Input } from "./Input";
 
 const CustomInput = chakra(Input, {
   baseStyle: {
-    bg: "white",
+    bg: "var(--app-surface)",
     _dark: {
       bg: "gray.700",
     },
@@ -161,7 +161,7 @@ const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
           <HStack>
             {node.xray_version && (
               <Badge
-                colorScheme="blue"
+                colorScheme="primary"
                 rounded="full"
                 display="inline-flex"
                 px={3}

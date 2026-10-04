@@ -239,13 +239,20 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
   const [top, setTop] = useState(`${marginTop}px`);
   const useTable = useBreakpointValue({ base: false, md: true });
 
+  // keep the sticky table header right under the filters bar. Only its height
+  // matters, so watch size changes instead of re-rendering on every scroll.
   useEffect(() => {
-    const calcTop = () => {
-      const el = document.querySelectorAll("#filters")[0] as HTMLElement;
-      setTop(`${el.offsetHeight}px`);
-    };
-    window.addEventListener("scroll", calcTop);
-    () => window.removeEventListener("scroll", calcTop);
+    const el = document.getElementById("filters");
+    if (!el) return;
+    const calcTop = () =>
+      setTop((prev) => {
+        const next = `${el.offsetHeight}px`;
+        return prev === next ? prev : next;
+      });
+    calcTop();
+    const ro = new ResizeObserver(calcTop);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   const isFiltered = users.length !== totalUsers.total;
@@ -315,7 +322,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                       bg: "gray.750",
                     }}
                     _light={{
-                      bg: "#F9FAFB",
+                      bg: "var(--app-surface-2)",
                     }}
                     userSelect="none"
                     pointerEvents="none"
@@ -393,7 +400,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                           <OnlineBadge lastOnline={user.online_at} />
                           <Text isTruncated>{user.username}</Text>
                         </div>
-                        <HStack pl="20px" spacing={2} mt="1px">
+                        <HStack pl="20px" spacing={2} mt="1px" flexWrap="wrap" rowGap={0}>
                           {isSudo && user.admin?.username && (
                             <Text fontSize="xs" color="gray.500" isTruncated>
                               👤 {user.admin.username}

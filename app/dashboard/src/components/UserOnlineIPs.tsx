@@ -124,7 +124,7 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
               </Badge>
             ))}
             {ip.inbounds.map((inbound) => (
-              <Badge key={inbound} colorScheme="blue" fontSize="2xs">
+              <Badge key={inbound} colorScheme="primary" fontSize="2xs">
                 {inbound}
               </Badge>
             ))}

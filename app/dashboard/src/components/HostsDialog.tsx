@@ -92,7 +92,7 @@ export const DownIcon = chakra(ArrowDownIcon, {
 
 const Select = chakra(ChakraSelect, {
   baseStyle: {
-    bg: "white",
+    bg: "var(--app-surface)",
     _dark: {
       bg: "gray.700",
     },
@@ -101,7 +101,7 @@ const Select = chakra(ChakraSelect, {
 
 const Input = chakra(CustomInput, {
   baseStyle: {
-    bg: "white",
+    bg: "var(--app-surface)",
     _dark: {
       bg: "gray.700",
     },

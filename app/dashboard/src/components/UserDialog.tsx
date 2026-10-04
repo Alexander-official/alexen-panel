@@ -43,7 +43,9 @@ import { resetStrategy } from "constants/UserSettings";
 import { FilterUsageType, useDashboard } from "contexts/DashboardContext";
 import dayjs from "dayjs";
 import { FC, useEffect, useState } from "react";
-import ReactApexChart from "react-apexcharts";
+import { lazy, Suspense } from "react";
+// charts are only drawn when the usage panel is opened
+const ReactApexChart = lazy(() => import("react-apexcharts"));
 import ReactDatePicker from "react-datepicker";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -607,7 +609,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                                   }}
                                   sx={{
                                     option: {
-                                      backgroundColor: colorMode === "dark" ? "#222C3B" : "white"
+                                      backgroundColor: colorMode === "dark" ? "var(--chakra-colors-gray-750)" : "var(--app-surface)"
                                     }
                                   }}
                                 >
@@ -888,6 +890,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                           fetchUsageWithFilter(query);
                         }}
                       />
+                      <Suspense fallback={null}>
                       <SimpleGrid
                         columns={{ base: 1, md: 2 }}
                         spacing={4}
@@ -918,6 +921,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                           </Box>
                         </VStack>
                       </SimpleGrid>
+                      </Suspense>
                     </VStack>
                   </GridItem>
                 )}

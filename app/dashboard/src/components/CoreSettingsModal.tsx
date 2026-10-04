@@ -291,7 +291,7 @@ const CoreSettingModalContent: FC = () => {
                   }}
                   sx={{
                     option: {
-                      backgroundColor: colorMode === "dark" ? "#222C3B" : "white"
+                      backgroundColor: colorMode === "dark" ? "var(--chakra-colors-gray-750)" : "var(--app-surface)"
                     }
                   }}
                   onChange={(v) =>

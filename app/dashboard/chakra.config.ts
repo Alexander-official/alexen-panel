@@ -96,7 +96,7 @@ export const theme = extendTheme({
           borderBottomColor: "light-border",
         },
         th: {
-          background: "#F9FAFB",
+          background: "var(--app-surface-2)",
           borderColor: "light-border !important",
           borderBottomColor: "light-border !important",
           borderTop: "1px solid ",
