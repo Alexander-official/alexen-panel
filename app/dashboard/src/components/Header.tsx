@@ -67,6 +67,7 @@ const NodesIcon = chakra(SquaresPlusIcon, iconProps);
 const NodesUsageIcon = chakra(ChartPieIcon, iconProps);
 const ResetUsageIcon = chakra(DocumentMinusIcon, iconProps);
 const AdminsIcon = chakra(UsersIcon, iconProps);
+const StatsIcon = chakra(ChartPieIcon, iconProps);
 const NotificationCircle = chakra(Box, {
   baseStyle: {
     bg: "yellow.500",
@@ -109,6 +110,7 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
     onResetAllUsage,
     onEditingNodes,
     onManagingAdmins,
+    onShowingStats,
     onShowingNodesUsage,
   } = useDashboard();
   const { t } = useTranslation();
@@ -207,6 +209,14 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
                   </MenuItem>
                 </>
               )}
+              <MenuItem
+                maxW="170px"
+                fontSize="sm"
+                icon={<StatsIcon />}
+                onClick={onShowingStats.bind(null, true)}
+              >
+                {t("stats.title")}
+              </MenuItem>
               <MenuDivider />
               <MenuGroup title={t("header.accentColor")} fontSize="xs">
                 <Box px={3} py={1} display="flex" gap={2}>

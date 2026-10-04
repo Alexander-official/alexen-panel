@@ -239,5 +239,12 @@
   "header.accentColor": "Accent color",
   "header.background": "Background",
   "header.animationsOff": "Turn off animations",
-  "header.animationsOn": "Turn on animations"
+  "header.animationsOn": "Turn on animations",
+  "stats.title": "Statistics",
+  "stats.totalUsers": "Total users",
+  "stats.activeUsers": "Active users",
+  "stats.totalTraffic": "Total traffic",
+  "stats.byInbound": "Traffic by inbound",
+  "stats.topUsers": "Top users",
+  "stats.noData": "No data yet"
 }

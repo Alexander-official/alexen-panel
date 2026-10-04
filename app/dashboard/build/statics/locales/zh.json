@@ -240,5 +240,12 @@
   "header.accentColor": "主色",
   "header.background": "背景",
   "header.animationsOff": "关闭动画",
-  "header.animationsOn": "开启动画"
+  "header.animationsOn": "开启动画",
+  "stats.title": "统计",
+  "stats.totalUsers": "总用户",
+  "stats.activeUsers": "活跃用户",
+  "stats.totalTraffic": "总流量",
+  "stats.byInbound": "按入站流量",
+  "stats.topUsers": "流量最高用户",
+  "stats.noData": "暂无数据"
 }

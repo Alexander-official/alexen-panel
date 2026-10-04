@@ -51,6 +51,7 @@ type DashboardStateType = {
   isEditingHosts: boolean;
   isEditingNodes: boolean;
   isManagingAdmins: boolean;
+  isShowingStats: boolean;
   isShowingNodesUsage: boolean;
   isResetingAllUsage: boolean;
   resetUsageUser: User | null;
@@ -73,6 +74,7 @@ type DashboardStateType = {
   onEditingHosts: (isEditingHosts: boolean) => void;
   onEditingNodes: (isEditingHosts: boolean) => void;
   onManagingAdmins: (isManagingAdmins: boolean) => void;
+  onShowingStats: (isShowingStats: boolean) => void;
   onShowingNodesUsage: (isShowingNodesUsage: boolean) => void;
   resetDataUsage: (user: User) => Promise<void>;
   revokeSubscription: (user: User) => Promise<void>;
@@ -122,6 +124,7 @@ export const useDashboard = create(
     isEditingHosts: false,
     isEditingNodes: false,
     isManagingAdmins: false,
+    isShowingStats: false,
     isShowingNodesUsage: false,
     resetUsageUser: null,
     revokeSubscriptionUser: null,
@@ -202,6 +205,9 @@ export const useDashboard = create(
     },
     onManagingAdmins: (isManagingAdmins: boolean) => {
       set({ isManagingAdmins });
+    },
+    onShowingStats: (isShowingStats: boolean) => {
+      set({ isShowingStats });
     },
     onShowingNodesUsage: (isShowingNodesUsage: boolean) => {
       set({ isShowingNodesUsage });

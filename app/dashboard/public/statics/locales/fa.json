@@ -244,5 +244,12 @@
   "header.accentColor": "رنگ شاخص",
   "header.background": "پس‌زمینه",
   "header.animationsOff": "خاموش کردن انیمیشن‌ها",
-  "header.animationsOn": "روشن کردن انیمیشن‌ها"
+  "header.animationsOn": "روشن کردن انیمیشن‌ها",
+  "stats.title": "آمار",
+  "stats.totalUsers": "کل کاربران",
+  "stats.activeUsers": "کاربران فعال",
+  "stats.totalTraffic": "کل ترافیک",
+  "stats.byInbound": "ترافیک بر اساس اینباند",
+  "stats.topUsers": "کاربران برتر",
+  "stats.noData": "داده‌ای نیست"
 }

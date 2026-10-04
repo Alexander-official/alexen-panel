@@ -239,5 +239,12 @@
   "header.accentColor": "Акцентный цвет",
   "header.background": "Фон",
   "header.animationsOff": "Выключить анимации",
-  "header.animationsOn": "Включить анимации"
+  "header.animationsOn": "Включить анимации",
+  "stats.title": "Статистика",
+  "stats.totalUsers": "Всего юзеров",
+  "stats.activeUsers": "Активные",
+  "stats.totalTraffic": "Весь трафик",
+  "stats.byInbound": "Трафик по инбаундам",
+  "stats.topUsers": "Топ юзеров",
+  "stats.noData": "Пока нет данных"
 }
