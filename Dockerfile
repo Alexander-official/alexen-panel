@@ -29,6 +29,7 @@ COPY --from=build /usr/local/share/xray /usr/local/share/xray
 COPY . /code
 
 RUN ln -s /code/marzban-cli.py /usr/bin/marzban-cli \
+    && ln -s /code/marzban-cli.py /usr/bin/alexen-cli \
     && chmod +x /usr/bin/marzban-cli \
     && marzban-cli completion install --shell bash
 

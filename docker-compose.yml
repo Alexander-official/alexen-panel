@@ -1,8 +1,12 @@
+# Local development build. Production deployments use the image published to
+# GHCR and the compose file written by scripts/alexen.sh.
 services:
-  marzban:
-    image: gozargah/marzban:latest
+  alexen:
+    build: .
+    image: alexen:local
     restart: always
     env_file: .env
     network_mode: host
     volumes:
       - /var/lib/marzban:/var/lib/marzban
+      - /var/lib/marzban/logs:/var/lib/marzban-node
