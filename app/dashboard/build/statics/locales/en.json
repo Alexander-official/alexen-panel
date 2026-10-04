@@ -302,5 +302,9 @@
   "groups.inGroup": "in {{name}}",
   "groups.ungrouped": "{{count}} hosts are not in any group (available to everyone).",
   "groups.empty": "No groups yet. Create the first one above.",
-  "admins.noGroupsYet": "No groups yet, create them on the Groups page."
+  "admins.noGroupsYet": "No groups yet, create them on the Groups page.",
+  "sidebar.platform": "Platform",
+  "sidebar.nodes": "Nodes",
+  "sidebar.expand": "Expand sidebar",
+  "sidebar.collapse": "Collapse sidebar"
 }

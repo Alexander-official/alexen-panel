@@ -1,227 +1,406 @@
+// App sidebar, laid out like PasarGuard's: brand + version and a collapse
+// button on top, a "Platform" group of compact nav rows (some with collapsible
+// sub-menus), language/theme at the bottom and the signed-in admin as footer.
+// Desktop: fixed, collapsible to an icon rail (remembered). Mobile: a drawer.
 import {
   Avatar,
   Box,
   chakra,
-  Divider,
+  Collapse,
   Drawer,
   DrawerBody,
-  DrawerCloseButton,
   DrawerContent,
   DrawerOverlay,
   HStack,
+  IconButton,
   Text,
+  Tooltip,
+  useColorMode,
   VStack,
 } from "@chakra-ui/react";
 import {
   ArrowLeftOnRectangleIcon,
+  ArrowPathIcon,
   ChartBarIcon,
   ChartPieIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+  ChevronRightIcon,
   Cog6ToothIcon,
-  DocumentMinusIcon,
+  CpuChipIcon,
   DocumentTextIcon,
-  LinkIcon,
+  ListBulletIcon,
+  MoonIcon,
   RectangleGroupIcon,
+  ServerStackIcon,
   ShieldCheckIcon,
-  SquaresPlusIcon,
+  Square3Stack3DIcon,
+  SunIcon,
   UsersIcon,
-  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { BRAND_NAME } from "constants/Project";
 import { useDashboard } from "contexts/DashboardContext";
 import useGetUser from "hooks/useGetUser";
-import { FC, ReactNode } from "react";
+import { FC, ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import { updateThemeColor } from "utils/themeColor";
 import { create } from "zustand";
+import { Language } from "./Language";
 
-export const SIDEBAR_WIDTH = "240px";
+export const SIDEBAR_WIDTH = "256px";
+export const SIDEBAR_WIDTH_ICON = "56px";
 
-export const useSidebar = create<{ isOpen: boolean; setOpen: (v: boolean) => void }>(
-  (set) => ({ isOpen: false, setOpen: (isOpen) => set({ isOpen }) })
-);
+const COLLAPSE_KEY = "alexen-sidebar-collapsed";
+const readCollapsed = () => {
+  try {
+    return localStorage.getItem(COLLAPSE_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
 
-const icon = (Icon: any) => chakra(Icon, { baseStyle: { w: 5, h: 5 } });
-const UsersNavIcon = icon(UsersIcon);
-const StatsNavIcon = icon(ChartBarIcon);
-const HostsNavIcon = icon(LinkIcon);
-const GroupsNavIcon = icon(RectangleGroupIcon);
-const SubNavIcon = icon(DocumentTextIcon);
-const NodesNavIcon = icon(SquaresPlusIcon);
-const NodesUsageNavIcon = icon(ChartPieIcon);
-const AdminsNavIcon = icon(UserGroupIcon);
-const CoreNavIcon = icon(Cog6ToothIcon);
-const ResetNavIcon = icon(DocumentMinusIcon);
-const LogoutNavIcon = icon(ArrowLeftOnRectangleIcon);
-const BrandIcon = icon(ShieldCheckIcon);
+export const useSidebar = create<{
+  isOpen: boolean;
+  collapsed: boolean;
+  setOpen: (v: boolean) => void;
+  toggleCollapsed: () => void;
+}>((set, get) => ({
+  isOpen: false,
+  collapsed: readCollapsed(),
+  setOpen: (isOpen) => set({ isOpen }),
+  toggleCollapsed: () => {
+    const collapsed = !get().collapsed;
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
+    } catch {}
+    set({ collapsed });
+  },
+}));
 
-const NavItem: FC<{
-  icon: ReactNode;
+/** current sidebar width on desktop, for the page padding */
+export const useSidebarWidth = () =>
+  useSidebar((s) => (s.collapsed ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH));
+
+const ic = (Icon: any) => chakra(Icon, { baseStyle: { w: 4, h: 4, flexShrink: 0 } });
+
+type NavLeaf = { title: string; path?: string; icon: any; action?: () => void; danger?: boolean };
+type NavNode = NavLeaf & { items?: NavLeaf[] };
+
+const activeBg = "color-mix(in srgb, var(--chakra-colors-primary-500) 14%, transparent)";
+
+const Row: FC<{
+  icon: any;
   label: string;
   active?: boolean;
   danger?: boolean;
+  collapsed?: boolean;
+  sub?: boolean;
+  right?: ReactNode;
   onClick: () => void;
-}> = ({ icon, label, active, danger, onClick }) => (
-  <HStack
-    as="button"
-    w="full"
-    px={3}
-    py={2}
-    spacing={3}
-    borderRadius="lg"
-    fontSize="sm"
-    fontWeight={active ? "semibold" : "medium"}
-    textAlign="left"
-    color={active ? "primary.600" : danger ? "red.500" : "gray.600"}
-    bg={active ? "primary.50" : "transparent"}
-    _dark={{
-      color: active ? "primary.200" : danger ? "red.300" : "gray.300",
-      bg: active ? "whiteAlpha.100" : "transparent",
-    }}
-    _hover={{ bg: "blackAlpha.50", _dark: { bg: "whiteAlpha.100" } }}
-    onClick={onClick}
-  >
-    {icon}
-    <Text isTruncated>{label}</Text>
-  </HStack>
-);
+}> = ({ icon: Icon, label, active, danger, collapsed, sub, right, onClick }) => {
+  const row = (
+    <HStack
+      as="button"
+      w="full"
+      h={sub ? "30px" : "32px"}
+      px={collapsed ? 0 : 2}
+      justifyContent={collapsed ? "center" : "flex-start"}
+      spacing={2}
+      borderRadius="md"
+      fontSize="sm"
+      fontWeight={active ? "medium" : "normal"}
+      textAlign="left"
+      color={danger ? "red.500" : active ? "primary.600" : "gray.700"}
+      bg={active ? activeBg : "transparent"}
+      _dark={{ color: danger ? "red.300" : active ? "primary.200" : "gray.300" }}
+      _hover={{ bg: active ? activeBg : "blackAlpha.50", _dark: { bg: active ? activeBg : "whiteAlpha.100" } }}
+      onClick={onClick}
+    >
+      <Icon />
+      {!collapsed && (
+        <Text as="span" flex={1} isTruncated>
+          {label}
+        </Text>
+      )}
+      {!collapsed && right}
+    </HStack>
+  );
+  return collapsed ? (
+    <Tooltip label={label} placement="right" openDelay={200}>
+      {row}
+    </Tooltip>
+  ) : (
+    row
+  );
+};
 
-const SectionTitle: FC<{ children: ReactNode }> = ({ children }) => (
-  <Text
-    px={3}
-    pt={3}
-    pb={1}
-    fontSize="xs"
-    fontWeight="semibold"
-    textTransform="uppercase"
-    letterSpacing="wider"
-    color="gray.400"
-  >
-    {children}
-  </Text>
-);
-
-const SidebarContent: FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
+const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ collapsed, onNavigate }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const here = pathname.replace(/^\/+|\/+$/g, "");
   const { userData, getUserIsSuccess } = useGetUser();
   const isSudo = getUserIsSuccess && userData.is_sudo;
-  const { onResetAllUsage } = useDashboard();
-  const page = (path: string) => () => {
+  const version = useDashboard((s) => s.version);
+  const onResetAllUsage = useDashboard((s) => s.onResetAllUsage);
+  const { colorMode, toggleColorMode } = useColorMode();
+  const toggleCollapsed = useSidebar((s) => s.toggleCollapsed);
+
+  const go = (path: string) => {
     onNavigate?.();
     navigate(`/${path}`);
     window.scrollTo({ top: 0 });
   };
 
-  const go = (fn: () => void) => () => {
-    onNavigate?.();
-    fn();
-  };
+  const nav: NavNode[] = [
+    { title: t("users"), path: "", icon: ic(UsersIcon) },
+    { title: t("stats.title"), path: "statistics", icon: ic(ChartPieIcon) },
+    ...(isSudo
+      ? [
+          { title: t("header.hostSettings"), path: "hosts", icon: ic(ListBulletIcon) },
+          { title: t("header.groupSettings"), path: "groups", icon: ic(RectangleGroupIcon) },
+          { title: t("header.adminsSettings"), path: "admins", icon: ic(ShieldCheckIcon) },
+          {
+            title: t("sidebar.nodes"),
+            path: "nodes",
+            icon: ic(ServerStackIcon),
+            items: [
+              { title: t("header.nodeSettings"), path: "nodes", icon: ic(Square3Stack3DIcon) },
+              { title: t("header.nodesUsage"), path: "nodes-usage", icon: ic(ChartBarIcon) },
+              { title: t("sidebar.coreSettings"), path: "core", icon: ic(CpuChipIcon) },
+            ],
+          },
+          {
+            title: t("sidebar.settings"),
+            path: "sub",
+            icon: ic(Cog6ToothIcon),
+            items: [
+              { title: t("header.subSettings"), path: "sub", icon: ic(DocumentTextIcon) },
+              {
+                title: t("resetAllUsage"),
+                icon: ic(ArrowPathIcon),
+                danger: true,
+                action: () => {
+                  onNavigate?.();
+                  onResetAllUsage(true);
+                },
+              },
+            ],
+          },
+        ]
+      : []),
+  ];
+
+  // sub-menus start open when one of their pages is shown
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    nav.forEach((n) => {
+      if (n.items?.some((i) => i.path === here)) setOpen((o) => ({ ...o, [n.title]: true }));
+    });
+  }, [here, isSudo]);
+
+  const Logo = ic(ShieldCheckIcon);
+  const Chevron = ic(ChevronRightIcon);
+  const CollapseIcon = ic(ChevronDoubleLeftIcon);
+  const ExpandIcon = ic(ChevronDoubleRightIcon);
+  const ThemeIcon = ic(colorMode === "light" ? MoonIcon : SunIcon);
+  const LogoutIcon = ic(ArrowLeftOnRectangleIcon);
 
   return (
-    <VStack h="full" align="stretch" spacing={1} p={3}>
-      <HStack px={3} py={3} spacing={2}>
-        <BrandIcon color="primary.500" />
-        <Text fontWeight="bold" fontSize="lg" isTruncated>
-          {BRAND_NAME}
-        </Text>
+    <VStack h="full" align="stretch" spacing={0}>
+      {/* header: brand, version, collapse */}
+      <HStack px={collapsed ? 2 : 3} py={3} spacing={2} justifyContent={collapsed ? "center" : "space-between"}>
+        {collapsed ? (
+          <Tooltip label={t("sidebar.expand")} placement="right">
+            <IconButton
+              aria-label="expand sidebar"
+              size="sm"
+              variant="ghost"
+              icon={<ExpandIcon />}
+              onClick={toggleCollapsed}
+            />
+          </Tooltip>
+        ) : (
+          <>
+            <HStack spacing={2} minW={0}>
+              <Box
+                w="32px"
+                h="32px"
+                borderRadius="lg"
+                bg="primary.500"
+                color="white"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                flexShrink={0}
+              >
+                <Logo w={5} h={5} />
+              </Box>
+              <Box minW={0} lineHeight="short">
+                <Text fontSize="sm" fontWeight="semibold" isTruncated>
+                  {BRAND_NAME}
+                </Text>
+                {version && (
+                  <Text fontSize="xs" opacity={0.5} isTruncated>
+                    v{version}
+                  </Text>
+                )}
+              </Box>
+            </HStack>
+            {!onNavigate && (
+              <Tooltip label={t("sidebar.collapse")} placement="right">
+                <IconButton
+                  aria-label="collapse sidebar"
+                  size="sm"
+                  variant="ghost"
+                  borderRadius="full"
+                  icon={<CollapseIcon />}
+                  onClick={toggleCollapsed}
+                />
+              </Tooltip>
+            )}
+          </>
+        )}
       </HStack>
 
-      <SectionTitle>{t("sidebar.main")}</SectionTitle>
-      <NavItem
-        icon={<UsersNavIcon />}
-        label={t("users")}
-        active={here === ""}
-        onClick={page("")}
-      />
-      <NavItem
-        icon={<StatsNavIcon />}
-        label={t("stats.title")}
-        active={here === "statistics"}
-        onClick={page("statistics")}
-      />
-
-      {isSudo && (
-        <>
-          <SectionTitle>{t("sidebar.management")}</SectionTitle>
-          <NavItem
-            icon={<AdminsNavIcon />}
-            label={t("header.adminsSettings")}
-            active={here === "admins"}
-            onClick={page("admins")}
-          />
-          <NavItem
-            icon={<NodesNavIcon />}
-            label={t("header.nodeSettings")}
-            active={here === "nodes"}
-            onClick={page("nodes")}
-          />
-          <NavItem
-            icon={<NodesUsageNavIcon />}
-            label={t("header.nodesUsage")}
-            active={here === "nodes-usage"}
-            onClick={page("nodes-usage")}
-          />
-          <NavItem
-            icon={<HostsNavIcon />}
-            label={t("header.hostSettings")}
-            active={here === "hosts"}
-            onClick={page("hosts")}
-          />
-          <NavItem
-            icon={<GroupsNavIcon />}
-            label={t("header.groupSettings")}
-            active={here === "groups"}
-            onClick={page("groups")}
-          />
-
-          <SectionTitle>{t("sidebar.settings")}</SectionTitle>
-          <NavItem
-            icon={<SubNavIcon />}
-            label={t("header.subSettings")}
-            active={here === "sub"}
-            onClick={page("sub")}
-          />
-          <NavItem
-            icon={<CoreNavIcon />}
-            label={t("sidebar.coreSettings")}
-            active={here === "core"}
-            onClick={page("core")}
-          />
-          <NavItem
-            icon={<ResetNavIcon />}
-            label={t("resetAllUsage")}
-            danger
-            onClick={go(() => onResetAllUsage(true))}
-          />
-        </>
-      )}
-
-      <Box flexGrow={1} />
-      <Divider />
-      <HStack px={2} py={2} spacing={3}>
-        <Avatar size="sm" name={userData.username || "?"} bg="primary.500" color="white" />
-        <Box minW={0} flexGrow={1}>
-          <Text fontSize="sm" fontWeight="semibold" isTruncated>
-            {userData.username}
+      {/* main nav */}
+      <Box flex={1} overflowY="auto" px={2} pb={2}>
+        {!collapsed && (
+          <Text px={2} pt={1} pb={1.5} fontSize="xs" fontWeight="medium" color="gray.500">
+            {t("sidebar.platform")}
           </Text>
-          <Text fontSize="xs" color="gray.500">
-            {isSudo ? t("sidebar.sudo") : t("sidebar.reseller")}
-          </Text>
-        </Box>
+        )}
+        <VStack align="stretch" spacing={0.5}>
+          {nav.map((n) => {
+            const childActive = n.items?.some((i) => i.path === here);
+            if (!n.items) {
+              return (
+                <Row
+                  key={n.title}
+                  icon={n.icon}
+                  label={n.title}
+                  collapsed={collapsed}
+                  active={here === n.path}
+                  onClick={() => go(n.path!)}
+                />
+              );
+            }
+            const isOpen = !!open[n.title];
+            return (
+              <Box key={n.title}>
+                <Row
+                  icon={n.icon}
+                  label={n.title}
+                  collapsed={collapsed}
+                  active={collapsed && childActive}
+                  right={
+                    <Chevron
+                      transition="transform .2s"
+                      transform={isOpen ? "rotate(90deg)" : "none"}
+                      opacity={0.6}
+                    />
+                  }
+                  onClick={() =>
+                    collapsed ? go(n.path!) : setOpen((o) => ({ ...o, [n.title]: !isOpen }))
+                  }
+                />
+                {!collapsed && (
+                  <Collapse in={isOpen} animateOpacity>
+                    <VStack
+                      align="stretch"
+                      spacing={0.5}
+                      ml="15px"
+                      pl="10px"
+                      my={0.5}
+                      borderLeft="1px solid"
+                      borderColor="light-border"
+                      _dark={{ borderColor: "gray.600" }}
+                    >
+                      {n.items.map((i) => (
+                        <Row
+                          key={i.title}
+                          sub
+                          icon={i.icon}
+                          label={i.title}
+                          danger={i.danger}
+                          active={!!i.path && here === i.path}
+                          onClick={() => (i.action ? i.action() : go(i.path!))}
+                        />
+                      ))}
+                    </VStack>
+                  </Collapse>
+                )}
+              </Box>
+            );
+          })}
+        </VStack>
+      </Box>
+
+      {/* language + theme */}
+      <HStack
+        px={collapsed ? 0 : 3}
+        py={2}
+        spacing={2}
+        justifyContent={collapsed ? "center" : "flex-end"}
+        flexDirection={collapsed ? "column" : "row"}
+      >
+        <Language />
+        <IconButton
+          size="sm"
+          variant="outline"
+          aria-label="switch theme"
+          icon={<ThemeIcon />}
+          onClick={() => {
+            updateThemeColor(colorMode == "dark" ? "light" : "dark");
+            toggleColorMode();
+          }}
+        />
       </HStack>
-      <NavItem
-        icon={<LogoutNavIcon />}
-        label={t("header.logout")}
-        onClick={go(() => navigate("/login"))}
-      />
+
+      {/* signed-in admin */}
+      <Box p={2} borderTop="1px solid" borderColor="light-border" _dark={{ borderColor: "gray.600" }}>
+        <HStack
+          spacing={2}
+          p={collapsed ? 0 : 1.5}
+          borderRadius="md"
+          justifyContent={collapsed ? "center" : "flex-start"}
+          flexDirection={collapsed ? "column" : "row"}
+        >
+          <Avatar size="sm" name={userData.username || "?"} bg="primary.500" color="white" />
+          {!collapsed && (
+            <Box minW={0} flex={1} lineHeight="short">
+              <Text fontSize="sm" fontWeight="semibold" isTruncated>
+                {userData.username}
+              </Text>
+              <Text fontSize="xs" color="gray.500" isTruncated>
+                {isSudo ? t("sidebar.sudo") : t("sidebar.reseller")}
+              </Text>
+            </Box>
+          )}
+          <Tooltip label={t("header.logout")} placement={collapsed ? "right" : "top"}>
+            <IconButton
+              aria-label="logout"
+              size="sm"
+              variant="ghost"
+              icon={<LogoutIcon />}
+              onClick={() => {
+                onNavigate?.();
+                navigate("/login");
+              }}
+            />
+          </Tooltip>
+        </HStack>
+      </Box>
     </VStack>
   );
 };
 
 export const Sidebar: FC = () => {
-  const { isOpen, setOpen } = useSidebar();
+  const isOpen = useSidebar((s) => s.isOpen);
+  const setOpen = useSidebar((s) => s.setOpen);
+  const collapsed = useSidebar((s) => s.collapsed);
+  const width = useSidebarWidth();
   return (
     <>
       <Box
@@ -230,22 +409,19 @@ export const Sidebar: FC = () => {
         position="fixed"
         top={0}
         left={0}
-        h="100vh"
-        w={SIDEBAR_WIDTH}
-        overflowY="auto"
+        h="100dvh"
+        w={width}
         zIndex={20}
-        bg="white"
         borderRight="1px solid"
-        borderColor="gray.200"
-        _dark={{ bg: "gray.800", borderColor: "gray.700" }}
+        borderColor="light-border"
+        _dark={{ borderColor: "gray.700" }}
       >
-        <SidebarContent />
+        <SidebarContent collapsed={collapsed} />
       </Box>
       <Drawer isOpen={isOpen} placement="left" onClose={() => setOpen(false)}>
-        <DrawerOverlay bg="blackAlpha.300" backdropFilter="blur(6px)" />
-        <DrawerContent maxW="270px" className="alexen-sidebar">
-          <DrawerCloseButton mt={2} />
-          <DrawerBody p={0}>
+        <DrawerOverlay bg="blackAlpha.400" />
+        <DrawerContent maxW="288px" className="alexen-sidebar">
+          <DrawerBody p={0} pt="env(safe-area-inset-top)">
             <SidebarContent onNavigate={() => setOpen(false)} />
           </DrawerBody>
         </DrawerContent>

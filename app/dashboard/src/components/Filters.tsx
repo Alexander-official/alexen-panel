@@ -69,16 +69,12 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
         md: "repeat(4, 1fr)",
         base: "repeat(1, 1fr)",
       }}
-      position="sticky"
-      top={0}
-      mx={{ base: -3, md: -6 }}
-      px={{ base: 3, md: 6 }}
+      position="relative"
       rowGap={{ base: 2, md: 4 }}
       gap={{
         lg: 4,
         base: 0,
       }}
-      bg="var(--chakra-colors-chakra-body-bg)"
       py={{ base: 2, md: 4 }}
       zIndex="docked"
       {...props}

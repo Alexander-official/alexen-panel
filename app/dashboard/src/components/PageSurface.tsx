@@ -63,8 +63,12 @@ export const ModalHeader: FC<BoxProps> = (props) =>
     <ChakraModalHeader {...props} />
   );
 
-export const ModalBody: FC<BoxProps> = (props) =>
-  usePageMode() ? <Box px={{ base: 4, md: 6 }} py={3} {...props} /> : <ChakraModalBody {...props} />;
+export const ModalBody: FC<BoxProps> = (props) => {
+  if (!usePageMode()) return <ChakraModalBody {...props} />;
+  // fixed dialog widths (e.g. w="440px") would squeeze a page into a column
+  const { w, width, minW, maxW, ...rest } = props as any;
+  return <Box px={{ base: 4, md: 6 }} py={3} w="full" {...rest} />;
+};
 
 export const ModalFooter: FC<BoxProps> = (props) =>
   usePageMode() ? (

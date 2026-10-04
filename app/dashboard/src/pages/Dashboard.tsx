@@ -3,7 +3,7 @@ import { DeleteUserModal } from "components/DeleteUserModal";
 import { Filters } from "components/Filters";
 import { Footer } from "components/Footer";
 import { Header } from "components/Header";
-import { Sidebar, SIDEBAR_WIDTH } from "components/Sidebar";
+import { Sidebar, useSidebarWidth } from "components/Sidebar";
 import { ResetAllUsageModal } from "components/ResetAllUsageModal";
 import { ResetUserUsageModal } from "components/ResetUserUsageModal";
 import { RevokeSubscriptionModal } from "components/RevokeSubscriptionModal";
@@ -46,6 +46,7 @@ export const Dashboard: FC = () => {
     fetchInbounds();
   }, []);
   // per-flag selectors so the page doesn't re-render on every store change
+  const sidebarWidth = useSidebarWidth();
   const s = {
     QRcodeLinks: useDashboard((d) => d.QRcodeLinks),
   };
@@ -58,7 +59,7 @@ export const Dashboard: FC = () => {
         px={{ base: 3, md: 6 }}
         pt={{ base: 3, md: 6 }}
         pb={{ base: "calc(12px + env(safe-area-inset-bottom))", md: 6 }}
-        pl={{ base: 3, md: 6, lg: `calc(${SIDEBAR_WIDTH} + 1.5rem)` }}
+        pl={{ base: 3, md: 6, lg: `calc(${sidebarWidth} + 1.5rem)` }}
         rowGap={4}
       >
         <Box w="full">

@@ -357,10 +357,11 @@ table thead {
 body:not(.chakra-ui-dark) {
   .chakra-modal__content,
   .chakra-menu__menu-list,
-  .chakra-popover__content,
-  .alexen-sidebar {
+  .chakra-popover__content {
     background-color: var(--app-surface);
   }
+  /* sidebar a shade off the page, like PasarGuard */
+  .alexen-sidebar { background-color: var(--chakra-colors-gray-50); }
   .chakra-card { background-color: var(--app-surface); }
 }
 body.chakra-ui-dark {
@@ -369,20 +370,10 @@ body.chakra-ui-dark {
   .chakra-popover__content {
     background-color: var(--chakra-colors-gray-700);
   }
-  .alexen-sidebar { background-color: var(--chakra-colors-gray-800); }
+  .alexen-sidebar { background-color: var(--chakra-colors-gray-900); }
 }
 /* themed page: the sticky toolbar and table head blend with the backdrop
    (translucent tint, no blur: a blur per header cell is what made it lag) */
-.has-bg #filters,
-.theme-glass #filters {
-  background: color-mix(in srgb, var(--app-surface) 72%, transparent) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-.has-bg body.chakra-ui-dark #filters,
-.theme-glass body.chakra-ui-dark #filters {
-  background: color-mix(in srgb, var(--chakra-colors-gray-800) 72%, transparent) !important;
-}
 .has-bg #users-table td,
 .theme-glass #users-table td {
   background-color: color-mix(in srgb, var(--app-surface) 55%, transparent);
@@ -449,8 +440,7 @@ html:not(.theme-animated) * {
     .chakra-modal__content,
     .chakra-menu__menu-list,
     .chakra-popover__content,
-    .alexen-sidebar,
-    #filters {
+    .alexen-sidebar {
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
     }
@@ -459,9 +449,6 @@ html:not(.theme-animated) * {
     .chakra-popover__content,
     .alexen-sidebar {
       background-color: var(--app-surface) !important;
-    }
-    #filters {
-      background: color-mix(in srgb, var(--app-surface) 94%, transparent) !important;
     }
   }
   .theme-glass body.chakra-ui-dark,
@@ -472,9 +459,6 @@ html:not(.theme-animated) * {
       background-color: var(--chakra-colors-gray-700) !important;
     }
     .alexen-sidebar { background-color: var(--chakra-colors-gray-800) !important; }
-    #filters {
-      background: color-mix(in srgb, var(--chakra-colors-gray-800) 94%, transparent) !important;
-    }
   }
   /* the floating glow costs battery on phones */
   .has-bg.theme-animated body::before { animation: none; }

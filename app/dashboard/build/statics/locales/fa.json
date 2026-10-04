@@ -307,5 +307,9 @@
   "groups.inGroup": "در {{name}}",
   "groups.ungrouped": "{{count}} هاست در هیچ گروهی نیستند (برای همه).",
   "groups.empty": "هنوز گروهی نیست. اولین را بالا بسازید.",
-  "admins.noGroupsYet": "هنوز گروهی نیست، در صفحه گروه‌ها بسازید."
+  "admins.noGroupsYet": "هنوز گروهی نیست، در صفحه گروه‌ها بسازید.",
+  "sidebar.platform": "پلتفرم",
+  "sidebar.nodes": "نودها",
+  "sidebar.expand": "باز کردن منو",
+  "sidebar.collapse": "جمع کردن منو"
 }

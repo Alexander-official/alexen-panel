@@ -75,7 +75,7 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
     <Card
       onClick={onClick}
       cursor={onClick ? "pointer" : undefined}
-      p={{ base: 3, md: 6 }}
+      p={{ base: 3, md: 5 }}
       borderWidth="1px"
       borderColor="light-border"
       bg="var(--app-surface-2)"
@@ -86,9 +86,9 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
       width="full"
       display="flex"
       justifyContent="space-between"
-      flexDirection={{ base: "column", md: "row" }}
-      alignItems={{ base: "flex-start", md: "stretch" }}
-      gap={{ base: 1, md: 0 }}
+      flexDirection="column"
+      alignItems="flex-start"
+      gap={{ base: 1, md: 3 }}
       minW={0}
     >
       <HStack alignItems="center" columnGap={{ base: 3, md: 4 }} minW={0}>
@@ -138,7 +138,7 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
           {title}
         </Text>
       </HStack>
-      <Box fontSize={{ base: "xl", md: "3xl" }} fontWeight="semibold" mt={{ base: 0, md: 2 }}>
+      <Box fontSize={{ base: "xl", md: "2xl", xl: "3xl" }} fontWeight="semibold" lineHeight="short" whiteSpace="nowrap">
         {content}
       </Box>
     </Card>

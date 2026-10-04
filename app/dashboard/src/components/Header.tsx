@@ -169,9 +169,7 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
           {t(sectionByPath(pathname)?.title || "users")}
         </Text>
       </HStack>
-      {showDonationNotif && (
-        <NotificationCircle top="0" right="0" zIndex={9999} />
-      )}
+
       <Box overflow="auto" css={{ direction: "rtl" }}>
         <HStack alignItems="center">
           <Menu>
@@ -274,20 +272,6 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
               </Link>
             </MenuList>
           </Menu>
-
-          <Language />
-
-          <IconButton
-            size="sm"
-            variant="outline"
-            aria-label="switch theme"
-            onClick={() => {
-              updateThemeColor(colorMode == "dark" ? "light" : "dark");
-              toggleColorMode();
-            }}
-          >
-            {colorMode === "light" ? <DarkIcon /> : <LightIcon />}
-          </IconButton>
 
           {/* vendor brand badge intentionally minimal */}
         </HStack>

@@ -235,25 +235,12 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
   const [selectedRow, setSelectedRow] = useState<ExpandedIndex | undefined>(
     undefined
   );
-  const marginTop = useBreakpointValue({ base: 120, lg: 72 }) || 72;
-  const [top, setTop] = useState(`${marginTop}px`);
+  // the filters bar scrolls away with the page (no sticky band over the
+  // themed background), so the table header sticks to the very top
+  const top = "0px";
   const useTable = useBreakpointValue({ base: false, md: true });
 
-  // keep the sticky table header right under the filters bar. Only its height
-  // matters, so watch size changes instead of re-rendering on every scroll.
-  useEffect(() => {
-    const el = document.getElementById("filters");
-    if (!el) return;
-    const calcTop = () =>
-      setTop((prev) => {
-        const next = `${el.offsetHeight}px`;
-        return prev === next ? prev : next;
-      });
-    calcTop();
-    const ro = new ResizeObserver(calcTop);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+
 
   const isFiltered = users.length !== totalUsers.total;
 

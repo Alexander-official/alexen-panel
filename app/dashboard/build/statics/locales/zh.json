@@ -303,5 +303,9 @@
   "groups.inGroup": "在 {{name}}",
   "groups.ungrouped": "{{count}} 个主机未分组（对所有人可用）。",
   "groups.empty": "暂无分组，请在上方创建第一个。",
-  "admins.noGroupsYet": "暂无分组，请在分组页面创建。"
+  "admins.noGroupsYet": "暂无分组，请在分组页面创建。",
+  "sidebar.platform": "平台",
+  "sidebar.nodes": "节点",
+  "sidebar.expand": "展开侧栏",
+  "sidebar.collapse": "收起侧栏"
 }

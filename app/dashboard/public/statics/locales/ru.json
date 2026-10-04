@@ -302,5 +302,9 @@
   "groups.inGroup": "в {{name}}",
   "groups.ungrouped": "Хостов без группы: {{count}} (доступны всем).",
   "groups.empty": "Групп пока нет. Создайте первую выше.",
-  "admins.noGroupsYet": "Групп пока нет, создайте их на странице групп."
+  "admins.noGroupsYet": "Групп пока нет, создайте их на странице групп.",
+  "sidebar.platform": "Платформа",
+  "sidebar.nodes": "Ноды",
+  "sidebar.expand": "Развернуть",
+  "sidebar.collapse": "Свернуть"
 }
