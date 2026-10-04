@@ -233,5 +233,8 @@
   "admins.maxUserIp": "每用户最大IP",
   "admins.maxUserHwid": "每用户最大设备",
   "admins.expireDate": "到期日",
-  "userDialog.subUpdatedCount": "订阅更新次数"
+  "userDialog.subUpdatedCount": "订阅更新次数",
+  "header.appearance": "外观",
+  "header.styleGlass": "玻璃拟态",
+  "header.styleMinimal": "极简"
 }

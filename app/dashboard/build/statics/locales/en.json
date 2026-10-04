@@ -232,5 +232,8 @@
   "admins.maxUserIp": "Max IP / user",
   "admins.maxUserHwid": "Max devices / user",
   "admins.expireDate": "Expires on",
-  "userDialog.subUpdatedCount": "Subscription updates"
+  "userDialog.subUpdatedCount": "Subscription updates",
+  "header.appearance": "Appearance",
+  "header.styleGlass": "Glassmorphism style",
+  "header.styleMinimal": "Minimalist style"
 }

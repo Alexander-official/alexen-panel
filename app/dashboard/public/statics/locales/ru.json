@@ -232,5 +232,8 @@
   "admins.maxUserIp": "Макс IP / юзер",
   "admins.maxUserHwid": "Макс устр. / юзер",
   "admins.expireDate": "Истекает",
-  "userDialog.subUpdatedCount": "Обновлений подписки"
+  "userDialog.subUpdatedCount": "Обновлений подписки",
+  "header.appearance": "Оформление",
+  "header.styleGlass": "Стекло (glass)",
+  "header.styleMinimal": "Минимализм"
 }

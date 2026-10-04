@@ -5,6 +5,8 @@ import {
   IconButton,
   Menu,
   MenuButton,
+  MenuDivider,
+  MenuGroup,
   MenuItem,
   MenuList,
   Text,
@@ -31,6 +33,13 @@ import { FC, ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { updateThemeColor } from "utils/themeColor";
+import {
+  ACCENTS,
+  AccentName,
+  applyAppearance,
+  getAppearance,
+  Surface,
+} from "utils/appearance";
 import { Language } from "./Language";
 import useGetUser from "hooks/useGetUser";
 
@@ -100,6 +109,15 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
     onShowingNodesUsage,
   } = useDashboard();
   const { t } = useTranslation();
+  const [appearance, setAppearance] = useState(getAppearance());
+  const setAccent = (accent: AccentName) => {
+    applyAppearance(accent, appearance.surface);
+    setAppearance({ accent, surface: appearance.surface });
+  };
+  const setSurface = (surface: Surface) => {
+    applyAppearance(appearance.accent, surface);
+    setAppearance({ accent: appearance.accent, surface });
+  };
   const { colorMode, toggleColorMode } = useColorMode();
   const [showDonationNotif, setShowDonationNotif] = useState(
     shouldShowDonation()
@@ -186,6 +204,39 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
                   </MenuItem>
                 </>
               )}
+              <MenuDivider />
+              <MenuGroup title={t("header.appearance")} fontSize="xs">
+                <Box px={3} py={1} display="flex" gap={2}>
+                  {(Object.keys(ACCENTS) as AccentName[]).map((name) => (
+                    <Box
+                      key={name}
+                      as="button"
+                      w="18px"
+                      h="18px"
+                      borderRadius="full"
+                      bg={ACCENTS[name][500]}
+                      border="2px solid"
+                      borderColor={
+                        appearance.accent === name ? "gray.500" : "transparent"
+                      }
+                      onClick={() => setAccent(name)}
+                    />
+                  ))}
+                </Box>
+                <MenuItem
+                  fontSize="sm"
+                  onClick={() =>
+                    setSurface(
+                      appearance.surface === "glass" ? "minimal" : "glass"
+                    )
+                  }
+                >
+                  {appearance.surface === "glass"
+                    ? t("header.styleMinimal")
+                    : t("header.styleGlass")}
+                </MenuItem>
+              </MenuGroup>
+              <MenuDivider />
               <Link to={DONATION_URL} target="_blank">
                 <MenuItem
                   maxW="170px"
