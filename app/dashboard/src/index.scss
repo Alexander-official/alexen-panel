@@ -351,22 +351,6 @@ table thead {
     position: relative;
     overflow: hidden;
   }
-  /* specular sheen sweeping across glass (iOS-like), gated by animations */
-  &.theme-animated .chakra-card::after,
-  &.theme-animated .chakra-modal__content::after {
-    content: "";
-    position: absolute;
-    top: 0; left: -60%;
-    width: 50%; height: 100%;
-    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
-    transform: skewX(-18deg);
-    animation: alexen-sheen 7s ease-in-out infinite;
-    pointer-events: none;
-  }
-}
-@keyframes alexen-sheen {
-  0%, 70% { left: -60%; }
-  100% { left: 140%; }
 }
 .chakra-ui-dark.theme-glass,
 .theme-glass .chakra-ui-dark {

@@ -1,3 +1,4 @@
+import useGetUser from "hooks/useGetUser";
 import {
   Alert,
   AlertIcon,
@@ -231,6 +232,15 @@ const schema = z.discriminatedUnion("status", [
 ]);
 
 export const UserDialog: FC<UserDialogProps> = () => {
+  const { userData } = useGetUser();
+  const maxIp =
+    !userData?.is_sudo && (userData as any)?.max_user_ip_limit
+      ? (userData as any).max_user_ip_limit
+      : undefined;
+  const maxHwid =
+    !userData?.is_sudo && (userData as any)?.max_user_hwid_limit
+      ? (userData as any).max_user_hwid_limit
+      : undefined;
   const {
     editingUser,
     isCreatingNewUser,
@@ -737,8 +747,17 @@ export const UserDialog: FC<UserDialogProps> = () => {
                               type="number"
                               size="sm"
                               borderRadius="6px"
-                              placeholder={t("userDialog.ipLimitPlaceholder")}
-                              onChange={field.onChange}
+                              placeholder={
+                                maxIp
+                                  ? `max ${maxIp}`
+                                  : t("userDialog.ipLimitPlaceholder")
+                              }
+                              max={maxIp}
+                              onChange={(e: any) => {
+                                let v = e.target.value;
+                                if (maxIp && Number(v) > maxIp) v = String(maxIp);
+                                field.onChange(v);
+                              }}
                               disabled={disabled}
                               value={field.value ? String(field.value) : ""}
                             />
@@ -756,8 +775,18 @@ export const UserDialog: FC<UserDialogProps> = () => {
                               type="number"
                               size="sm"
                               borderRadius="6px"
-                              placeholder={t("userDialog.ipLimitPlaceholder")}
-                              onChange={field.onChange}
+                              placeholder={
+                                maxHwid
+                                  ? `max ${maxHwid}`
+                                  : t("userDialog.ipLimitPlaceholder")
+                              }
+                              max={maxHwid}
+                              onChange={(e: any) => {
+                                let v = e.target.value;
+                                if (maxHwid && Number(v) > maxHwid)
+                                  v = String(maxHwid);
+                                field.onChange(v);
+                              }}
                               disabled={disabled}
                               value={field.value ? String(field.value) : ""}
                             />

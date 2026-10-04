@@ -209,15 +209,6 @@ export const Statistics: FC<BoxProps> = (props) => {
           onlineData && (
             <HStack alignItems="flex-end">
               <Text>{numberWithCommas(onlineData.online_users)}</Text>
-              <Text
-                fontWeight="normal"
-                fontSize="lg"
-                as="span"
-                display="inline-block"
-                pb="5px"
-              >
-                / {numberWithCommas(onlineData.online_ips)} IP
-              </Text>
             </HStack>
           )
         }

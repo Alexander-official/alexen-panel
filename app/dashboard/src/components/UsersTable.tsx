@@ -619,11 +619,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                   <Td width="90px" minW="80px">
                     <Text fontSize="sm">
                       📱 {user.hwid_count ?? 0}
-                      {user.hwid_limit ? (
-                        <Text as="span" color="gray.500">
-                          /{user.hwid_limit}
-                        </Text>
-                      ) : null}
+                      {user.hwid_limit ? `/${user.hwid_limit}` : ""}
                     </Text>
                   </Td>
                   <Td width="90px" minW="80px">

@@ -43,6 +43,24 @@ def get_system_stats(
     online_users = crud.count_online_users(db, 24)
     realtime_bandwidth_stats = realtime_bandwidth()
 
+    # a reseller sees only their own users' total traffic (not the global counter)
+    if not admin.is_sudo:
+        from sqlalchemy import func as _func
+        from app.db.models import User as _User
+        reseller_traffic = int(
+            db.query(_func.coalesce(_func.sum(_User.used_traffic), 0))
+            .filter(_User.admin_id == dbadmin.id).scalar() or 0
+        )
+        incoming_bandwidth = reseller_traffic
+        outgoing_bandwidth = 0
+        incoming_speed = 0
+        outgoing_speed = 0
+    else:
+        incoming_bandwidth = system.uplink
+        outgoing_bandwidth = system.downlink
+        incoming_speed = realtime_bandwidth_stats.incoming_bytes
+        outgoing_speed = realtime_bandwidth_stats.outgoing_bytes
+
     return SystemStats(
         version=__version__,
         mem_total=mem.total,
@@ -56,10 +74,10 @@ def get_system_stats(
         users_expired=users_expired,
         users_limited=users_limited,
         users_on_hold=users_on_hold,
-        incoming_bandwidth=system.uplink,
-        outgoing_bandwidth=system.downlink,
-        incoming_bandwidth_speed=realtime_bandwidth_stats.incoming_bytes,
-        outgoing_bandwidth_speed=realtime_bandwidth_stats.outgoing_bytes,
+        incoming_bandwidth=incoming_bandwidth,
+        outgoing_bandwidth=outgoing_bandwidth,
+        incoming_bandwidth_speed=incoming_speed,
+        outgoing_bandwidth_speed=outgoing_speed,
     )
 
 
