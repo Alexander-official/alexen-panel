@@ -182,7 +182,7 @@
   "userDialog.ipLimitPlaceholder": "Пусто или 0 = без лимита",
   "online.blocked": "заблокирован",
   "online.disconnect": "Отключить этот IP",
-  "hostsDialog.groupName": "Группа (необязательно)",
+  "hostsDialog.groupName": "Группы (через запятую)",
   "admins.title": "Админы / Реселлеры",
   "admins.add": "Добавить",
   "admins.edit": "Изменить",
@@ -256,7 +256,7 @@
   "sort.expire": "Срок",
   "sort.onlineIps": "Онлайн IP",
   "sort.devices": "Устройства",
-  "groups.help": "Создайте группу, затем добавьте в неё хосты. Админы, ограниченные группой, выдают только её хосты (хосты без группы — всем).",
+  "groups.help": "Создайте группу и добавьте хосты. Хост может быть в нескольких группах. Админы с группами выдают только хосты своих групп (хосты без группы — всем).",
   "groups.inUse": "Используемые группы",
   "groups.noGroup": "без группы",
   "sub.help": "Заголовок и объявление в клиентах. Текст или base64:<...>.",
@@ -300,7 +300,7 @@
   "groups.noHosts": "Хостов пока нет. Сначала добавьте их на странице хостов.",
   "groups.disabled": "отключён",
   "groups.inGroup": "в {{name}}",
-  "groups.ungrouped": "Хостов без группы: {{count}} (доступны всем).",
+  "groups.ungrouped": "хостов без группы: {{count}} (доступны всем)",
   "groups.empty": "Групп пока нет. Создайте первую выше.",
   "admins.noGroupsYet": "Групп пока нет, создайте их на странице групп.",
   "sidebar.platform": "Платформа",
@@ -359,5 +359,8 @@
   "external.discard": "Отменить",
   "external.save": "Сохранить",
   "external.saved": "Сохранено",
-  "external.saveError": "Не удалось сохранить"
+  "external.saveError": "Не удалось сохранить",
+  "groups.noNote": "Без заметки",
+  "groups.noMembers": "В группе пока нет хостов.",
+  "groups.more": "ещё {{count}}"
 }

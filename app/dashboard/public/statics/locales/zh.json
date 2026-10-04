@@ -182,7 +182,7 @@
   "userDialog.ipLimitPlaceholder": "留空或 0 = 不限",
   "online.blocked": "已阻止",
   "online.disconnect": "断开此 IP",
-  "hostsDialog.groupName": "分组（可选）",
+  "hostsDialog.groupName": "分组（逗号分隔）",
   "admins.title": "管理员 / 分销",
   "admins.add": "添加",
   "admins.edit": "编辑",
@@ -257,7 +257,7 @@
   "sort.expire": "到期",
   "sort.onlineIps": "在线IP",
   "sort.devices": "设备数",
-  "groups.help": "先创建分组，再把主机加入分组。限定分组的管理员只分发该组主机（未分组主机对所有人可用）。",
+  "groups.help": "先创建分组再添加主机。一个主机可属于多个分组。限定分组的管理员只分发其分组内的主机（未分组主机对所有人可用）。",
   "groups.inUse": "已用分组",
   "groups.noGroup": "无分组",
   "sub.help": "客户端显示的标题与公告。可用纯文本或 base64:<...>。",
@@ -301,7 +301,7 @@
   "groups.noHosts": "暂无主机，请先在主机页面添加。",
   "groups.disabled": "已禁用",
   "groups.inGroup": "在 {{name}}",
-  "groups.ungrouped": "{{count}} 个主机未分组（对所有人可用）。",
+  "groups.ungrouped": "{{count}} 个未分组主机（对所有人可用）",
   "groups.empty": "暂无分组，请在上方创建第一个。",
   "admins.noGroupsYet": "暂无分组，请在分组页面创建。",
   "sidebar.platform": "平台",
@@ -360,5 +360,8 @@
   "external.discard": "放弃",
   "external.save": "保存",
   "external.saved": "已保存",
-  "external.saveError": "保存失败"
+  "external.saveError": "保存失败",
+  "groups.noNote": "无备注",
+  "groups.noMembers": "该分组暂无主机。",
+  "groups.more": "另外 {{count}} 个"
 }

@@ -353,7 +353,7 @@ const RadioCard: FC<
                 <Input
                   fontSize="xs"
                   size="sm"
-                  borderRadius="6px"
+                  borderRadius="8px"
                   pl={2}
                   pr={2}
                   placeholder={t("userDialog.generatedByDefault")}
@@ -371,7 +371,7 @@ const RadioCard: FC<
                 <Input
                   fontSize="xs"
                   size="sm"
-                  borderRadius="6px"
+                  borderRadius="8px"
                   pl={2}
                   pr={2}
                   placeholder={t("userDialog.generatedByDefault")}
@@ -385,7 +385,7 @@ const RadioCard: FC<
                 <Select
                   fontSize="xs"
                   size="sm"
-                  borderRadius="6px"
+                  borderRadius="8px"
                   {...form.register("proxies.vless.flow")}
                 >
                   {XTLSFlows.map((entry) => (
@@ -406,7 +406,7 @@ const RadioCard: FC<
                 <Input
                   fontSize="xs"
                   size="sm"
-                  borderRadius="6px"
+                  borderRadius="8px"
                   pl={2}
                   pr={2}
                   placeholder={t("userDialog.generatedByDefault")}
@@ -424,7 +424,7 @@ const RadioCard: FC<
                 <Input
                   fontSize="xs"
                   size="sm"
-                  borderRadius="6px"
+                  borderRadius="8px"
                   pl={2}
                   pr={2}
                   placeholder={t("userDialog.generatedByDefault")}
@@ -442,7 +442,7 @@ const RadioCard: FC<
                 <Input
                   fontSize="xs"
                   size="sm"
-                  borderRadius="6px"
+                  borderRadius="8px"
                   pl={2}
                   pr={2}
                   placeholder={t("userDialog.generatedByDefault")}
@@ -456,7 +456,7 @@ const RadioCard: FC<
                 <Select
                   fontSize="xs"
                   size="sm"
-                  borderRadius="6px"
+                  borderRadius="8px"
                   {...form.register("proxies.shadowsocks.method")}
                 >
                   {shadowsocksMethods.map((method) => (

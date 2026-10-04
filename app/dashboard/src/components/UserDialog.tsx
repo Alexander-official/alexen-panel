@@ -490,7 +490,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                             <Input
                               size="sm"
                               type="text"
-                              borderRadius="6px"
+                              borderRadius="8px"
                               error={form.formState.errors.username?.message}
                               disabled={disabled || isEditing}
                               {...form.register("username")}
@@ -573,7 +573,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                                 endAdornment="GB"
                                 type="number"
                                 size="sm"
-                                borderRadius="6px"
+                                borderRadius="8px"
                                 onChange={field.onChange}
                                 disabled={disabled}
                                 error={
@@ -646,7 +646,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                                   endAdornment="Days"
                                   type="number"
                                   size="sm"
-                                  borderRadius="6px"
+                                  borderRadius="8px"
                                   onChange={(on_hold) => {
                                     form.setValue("expire", null);
                                     field.onChange({
@@ -716,7 +716,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                                       <Input
                                         size="sm"
                                         type="text"
-                                        borderRadius="6px"
+                                        borderRadius="8px"
                                         clearable
                                         disabled={disabled}
                                         error={
@@ -748,7 +748,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                             <Input
                               type="number"
                               size="sm"
-                              borderRadius="6px"
+                              borderRadius="8px"
                               placeholder={
                                 maxIp
                                   ? `0-${maxIp}`
@@ -776,7 +776,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                             <Input
                               type="number"
                               size="sm"
-                              borderRadius="6px"
+                              borderRadius="8px"
                               placeholder={
                                 maxHwid
                                   ? `0-${maxHwid}`

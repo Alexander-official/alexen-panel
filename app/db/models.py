@@ -246,7 +246,8 @@ class ProxyHost(Base):
     id = Column(Integer, primary_key=True)
     remark = Column(String(256), unique=False, nullable=False)
     address = Column(String(256), unique=False, nullable=False)
-    group_name = Column(String(64), nullable=True, default=None)
+    # comma separated host group names, a host can be in several groups
+    group_name = Column(String(1024), nullable=True, default=None)
     port = Column(Integer, nullable=True)
     path = Column(String(256), unique=False, nullable=True)
     sni = Column(String(1000), unique=False, nullable=True)

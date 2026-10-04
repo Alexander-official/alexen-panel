@@ -284,7 +284,8 @@ def process_inbounds_and_tags(
             host_inbound = inbound.copy()
             for host in xray.hosts.get(tag, []):
                 # reseller host groups: when the owner admin has groups, only hosts in them are shown
-                if host_groups and host.get("group_name") and host["group_name"] not in host_groups:
+                # (a host can be in several groups: it shows if any of them is allowed)
+                if host_groups and host.get("groups") and not set(host["groups"]) & set(host_groups):
                     continue
                 sni = ""
                 sni_list = host["sni"] or inbound["sni"]

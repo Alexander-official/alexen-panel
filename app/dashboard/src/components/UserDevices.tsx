@@ -58,7 +58,7 @@ export const UserDevices: FC<{ username: string }> = ({ username }) => {
           key={device.id}
           w="full"
           borderWidth="1px"
-          borderRadius="6px"
+          borderRadius="8px"
           px={3}
           py={2}
           _dark={{ borderColor: "gray.600" }}

@@ -187,7 +187,7 @@
   "userDialog.ipLimitPlaceholder": "خالی یا ۰ = نامحدود",
   "online.blocked": "مسدود",
   "online.disconnect": "قطع این آی‌پی",
-  "hostsDialog.groupName": "گروه (اختیاری)",
+  "hostsDialog.groupName": "گروه‌ها (با کاما جدا کنید)",
   "admins.title": "ادمین‌ها / نماینده‌ها",
   "admins.add": "افزودن ادمین",
   "admins.edit": "ویرایش",
@@ -261,7 +261,7 @@
   "sort.expire": "انقضا",
   "sort.onlineIps": "آی‌پی آنلاین",
   "sort.devices": "دستگاه‌ها",
-  "groups.help": "یک گروه بسازید و سپس هاست‌ها را به آن اضافه کنید. ادمین‌های محدود به گروه فقط هاست‌های آن را می‌دهند (هاست‌های بدون گروه برای همه است).",
+  "groups.help": "یک گروه بسازید و هاست‌ها را اضافه کنید. هر هاست می‌تواند در چند گروه باشد. ادمین‌های محدود فقط هاست‌های گروه‌های خود را می‌دهند (هاست‌های بدون گروه برای همه).",
   "groups.inUse": "گروه‌های موجود",
   "groups.noGroup": "بدون گروه",
   "sub.help": "عنوان و اعلان نمایش داده‌شده در کلاینت‌ها.",
@@ -305,7 +305,7 @@
   "groups.noHosts": "هنوز هاستی نیست. ابتدا در صفحه هاست‌ها اضافه کنید.",
   "groups.disabled": "غیرفعال",
   "groups.inGroup": "در {{name}}",
-  "groups.ungrouped": "{{count}} هاست در هیچ گروهی نیستند (برای همه).",
+  "groups.ungrouped": "{{count}} هاست بدون گروه (برای همه)",
   "groups.empty": "هنوز گروهی نیست. اولین را بالا بسازید.",
   "admins.noGroupsYet": "هنوز گروهی نیست، در صفحه گروه‌ها بسازید.",
   "sidebar.platform": "پلتفرم",
@@ -364,5 +364,8 @@
   "external.discard": "لغو",
   "external.save": "ذخیره",
   "external.saved": "ذخیره شد",
-  "external.saveError": "ذخیره نشد"
+  "external.saveError": "ذخیره نشد",
+  "groups.noNote": "بدون یادداشت",
+  "groups.noMembers": "هنوز هاستی در این گروه نیست.",
+  "groups.more": "+{{count}} مورد دیگر"
 }

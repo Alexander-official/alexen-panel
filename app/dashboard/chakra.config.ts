@@ -1,5 +1,7 @@
 import { extendTheme } from "@chakra-ui/react";
 export const theme = extendTheme({
+  // softer corners everywhere (Chakra defaults: sm 2px, md 6px, lg 8px)
+  radii: { sm: "6px", md: "8px", lg: "10px", xl: "14px" },
   shadows: { outline: "0 0 0 2px var(--chakra-colors-primary-200)" },
   fonts: {
     body: `Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif`,
@@ -23,10 +25,14 @@ export const theme = extendTheme({
     },
   },
   components: {
+    // softer corners across the panel
+    Card: { baseStyle: { container: { borderRadius: "14px" } } },
+    Modal: { baseStyle: { dialog: { borderRadius: "16px" } } },
+    Menu: { baseStyle: { list: { borderRadius: "12px", p: 1 }, item: { borderRadius: "8px" } } },
     Alert: {
       baseStyle: {
         container: {
-          borderRadius: "6px",
+          borderRadius: "8px",
           fontSize: "sm",
         },
       },
@@ -34,12 +40,9 @@ export const theme = extendTheme({
     Select: {
       baseStyle: {
         field: {
+          borderRadius: "8px",
           _dark: {
             borderColor: "gray.600",
-            borderRadius: "6px",
-          },
-          _light: {
-            borderRadius: "6px",
           },
         },
       },
@@ -68,6 +71,7 @@ export const theme = extendTheme({
           },
         },
         field: {
+          borderRadius: "8px",
           _focusVisible: {
             boxShadow: "none",
             borderColor: "primary.200",

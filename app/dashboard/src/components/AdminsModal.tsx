@@ -374,7 +374,7 @@ export const AdminsModal: FC = () => {
                 <Box
                   key={admin.username}
                   borderWidth="1px"
-                  borderRadius="6px"
+                  borderRadius="8px"
                   px={3}
                   py={2}
                   _dark={{ borderColor: "gray.600" }}

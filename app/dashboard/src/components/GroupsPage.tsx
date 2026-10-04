@@ -1,9 +1,6 @@
 import {
-  Badge,
   Box,
   Button,
-  Card,
-  Checkbox,
   Collapse,
   HStack,
   IconButton,
@@ -17,12 +14,15 @@ import {
 } from "@chakra-ui/react";
 import {
   CheckIcon,
-  PencilIcon,
+  PencilSquareIcon,
   PlusIcon,
+  RectangleGroupIcon,
+  ServerIcon,
   TrashIcon,
+  UserIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { FC, useEffect, useMemo, useState } from "react";
+import { FC, ReactNode, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "react-query";
 import { fetch } from "service/http";
@@ -32,16 +32,124 @@ type GroupHost = {
   remark: string;
   address: string;
   inbound_tag: string;
-  group_name: string | null;
+  groups: string[];
   is_disabled: boolean;
 };
 type Group = { name: string; note: string; hosts: number[]; admins: string[] };
 type GroupsData = { groups: Group[]; hosts: GroupHost[] };
 
 const KEY = "host-groups";
-const iconSize = { width: 16, height: 16 };
-
+const sm = { width: 16, height: 16 };
 const errorText = (e: any) => e?.data?.detail || e?.message || "";
+
+// soft surfaces shared by the cards on this page
+const surface = {
+  borderWidth: "1px",
+  borderColor: "light-border",
+  borderRadius: "16px",
+  bg: "var(--app-surface)",
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 4px 16px rgba(16,24,40,.04)",
+  _dark: { borderColor: "gray.700", bg: "gray.750", boxShadow: "none" },
+} as const;
+const tint = "color-mix(in srgb, var(--chakra-colors-primary-500) 12%, transparent)";
+
+const Pill: FC<{ icon?: any; children: ReactNode; strong?: boolean }> = ({ icon: Icon, children, strong }) => (
+  <HStack
+    spacing={1}
+    px={2.5}
+    h="24px"
+    borderRadius="full"
+    fontSize="xs"
+    fontWeight="medium"
+    bg={strong ? tint : "blackAlpha.50"}
+    color={strong ? "primary.600" : "gray.600"}
+    _dark={{ bg: strong ? tint : "whiteAlpha.100", color: strong ? "primary.200" : "gray.300" }}
+    flexShrink={0}
+  >
+    {Icon && <Icon width={12} height={12} />}
+    <Text as="span">{children}</Text>
+  </HStack>
+);
+
+const GroupAvatar: FC<{ name: string }> = ({ name }) => (
+  <Box
+    w="40px"
+    h="40px"
+    borderRadius="12px"
+    bg={tint}
+    color="primary.600"
+    _dark={{ color: "primary.200" }}
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+    fontWeight="bold"
+    fontSize="md"
+    flexShrink={0}
+    textTransform="uppercase"
+  >
+    {name.trim().charAt(0) || "#"}
+  </Box>
+);
+
+const HostOption: FC<{ host: GroupHost; selected: boolean; others: string[]; onToggle: () => void }> = ({
+  host,
+  selected,
+  others,
+  onToggle,
+}) => {
+  const { t } = useTranslation();
+  return (
+    <HStack
+      as="button"
+      type="button"
+      w="full"
+      textAlign="left"
+      spacing={3}
+      px={3}
+      py={2}
+      borderRadius="10px"
+      borderWidth="1px"
+      borderColor={selected ? "primary.400" : "light-border"}
+      bg={selected ? tint : "transparent"}
+      _dark={{ borderColor: selected ? "primary.300" : "gray.600" }}
+      _hover={{ borderColor: "primary.300" }}
+      onClick={onToggle}
+    >
+      <Box
+        w="18px"
+        h="18px"
+        borderRadius="8px"
+        borderWidth="1.5px"
+        borderColor={selected ? "primary.500" : "gray.400"}
+        bg={selected ? "primary.500" : "transparent"}
+        color="white"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flexShrink={0}
+      >
+        {selected && <CheckIcon width={12} height={12} strokeWidth={3} />}
+      </Box>
+      <Box minW={0} flex={1}>
+        <Text fontSize="sm" isTruncated>
+          {host.remark}
+        </Text>
+        <Text fontSize="xs" color="gray.500" isTruncated>
+          {host.address}
+          {host.is_disabled ? ` · ${t("groups.disabled")}` : ""}
+        </Text>
+      </Box>
+      {others.length > 0 && (
+        <HStack spacing={1} flexShrink={0} display={{ base: "none", sm: "flex" }}>
+          {others.slice(0, 2).map((g) => (
+            <Pill key={g}>{g}</Pill>
+          ))}
+          {others.length > 2 && <Pill>+{others.length - 2}</Pill>}
+        </HStack>
+      )}
+    </HStack>
+  );
+};
 
 const GroupCard: FC<{ group: Group; hosts: GroupHost[] }> = ({ group, hosts }) => {
   const { t } = useTranslation();
@@ -90,14 +198,14 @@ const GroupCard: FC<{ group: Group; hosts: GroupHost[] }> = ({ group, hosts }) =
       return next;
     });
 
-  const memberHosts = hosts.filter((h) => group.hosts.includes(h.id));
+  const members = hosts.filter((h) => group.hosts.includes(h.id));
 
   return (
-    <Card p={{ base: 3, md: 4 }} borderWidth="1px" borderColor="light-border" boxShadow="none" borderRadius="12px" _dark={{ borderColor: "gray.600" }}>
+    <Box {...surface} p={{ base: 4, md: 5 }}>
       {editing ? (
         <VStack align="stretch" spacing={2}>
-          <Input size="sm" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("groups.name")} />
-          <Textarea size="sm" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("groups.note")} />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("groups.name")} />
+          <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("groups.note")} />
           <HStack justifyContent="flex-end">
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
               {t("cancel")}
@@ -108,68 +216,73 @@ const GroupCard: FC<{ group: Group; hosts: GroupHost[] }> = ({ group, hosts }) =
           </HStack>
         </VStack>
       ) : (
-        <HStack justifyContent="space-between" alignItems="flex-start" spacing={2}>
-          <Box minW={0}>
-            <Text fontWeight="semibold" isTruncated>
+        <HStack alignItems="flex-start" spacing={3}>
+          <GroupAvatar name={group.name} />
+          <Box minW={0} flex={1}>
+            <Text fontWeight="semibold" fontSize="md" isTruncated>
               {group.name}
             </Text>
-            {group.note && (
-              <Text fontSize="xs" color="gray.500" noOfLines={2}>
-                {group.note}
-              </Text>
-            )}
+            <Text fontSize="xs" color="gray.500" noOfLines={2}>
+              {group.note || t("groups.noNote")}
+            </Text>
           </Box>
-          <HStack spacing={1} flexShrink={0}>
+          <HStack spacing={0}>
             <Tooltip label={t("groups.edit")}>
-              <IconButton size="sm" variant="ghost" aria-label="edit" icon={<PencilIcon {...iconSize} />} onClick={() => setEditing(true)} />
+              <IconButton size="sm" variant="ghost" borderRadius="full" aria-label="edit" icon={<PencilSquareIcon {...sm} />} onClick={() => setEditing(true)} />
             </Tooltip>
             <Tooltip label={t("groups.delete")}>
-              <IconButton size="sm" variant="ghost" colorScheme="red" aria-label="delete" icon={<TrashIcon {...iconSize} />} onClick={remove} />
+              <IconButton size="sm" variant="ghost" borderRadius="full" colorScheme="red" aria-label="delete" icon={<TrashIcon {...sm} />} onClick={remove} />
             </Tooltip>
           </HStack>
         </HStack>
       )}
 
-      <HStack mt={3} spacing={2} flexWrap="wrap">
-        <Badge colorScheme="primary">{t("groups.hostCount", { count: group.hosts.length })}</Badge>
+      <HStack mt={4} spacing={1.5} flexWrap="wrap" rowGap={1.5}>
+        <Pill strong icon={ServerIcon}>
+          {t("groups.hostCount", { count: group.hosts.length })}
+        </Pill>
         {group.admins.map((a) => (
-          <Badge key={a} variant="outline">
-            👤 {a}
-          </Badge>
+          <Pill key={a} icon={UserIcon}>
+            {a}
+          </Pill>
         ))}
       </HStack>
 
-      {!picking && memberHosts.length > 0 && (
-        <VStack align="stretch" spacing={0} mt={2}>
-          {memberHosts.slice(0, 6).map((h) => (
-            <Text key={h.id} fontSize="xs" color="gray.500" isTruncated>
-              • {h.remark} <Text as="span" opacity={0.7}>· {h.inbound_tag}</Text>
+      {!picking && (
+        <VStack align="stretch" spacing={1} mt={3}>
+          {members.length === 0 && (
+            <Text fontSize="xs" color="gray.500" py={1}>
+              {t("groups.noMembers")}
             </Text>
+          )}
+          {members.slice(0, 5).map((h) => (
+            <HStack
+              key={h.id}
+              px={3}
+              py={1.5}
+              borderRadius="10px"
+              bg="blackAlpha.50"
+              _dark={{ bg: "whiteAlpha.50" }}
+              spacing={2}
+            >
+              <Text fontSize="sm" isTruncated flex={1}>
+                {h.remark}
+              </Text>
+              <Text fontSize="xs" color="gray.500" flexShrink={0}>
+                {h.inbound_tag}
+              </Text>
+            </HStack>
           ))}
-          {memberHosts.length > 6 && (
-            <Text fontSize="xs" color="gray.500">
-              +{memberHosts.length - 6}
+          {members.length > 5 && (
+            <Text fontSize="xs" color="gray.500" px={3}>
+              {t("groups.more", { count: members.length - 5 })}
             </Text>
           )}
         </VStack>
       )}
 
-      <Button
-        mt={3}
-        size="sm"
-        variant={picking ? "solid" : "outline"}
-        colorScheme="primary"
-        leftIcon={picking ? <XMarkIcon {...iconSize} /> : <PlusIcon {...iconSize} />}
-        onClick={() => {
-          setSelected(new Set(group.hosts));
-          setPicking(!picking);
-        }}
-      >
-        {picking ? t("cancel") : t("groups.manageHosts")}
-      </Button>
-
       <Collapse in={picking} animateOpacity unmountOnExit>
-        <VStack align="stretch" spacing={3} mt={3}>
+        <VStack align="stretch" spacing={4} mt={4}>
           {Object.keys(byInbound).length === 0 && (
             <Text fontSize="xs" color="gray.500">
               {t("groups.noHosts")}
@@ -177,51 +290,57 @@ const GroupCard: FC<{ group: Group; hosts: GroupHost[] }> = ({ group, hosts }) =
           )}
           {Object.entries(byInbound).map(([tag, list]) => (
             <Box key={tag}>
-              <Text fontSize="xs" fontWeight="semibold" color="gray.500" mb={1} textTransform="uppercase">
+              <Text fontSize="xs" fontWeight="semibold" color="gray.500" mb={1.5} letterSpacing="wide">
                 {tag}
               </Text>
-              <VStack align="stretch" spacing={1}>
-                {list.map((h) => {
-                  const elsewhere = h.group_name && h.group_name !== group.name ? h.group_name : null;
-                  return (
-                    <Checkbox
-                      key={h.id}
-                      colorScheme="primary"
-                      isChecked={selected.has(h.id)}
-                      onChange={() => toggle(h.id)}
-                      size="md"
-                    >
-                      <Text fontSize="sm" as="span">
-                        {h.remark}
-                      </Text>
-                      <Text as="span" fontSize="xs" color="gray.500">
-                        {" "}
-                        · {h.address}
-                        {h.is_disabled ? ` · ${t("groups.disabled")}` : ""}
-                      </Text>
-                      {elsewhere && (
-                        <Badge ml={2} fontSize="2xs" colorScheme="orange">
-                          {t("groups.inGroup", { name: elsewhere })}
-                        </Badge>
-                      )}
-                    </Checkbox>
-                  );
-                })}
+              <VStack align="stretch" spacing={1.5}>
+                {list.map((h) => (
+                  <HostOption
+                    key={h.id}
+                    host={h}
+                    selected={selected.has(h.id)}
+                    others={h.groups.filter((g) => g !== group.name)}
+                    onToggle={() => toggle(h.id)}
+                  />
+                ))}
               </VStack>
             </Box>
           ))}
-          <Button
-            size="sm"
-            colorScheme="primary"
-            leftIcon={<CheckIcon {...iconSize} />}
-            isLoading={busy}
-            onClick={() => save({ hosts: Array.from(selected) }, () => setPicking(false))}
-          >
-            {t("groups.save")}
-          </Button>
         </VStack>
       </Collapse>
-    </Card>
+
+      <HStack mt={4} spacing={2}>
+        {picking ? (
+          <>
+            <Button flex={1} variant="ghost" leftIcon={<XMarkIcon {...sm} />} onClick={() => setPicking(false)}>
+              {t("cancel")}
+            </Button>
+            <Button
+              flex={1}
+              colorScheme="primary"
+              leftIcon={<CheckIcon {...sm} />}
+              isLoading={busy}
+              onClick={() => save({ hosts: Array.from(selected) }, () => setPicking(false))}
+            >
+              {t("groups.save")}
+            </Button>
+          </>
+        ) : (
+          <Button
+            flex={1}
+            variant="outline"
+            colorScheme="primary"
+            leftIcon={<PlusIcon {...sm} />}
+            onClick={() => {
+              setSelected(new Set(group.hosts));
+              setPicking(true);
+            }}
+          >
+            {t("groups.manageHosts")}
+          </Button>
+        )}
+      </HStack>
+    </Box>
   );
 };
 
@@ -249,39 +368,53 @@ export const GroupsPage: FC = () => {
       .finally(() => setBusy(false));
   };
 
-  const ungrouped = (data?.hosts || []).filter((h) => !h.group_name).length;
+  const ungrouped = (data?.hosts || []).filter((h) => h.groups.length === 0).length;
 
   return (
-    <VStack align="stretch" spacing={4}>
-      <Card p={{ base: 3, md: 4 }} borderWidth="1px" borderColor="light-border" boxShadow="none" borderRadius="12px" _dark={{ borderColor: "gray.600" }}>
-        <Text fontWeight="semibold" mb={1}>
-          {t("groups.create")}
-        </Text>
-        <Text fontSize="xs" color="gray.500" mb={3}>
-          {t("groups.help")}
-        </Text>
+    <VStack align="stretch" spacing={{ base: 3, md: 4 }}>
+      <Box {...surface} p={{ base: 4, md: 5 }}>
+        <HStack spacing={3} mb={4} alignItems="flex-start">
+          <Box
+            w="40px"
+            h="40px"
+            borderRadius="12px"
+            bg="primary.500"
+            color="white"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            flexShrink={0}
+          >
+            <RectangleGroupIcon width={20} height={20} />
+          </Box>
+          <Box>
+            <Text fontWeight="semibold">{t("groups.create")}</Text>
+            <Text fontSize="xs" color="gray.500">
+              {t("groups.help")}
+            </Text>
+          </Box>
+        </HStack>
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={2}>
           <Input
-            size="sm"
             placeholder={t("groups.name")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && create()}
           />
-          <Input size="sm" placeholder={t("groups.note")} value={note} onChange={(e) => setNote(e.target.value)} />
-          <Button size="sm" colorScheme="primary" leftIcon={<PlusIcon {...iconSize} />} isLoading={busy} onClick={create} isDisabled={!name.trim()}>
+          <Input placeholder={t("groups.note")} value={note} onChange={(e) => setNote(e.target.value)} />
+          <Button colorScheme="primary" leftIcon={<PlusIcon {...sm} />} isLoading={busy} onClick={create} isDisabled={!name.trim()}>
             {t("groups.create")}
           </Button>
         </SimpleGrid>
         {data && (
-          <Text fontSize="xs" color="gray.500" mt={3}>
-            {t("groups.ungrouped", { count: ungrouped })}
-          </Text>
+          <HStack mt={3} spacing={1.5}>
+            <Pill icon={ServerIcon}>{t("groups.ungrouped", { count: ungrouped })}</Pill>
+          </HStack>
         )}
-      </Card>
+      </Box>
 
       {data && data.groups.length === 0 && (
-        <Text fontSize="sm" color="gray.500" textAlign="center" py={6}>
+        <Text fontSize="sm" color="gray.500" textAlign="center" py={8}>
           {t("groups.empty")}
         </Text>
       )}

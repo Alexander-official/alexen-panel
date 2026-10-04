@@ -1,7 +1,7 @@
 """Host groups, PasarGuard/Remnawave style: create a group first, then put
-hosts in it. A host belongs to at most one group (hosts.group_name); resellers
-limited to some groups (admins.host_groups) only get those groups' hosts plus
-ungrouped ones. The list of groups itself lives in the settings table."""
+hosts in it. A host can be in several groups (hosts.group_name holds them comma
+separated); resellers limited to some groups (admins.host_groups) only get hosts
+in one of those groups, plus ungrouped ones. The list of groups itself lives in the settings table."""
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,6 +14,7 @@ from app.db.models import Admin as DBAdmin
 from app.db.models import ProxyHost
 from app.models.admin import Admin
 from app.utils import responses
+from app.utils.host_groups import join_groups, split_groups
 
 router = APIRouter(tags=["Groups"], prefix="/api", responses={401: responses._401, 403: responses._403})
 
@@ -25,7 +26,7 @@ class GroupHost(BaseModel):
     remark: str
     address: str
     inbound_tag: str
-    group_name: Optional[str] = None
+    groups: List[str] = []
     is_disabled: bool = False
 
 
@@ -56,16 +57,25 @@ def _stored(db: Session) -> List[dict]:
     """saved groups, plus any group name hosts already use (from before groups existed)"""
     groups = list(crud.get_setting(db, GROUPS_KEY, []) or [])
     names = {g["name"] for g in groups}
-    for (name,) in db.query(ProxyHost.group_name).filter(ProxyHost.group_name.isnot(None)).distinct():
-        name = (name or "").strip()
-        if name and name not in names:
-            groups.append({"name": name, "note": ""})
-            names.add(name)
+    for (value,) in db.query(ProxyHost.group_name).filter(ProxyHost.group_name.isnot(None)).distinct():
+        for name in split_groups(value):
+            if name not in names:
+                groups.append({"name": name, "note": ""})
+                names.add(name)
     return groups
 
 
 def _save(db: Session, groups: List[dict]):
     crud.set_setting(db, GROUPS_KEY, [{"name": g["name"], "note": g.get("note") or ""} for g in groups])
+
+
+def _rewrite(db: Session, fn):
+    """apply fn to every host's group list"""
+    for host in db.query(ProxyHost).filter(ProxyHost.group_name.isnot(None)).all():
+        current = split_groups(host.group_name)
+        changed = fn(current)
+        if changed != current:
+            host.group_name = join_groups(changed)
 
 
 def _response(db: Session) -> GroupsResponse:
@@ -76,13 +86,13 @@ def _response(db: Session) -> GroupsResponse:
     for g in groups:
         out.append(Group(
             name=g["name"], note=g.get("note") or "",
-            hosts=[h.id for h in hosts if h.group_name == g["name"]],
+            hosts=[h.id for h in hosts if g["name"] in split_groups(h.group_name)],
             admins=[u for u, hg in admins if hg and g["name"] in hg],
         ))
     return GroupsResponse(
         groups=out,
         hosts=[GroupHost(id=h.id, remark=h.remark, address=h.address, inbound_tag=h.inbound_tag,
-                         group_name=h.group_name, is_disabled=bool(h.is_disabled)) for h in hosts],
+                         groups=split_groups(h.group_name), is_disabled=bool(h.is_disabled)) for h in hosts],
     )
 
 
@@ -117,7 +127,7 @@ def modify_group(name: str, body: GroupModify, db: Session = Depends(get_db),
         if any(g["name"] == new_name for g in groups):
             raise HTTPException(409, "Group already exists")
         group["name"] = new_name
-        db.query(ProxyHost).filter(ProxyHost.group_name == name).update({ProxyHost.group_name: new_name})
+        _rewrite(db, lambda gs: [new_name if g == name else g for g in gs])
         for dbadmin in db.query(DBAdmin).all():
             if dbadmin.host_groups and name in dbadmin.host_groups:
                 dbadmin.host_groups = [new_name if x == name else x for x in dbadmin.host_groups]
@@ -125,13 +135,15 @@ def modify_group(name: str, body: GroupModify, db: Session = Depends(get_db),
         group["note"] = body.note
 
     if body.hosts is not None:
+        # add this group to the chosen hosts and take it off the others;
+        # their other groups stay as they are
         wanted = set(body.hosts)
-        # hosts taken out of the group become ungrouped; hosts put in move here
-        db.query(ProxyHost).filter(ProxyHost.group_name == new_name, ProxyHost.id.notin_(wanted or {-1})) \
-            .update({ProxyHost.group_name: None}, synchronize_session=False)
-        if wanted:
-            db.query(ProxyHost).filter(ProxyHost.id.in_(wanted)) \
-                .update({ProxyHost.group_name: new_name}, synchronize_session=False)
+        for host in db.query(ProxyHost).all():
+            current = split_groups(host.group_name)
+            if host.id in wanted and new_name not in current:
+                host.group_name = join_groups(current + [new_name])
+            elif host.id not in wanted and new_name in current:
+                host.group_name = join_groups([g for g in current if g != new_name])
 
     db.commit()
     _save(db, groups)
@@ -144,7 +156,7 @@ def delete_group(name: str, db: Session = Depends(get_db),
                  admin: Admin = Depends(Admin.check_sudo_admin)):
     """Delete a group. Its hosts become ungrouped and admins lose the group."""
     groups = [g for g in _stored(db) if g["name"] != name]
-    db.query(ProxyHost).filter(ProxyHost.group_name == name).update({ProxyHost.group_name: None})
+    _rewrite(db, lambda gs: [g for g in gs if g != name])
     for dbadmin in db.query(DBAdmin).all():
         if dbadmin.host_groups and name in dbadmin.host_groups:
             dbadmin.host_groups = [x for x in dbadmin.host_groups if x != name]

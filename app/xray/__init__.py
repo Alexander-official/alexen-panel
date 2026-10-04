@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 @DictStorage
 def hosts(storage: dict):
     from app.db import GetDB, crud
+    from app.utils.host_groups import split_groups
 
     storage.clear()
     with GetDB() as db:
@@ -46,6 +47,7 @@ def hosts(storage: dict):
                 {
                     "remark": host.remark,
                     "group_name": host.group_name,
+                    "groups": split_groups(host.group_name),
                     "address": [i.strip() for i in host.address.split(',')] if host.address else [],
                     "port": host.port,
                     "path": host.path if host.path else None,

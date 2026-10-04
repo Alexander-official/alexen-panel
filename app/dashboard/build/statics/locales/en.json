@@ -182,7 +182,7 @@
   "userDialog.ipLimitPlaceholder": "Empty or 0 = unlimited",
   "online.blocked": "blocked",
   "online.disconnect": "Disconnect this IP",
-  "hostsDialog.groupName": "Group (optional, for reseller host groups)",
+  "hostsDialog.groupName": "Groups (comma separated)",
   "admins.title": "Admins / Resellers",
   "admins.add": "Add admin",
   "admins.edit": "Edit",
@@ -256,7 +256,7 @@
   "sort.expire": "Expire",
   "sort.onlineIps": "Online IPs",
   "sort.devices": "Devices",
-  "groups.help": "Create a group, then add hosts to it. Admins limited to a group only hand out its hosts (ungrouped hosts go to everyone).",
+  "groups.help": "Create a group, then add hosts to it. A host can be in several groups. Admins limited to groups only hand out hosts in one of them (ungrouped hosts go to everyone).",
   "groups.inUse": "Groups in use",
   "groups.noGroup": "no group",
   "sub.help": "Title and announcement shown in clients. Use plain text or base64:<...>. Per-state fields override the default.",
@@ -300,7 +300,7 @@
   "groups.noHosts": "No hosts yet. Add them on the Hosts page first.",
   "groups.disabled": "disabled",
   "groups.inGroup": "in {{name}}",
-  "groups.ungrouped": "{{count}} hosts are not in any group (available to everyone).",
+  "groups.ungrouped": "{{count}} hosts without a group (available to everyone)",
   "groups.empty": "No groups yet. Create the first one above.",
   "admins.noGroupsYet": "No groups yet, create them on the Groups page.",
   "sidebar.platform": "Platform",
@@ -359,5 +359,8 @@
   "external.discard": "Discard",
   "external.save": "Save",
   "external.saved": "Saved",
-  "external.saveError": "Could not save"
+  "external.saveError": "Could not save",
+  "groups.noNote": "No note",
+  "groups.noMembers": "No hosts in this group yet.",
+  "groups.more": "+{{count}} more"
 }
