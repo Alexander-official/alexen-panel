@@ -281,9 +281,14 @@ def terminate_ip(dbuser: "DBUser", ip: str):
     ip_limit.enforce_now()
 
     node_names = {e for e in online.get_user_ips(dbuser.id).get(ip, {}).get("nodes", [])}
+
+    # IP isn't connected anywhere right now: just keep the block, no core restart needed
+    if not node_names:
+        return
+
     config = xray.config.include_db_users()
 
-    if not node_names or online.MASTER_NAME in node_names:
+    if online.MASTER_NAME in node_names:
         try:
             xray.core.restart(config)
         except Exception as exc:
