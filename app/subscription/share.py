@@ -116,6 +116,15 @@ def generate_subscription(
 
     if config_format == "v2ray":
         links = generate_v2ray_links(**kwargs)
+        # admin's link order + external configs (Settings > External configs)
+        from app.subscription import external
+        status = getattr(user.status, "value", user.status)
+        links = external.apply(
+            links,
+            active=status in ("active", "on_hold"),
+            host_groups=kwargs["host_groups"],
+            variables=setup_format_variables(user.__dict__),
+        )
         if prefix_lines:
             links = list(prefix_lines) + links
         config = "\n".join(links)

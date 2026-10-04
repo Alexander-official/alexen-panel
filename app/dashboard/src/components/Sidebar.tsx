@@ -29,6 +29,7 @@ import {
   Cog6ToothIcon,
   CpuChipIcon,
   DocumentTextIcon,
+  GlobeAltIcon,
   ListBulletIcon,
   MoonIcon,
   RectangleGroupIcon,
@@ -177,6 +178,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
             icon: ic(Cog6ToothIcon),
             items: [
               { title: t("header.subSettings"), path: "sub", icon: ic(DocumentTextIcon) },
+              { title: t("external.title"), path: "external", icon: ic(GlobeAltIcon) },
               {
                 title: t("resetAllUsage"),
                 icon: ic(ArrowPathIcon),

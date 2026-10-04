@@ -77,6 +77,12 @@ export const SECTIONS: Section[] = [
     Component: named(() => import("components/SubSettingsModal"), "SubSettingsModal"),
   },
   {
+    path: "external",
+    title: "external.title",
+    sudo: true,
+    Component: named(() => import("components/ExternalConfigsPage"), "ExternalConfigsPage"),
+  },
+  {
     path: "core",
     title: "sidebar.coreSettings",
     sudo: true,
