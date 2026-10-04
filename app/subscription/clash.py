@@ -255,7 +255,7 @@ class ClashConfiguration(object):
 
     def add(self, remark: str, address: str, inbound: dict, settings: dict):
         # not supported by clash
-        if inbound['network'] in ("kcp", "splithttp", "xhttp"):
+        if inbound['network'] in ("kcp", "splithttp", "xhttp") or inbound['protocol'] == 'hysteria':
             return
 
         proxy_remark = self._remark_validation(remark)
@@ -350,6 +350,24 @@ class ClashMetaConfiguration(ClashConfiguration):
             return
 
         proxy_remark = self._remark_validation(remark)
+
+        if inbound['protocol'] == 'hysteria':
+            alpn = inbound.get('alpn') or 'h3'
+            node = {
+                'name': proxy_remark,
+                'type': 'hysteria2',
+                'server': address,
+                'port': int(choice(str(inbound['port']).split(','))),
+                'password': settings['auth'],
+                'alpn': alpn.split(','),
+            }
+            if inbound['sni']:
+                node['sni'] = inbound['sni']
+            if inbound.get('ais'):
+                node['skip-cert-verify'] = True
+            self.data['proxies'].append(node)
+            self.proxy_remarks.append(proxy_remark)
+            return
 
         node = self.make_node(
             name=remark,

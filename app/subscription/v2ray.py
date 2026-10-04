@@ -155,6 +155,17 @@ class V2rayShareLink(str):
                 password=settings["password"],
                 method=settings["method"],
             )
+
+        elif inbound["protocol"] == "hysteria":
+            link = self.hysteria2(
+                remark=remark,
+                address=address,
+                port=inbound["port"],
+                auth=settings["auth"],
+                sni=inbound.get("sni", ""),
+                alpn=inbound.get("alpn", ""),
+                ais=inbound.get("ais", ""),
+            )
         else:
             return
 
@@ -482,6 +493,31 @@ class V2rayShareLink(str):
             "ss://"
             + base64.b64encode(f"{method}:{password}".encode()).decode()
             + f"@{address}:{port}#{urlparse.quote(remark)}"
+        )
+
+    @classmethod
+    def hysteria2(
+            cls,
+            remark: str,
+            address: str,
+            port: int,
+            auth: str,
+            sni='',
+            alpn='',
+            ais='',
+    ):
+        payload = {}
+        if sni:
+            payload["sni"] = sni
+        payload["alpn"] = alpn or "h3"
+        if ais:
+            payload["insecure"] = 1
+
+        return (
+            "hysteria2://"
+            + f"{urlparse.quote(auth, safe='')}@{address}:{port}/?"
+            + urlparse.urlencode(payload, safe=",")
+            + f"#{urlparse.quote(remark)}"
         )
 
 
@@ -858,6 +894,14 @@ class V2rayJsonConfig(str):
         }
 
     @staticmethod
+    def hysteria_config(address=None, port=None) -> dict:
+        return {
+            "version": 2,
+            "address": address,
+            "port": port,
+        }
+
+    @staticmethod
     def make_fragment(fragment: str) -> dict:
         length, interval, packets = fragment.split(',')
         return {
@@ -1037,6 +1081,10 @@ class V2rayJsonConfig(str):
                                                            password=settings['password'],
                                                            method=settings['method'])
 
+        elif inbound['protocol'] == 'hysteria':
+            outbound["settings"] = self.hysteria_config(address=address,
+                                                        port=port)
+
         outbounds = [outbound]
         dialer_proxy = ''
         extra_outbound = self.make_dialer_outbound(fragment, noise)
@@ -1045,6 +1093,8 @@ class V2rayJsonConfig(str):
             outbounds.append(extra_outbound)
 
         alpn = inbound.get('alpn', None)
+        if protocol == 'hysteria' and not alpn:
+            alpn = 'h3'
         outbound["streamSettings"] = self.make_stream_setting(
             net=net,
             tls=tls,
@@ -1052,7 +1102,7 @@ class V2rayJsonConfig(str):
             host=inbound['host'],
             path=path,
             alpn=alpn.rsplit(sep=",") if alpn else None,
-            fp=inbound.get('fp', ''),
+            fp=inbound.get('fp', '') if protocol != 'hysteria' else '',
             pbk=inbound.get('pbk', ''),
             sid=inbound.get('sid', ''),
             spx=inbound.get('spx', ''),
@@ -1071,6 +1121,12 @@ class V2rayJsonConfig(str):
             heartbeatPeriod=inbound.get("heartbeatPeriod", 0),
             keepAlivePeriod=inbound.get("keepAlivePeriod", 0),
         )
+
+        if protocol == 'hysteria':
+            outbound["streamSettings"]["hysteriaSettings"] = {
+                "version": 2,
+                "auth": settings['auth'],
+            }
 
         mux_json = json.loads(self.mux_template)
         mux_config = mux_json["v2ray"]

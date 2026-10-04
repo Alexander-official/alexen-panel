@@ -15,8 +15,48 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 from websocket import WebSocketConnectionClosedException, WebSocketTimeoutException, create_connection
 
+from app import logger
 from app.xray.config import XRayConfig
 from xray_api import XRay as XRayAPI
+
+# Xray versions that added server-side (inbound) support for these protocols.
+# Nodes running an older core don't get those inbounds, otherwise their whole core fails to start.
+MIN_XRAY_VERSION_BY_PROTOCOL = {
+    "hysteria": (26, 3, 27),
+}
+
+
+def _parse_version(version) -> tuple:
+    try:
+        return tuple(int(i) for i in re.findall(r'\d+', str(version))[:3])
+    except (TypeError, ValueError):
+        return ()
+
+
+def strip_unsupported_inbounds(config: XRayConfig, version) -> XRayConfig:
+    """Return a copy of config without inbounds the node's Xray core can't run"""
+    # always work on a copy, the same config object is shared between nodes started concurrently
+    config = config.copy()
+
+    parsed = _parse_version(version)
+    if not parsed:
+        return config
+
+    unsupported = [
+        inbound for inbound in config.get("inbounds", [])
+        if parsed < MIN_XRAY_VERSION_BY_PROTOCOL.get(inbound.get("protocol"), ())
+    ]
+    if not unsupported:
+        return config
+
+    for inbound in unsupported:
+        required = '.'.join(map(str, MIN_XRAY_VERSION_BY_PROTOCOL[inbound['protocol']]))
+        logger.warning(
+            f"Inbound \"{inbound.get('tag')}\" skipped on node with Xray v{version},"
+            f" {inbound['protocol']} needs Xray v{required} or newer")
+
+    config["inbounds"] = [i for i in config["inbounds"] if i not in unsupported]
+    return config
 
 
 def string_to_temp_file(content: str):
@@ -78,6 +118,11 @@ class ReSTXRayNode:
         self._started = False
 
     def _prepare_config(self, config: XRayConfig):
+        try:
+            version = self.get_version()
+        except Exception:
+            version = None
+        config = strip_unsupported_inbounds(config, version)
         for inbound in config.get("inbounds", []):
             streamSettings = inbound.get("streamSettings") or {}
             tlsSettings = streamSettings.get("tlsSettings") or {}
@@ -382,6 +427,11 @@ class RPyCXRayNode:
         return self.remote.fetch_xray_version()
 
     def _prepare_config(self, config: XRayConfig):
+        try:
+            version = self.get_version()
+        except Exception:
+            version = None
+        config = strip_unsupported_inbounds(config, version)
         for inbound in config.get("inbounds", []):
             streamSettings = inbound.get("streamSettings") or {}
             tlsSettings = streamSettings.get("tlsSettings") or {}

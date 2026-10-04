@@ -133,6 +133,7 @@ const RadioCard: FC<
     UseRadioProps & {
       disabled?: boolean;
       title: string;
+      label?: string;
       description: string;
       toggleAccordion: () => void;
       isSelected: boolean;
@@ -141,6 +142,7 @@ const RadioCard: FC<
 > = ({
   disabled,
   title,
+  label,
   description,
   toggleAccordion,
   isSelected,
@@ -290,7 +292,7 @@ const RadioCard: FC<
             _dark={{ color: shouldBeDisabled ? "gray.500" : "gray.300" }}
             {...getLabelProps()}
           >
-            {title}
+            {label ?? title}
           </Text>
           <Text
             fontWeight="medium"
@@ -413,6 +415,24 @@ const RadioCard: FC<
               </FormControl>
             </VStack>
           )}
+          {title === "hysteria" && isSelected && (
+            <VStack alignItems="flex-start" w="full">
+              <FormControl height="66px">
+                <Text fontSize="sm" pb={1}>
+                  {t("password")}
+                </Text>
+                <Input
+                  fontSize="xs"
+                  size="sm"
+                  borderRadius="6px"
+                  pl={2}
+                  pr={2}
+                  placeholder={t("userDialog.generatedByDefault")}
+                  {...form.register("proxies.hysteria.auth")}
+                />
+              </FormControl>
+            </VStack>
+          )}
           {title === "shadowsocks" && isSelected && (
             <VStack alignItems="flex-start" w="full">
               <FormControl height="66px">
@@ -456,6 +476,7 @@ const RadioCard: FC<
 
 export type RadioListType = {
   title: string;
+  label?: string;
   description: string;
 };
 
@@ -522,6 +543,7 @@ export const RadioGroup = forwardRef<any, RadioGroupProps>(
                 disabled={disabled}
                 key={value.title}
                 title={value.title}
+                label={value.label}
                 description={value.description}
                 isSelected={
                   !!(props.value as string[]).find((v) => v === value.title)

@@ -300,6 +300,22 @@ class SingBoxConfiguration(str):
         remark = self._remark_validation(remark)
         self.proxy_remarks.append(remark)
 
+        if inbound['protocol'] == 'hysteria':
+            self.add_outbound({
+                "type": "hysteria2",
+                "tag": remark,
+                "server": address,
+                "server_port": int(choice(str(inbound['port']).split(','))),
+                "password": settings['auth'],
+                "tls": self.tls_config(
+                    sni=inbound['sni'],
+                    tls='tls',
+                    alpn=alpn.rsplit(sep=",") if alpn else ["h3"],
+                    ais=inbound.get('ais', ''),
+                ),
+            })
+            return
+
         outbound = self.make_outbound(
             remark=remark,
             type=inbound['protocol'],
