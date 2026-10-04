@@ -50,6 +50,8 @@ type ExternalConfig = {
   rename: "none" | "country" | "country_city";
   test: boolean;
   test_timeout: number;
+  ws_rename: boolean;
+  ws_label: string;
   refresh_minutes: number;
   enabled: boolean;
   position: "top" | "bottom";
@@ -63,7 +65,14 @@ type ExternalSettings = {
   protocol_order: string[];
   test_url: string;
 };
-type SourceItem = { link: string; name: string; protocol: string; kind?: string; latency: number | null };
+type SourceItem = {
+  link: string;
+  name: string;
+  protocol: string;
+  kind?: string;
+  latency: number | null;
+  exit_ip?: string;
+};
 type SourceStatus = {
   id: string;
   running: boolean;
@@ -93,6 +102,8 @@ const empty = (kind: ExternalConfig["kind"] = "subscription"): ExternalConfig =>
   rename: "country",
   test: true,
   test_timeout: 5,
+  ws_rename: true,
+  ws_label: "4G/WiFi",
   refresh_minutes: 60,
   enabled: true,
   position: "bottom",
@@ -248,7 +259,7 @@ const ConfigForm: FC<{ value: ExternalConfig; groups: string[]; onChange: (v: Ex
             <FormLabel>{t("external.url")}</FormLabel>
             <Input size="sm" fontFamily="mono" fontSize="xs" value={value.url} onChange={(e) => set({ url: e.target.value.trim() })} placeholder="https://example.com/sub/xxxx" />
           </FormControl>
-          <SimpleGrid columns={{ base: 2, md: 4 }} spacing={3}>
+          <SimpleGrid columns={{ base: 2, md: 3 }} spacing={3}>
             <FormControl>
               <FormLabel>{t("external.rangeFrom")}</FormLabel>
               <Num min={1} value={value.range_start} onChange={(n) => set({ range_start: Math.max(1, n) })} />
@@ -256,16 +267,6 @@ const ConfigForm: FC<{ value: ExternalConfig; groups: string[]; onChange: (v: Ex
             <FormControl>
               <FormLabel>{t("external.rangeTo")}</FormLabel>
               <Num min={0} value={value.range_end} onChange={(n) => set({ range_end: n })} placeholder={t("external.rangeAll")} />
-            </FormControl>
-            <FormControl>
-              <FormLabel>{t("external.refresh")}</FormLabel>
-              <Select size="sm" value={value.refresh_minutes} onChange={(e) => set({ refresh_minutes: Number(e.target.value) })}>
-                {[15, 30, 60, 180, 360, 720, 1440].map((m) => (
-                  <option key={m} value={m}>
-                    {m < 60 ? t("external.minutes", { count: m }) : t("external.hours", { count: m / 60 })}
-                  </option>
-                ))}
-              </Select>
             </FormControl>
             <FormControl>
               <FormLabel>{t("external.rename")}</FormLabel>
@@ -279,6 +280,15 @@ const ConfigForm: FC<{ value: ExternalConfig; groups: string[]; onChange: (v: Ex
           <Text fontSize="xs" color="gray.500" mt={-2}>
             {t("external.rangeHelp")}
           </Text>
+          {value.rename !== "none" && (
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+              <Toggle label={t("external.wsRename")} help={t("external.wsRenameHelp")} value={value.ws_rename} onChange={(v) => set({ ws_rename: v })} />
+              <FormControl isDisabled={!value.ws_rename}>
+                <FormLabel>{t("external.wsLabel")}</FormLabel>
+                <Input size="sm" maxLength={32} value={value.ws_label} onChange={(e) => set({ ws_label: e.target.value })} placeholder="4G/WiFi" />
+              </FormControl>
+            </SimpleGrid>
+          )}
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
             <Toggle label={t("external.test")} help={t("external.testHelp")} value={value.test} onChange={(v) => set({ test: v })} />
             <FormControl isDisabled={!value.test}>
@@ -318,6 +328,28 @@ const ConfigForm: FC<{ value: ExternalConfig; groups: string[]; onChange: (v: Ex
           </Text>
         </Box>
       </SimpleGrid>
+
+      {isSub && (
+        <Box>
+          <Text fontSize="sm" mb={1.5}>
+            {t("external.refresh")}
+          </Text>
+          <HStack spacing={1.5} flexWrap="wrap" rowGap={1.5}>
+            {[15, 30, 60, 180, 360, 720, 1440].map((m) => (
+              <Button
+                key={m}
+                size="xs"
+                borderRadius="full"
+                colorScheme="primary"
+                variant={value.refresh_minutes === m ? "solid" : "outline"}
+                onClick={() => set({ refresh_minutes: m })}
+              >
+                {m < 60 ? t("external.minutes", { count: m }) : t("external.hours", { count: m / 60 })}
+              </Button>
+            ))}
+          </HStack>
+        </Box>
+      )}
     </VStack>
   );
 };
@@ -370,9 +402,16 @@ const SourceResult: FC<{ status?: SourceStatus; saved: boolean; onRefresh: () =>
         <VStack align="stretch" spacing={1} mt={2} maxH="280px" overflowY="auto">
           {(status?.items || []).map((it, i) => (
             <HStack key={i} px={2.5} py={1.5} borderRadius="8px" bg="blackAlpha.50" _dark={{ bg: "whiteAlpha.50" }} fontSize="sm" spacing={2}>
-              <Text isTruncated flex={1} title={it.link}>
-                {it.name}
-              </Text>
+              <Box flex={1} minW={0}>
+                <Text isTruncated title={it.link}>
+                  {it.name}
+                </Text>
+                {it.exit_ip && (
+                  <Text fontSize="2xs" color="gray.500" isTruncated>
+                    {t("external.exitIp", { ip: it.exit_ip })}
+                  </Text>
+                )}
+              </Box>
               <Badge variant="outline" fontSize="2xs">
                 {PROTOCOL_LABEL[it.kind || it.protocol] || it.kind || it.protocol}
               </Badge>

@@ -398,5 +398,10 @@
   "external.saveFirst": "برای شروع ذخیره کنید",
   "external.refreshNow": "به‌روزرسانی",
   "external.showConfigs": "کانفیگ‌ها",
-  "external.testBadge": "تست پینگ"
+  "external.testBadge": "تست پینگ",
+  "external.wsRename": "نام‌گذاری VLESS WS بر اساس کاربرد",
+  "external.wsRenameHelp": "VLESS WS (معمولاً پشت CDN) به جای شهر «<پرچم> برچسب» نام می‌گیرد.",
+  "external.wsLabel": "برچسب",
+  "external.exitIp": "خروج از {{ip}}",
+  "external.renameHelp": "مکان از طریق خود کانفیگ اندازه‌گیری می‌شود."
 }

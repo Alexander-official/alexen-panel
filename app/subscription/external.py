@@ -70,6 +70,9 @@ class ExternalConfig(BaseModel):
     rename: str = "country"  # "none" | "country" | "country_city"
     test: bool = False  # test through our xray and keep only working links
     test_timeout: int = Field(5, ge=1, le=30)  # seconds
+    # VLESS WS (usually CDN / worker fronted) named "<flag> <ws_label>"
+    ws_rename: bool = True
+    ws_label: str = Field("4G/WiFi", max_length=32)
     refresh_minutes: int = Field(60, ge=5, le=10080)
     enabled: bool = True
     position: str = "bottom"  # "top" | "bottom"

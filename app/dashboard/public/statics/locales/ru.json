@@ -315,7 +315,7 @@
   "external.sort.default": "По умолчанию (порядок инбаундов / хостов)",
   "external.sort.remark": "По имени A → Z",
   "external.sort.remark_desc": "По имени Z → A",
-  "external.sort.protocol": "По порядку протоколов (справа)",
+  "external.sort.protocol": "По порядку протоколов",
   "external.sort.reverse": "В обратном порядке",
   "external.sort.manual": "Как в списке (вручную)",
   "external.sort.name": "По имени A → Z",
@@ -384,7 +384,7 @@
   "external.testUrl": "URL проверки",
   "external.protocolOrder": "Порядок протоколов",
   "external.protocolOrderHelp": "Для обеих сортировок «по протоколу». VLESS разделён по транспорту и Reality.",
-  "external.sort.byProtocolOrder": "По порядку протоколов (справа)",
+  "external.sort.byProtocolOrder": "По порядку протоколов",
   "external.running": "Загрузка и проверка…",
   "external.fetched": "получено {{count}}",
   "external.inRange": "в диапазоне {{count}}",
@@ -393,5 +393,10 @@
   "external.saveFirst": "Сохраните, чтобы начать",
   "external.refreshNow": "Обновить",
   "external.showConfigs": "Конфиги",
-  "external.testBadge": "проверка"
+  "external.testBadge": "проверка",
+  "external.wsRename": "Называть VLESS WS по назначению",
+  "external.wsRenameHelp": "VLESS WS (обычно за CDN) называется «<флаг> метка» вместо города.",
+  "external.wsLabel": "Метка",
+  "external.exitIp": "выход через {{ip}}",
+  "external.renameHelp": "Местоположение определяется через сам конфиг (реальный выход)."
 }

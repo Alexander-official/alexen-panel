@@ -5,7 +5,8 @@
 export type AccentName =
   | "blue" | "teal" | "purple" | "green" | "rose" | "amber"
   | "indigo" | "sky" | "cyan" | "emerald" | "lime" | "orange"
-  | "red" | "pink" | "fuchsia" | "violet" | "slate" | "gold";
+  | "red" | "pink" | "fuchsia" | "violet" | "slate" | "gold"
+  | "electric" | "magenta" | "neonPurple" | "aqua";
 
 // ---- color helpers: build a whole palette from one color ----
 const hexToRgb = (hex: string) => {
@@ -28,7 +29,8 @@ const scale = (base: string): Record<number, string> => ({
 export type Surface = "minimal" | "glass";
 export type Background =
   | "default" | "slate" | "midnight" | "aurora" | "sunset" | "amoled"
-  | "ocean" | "forest" | "wine" | "mocha" | "graphite" | "nebula" | "dracula" | "nord";
+  | "ocean" | "forest" | "wine" | "mocha" | "graphite" | "nebula" | "dracula" | "nord"
+  | "neon" | "lava" | "toxic" | "candy" | "electric" | "sunrise" | "cyber" | "lagoon";
 
 export const ACCENTS: Record<AccentName, Record<number, string>> = {
   blue: {
@@ -67,6 +69,11 @@ export const ACCENTS: Record<AccentName, Record<number, string>> = {
   violet: scale("#8b4fe6"),
   slate: scale("#5f6f86"),
   gold: scale("#b8962e"),
+  // vivid
+  electric: scale("#2563eb"),
+  magenta: scale("#db2777"),
+  neonPurple: scale("#9333ea"),
+  aqua: scale("#06b6d4"),
 };
 
 // Each background also retints the panel itself, not just the page behind it:
@@ -92,6 +99,28 @@ function themed(dark: string, light: string, swatch: string) {
     },
   },
 };
+}
+
+/** a saturated two-color background; surfaces are tinted with its color so
+ *  text stays readable on top of the strong gradient */
+function vivid(darkA: string, darkB: string, lightA: string, lightB: string, swatch: string) {
+  return {
+    light: `linear-gradient(135deg,${lightA},${lightB})`,
+    dark: `linear-gradient(135deg,${darkA},${darkB})`,
+    swatch,
+    tint: {
+      light: {
+        "gray-50": mix(lightA, "#ffffff", 0.82), "gray-100": mix(lightA, "#ffffff", 0.66),
+        "gray-200": mix(lightA, "#ffffff", 0.45), border: mix(lightA, "#ffffff", 0.3),
+        surface: mix(lightA, "#ffffff", 0.9), "surface-2": mix(lightA, "#ffffff", 0.78),
+      },
+      dark: {
+        "gray-600": mix(darkA, "#ffffff", 0.2), "gray-700": mix(darkA, "#000000", 0.2),
+        "gray-750": mix(darkA, "#000000", 0.32), "gray-800": mix(darkA, "#000000", 0.45),
+        "gray-900": mix(darkA, "#000000", 0.6),
+      },
+    },
+  };
 }
 
 type Tint = {
@@ -167,6 +196,15 @@ export const BACKGROUNDS: Record<
   nebula: themed("#1a1033", "#e3dafa", "#6d28d9"),
   dracula: themed("#21222c", "#e2e2ef", "#bd93f9"),
   nord: themed("#242933", "#dde3ec", "#5e81ac"),
+  // vivid
+  neon: vivid("#4c1d95", "#0e7490", "#a78bfa", "#67e8f9", "#8b5cf6"),
+  lava: vivid("#7f1d1d", "#9a3412", "#fca5a5", "#fdba74", "#ef4444"),
+  toxic: vivid("#14532d", "#3f6212", "#86efac", "#bef264", "#22c55e"),
+  candy: vivid("#831843", "#6b21a8", "#f9a8d4", "#c4b5fd", "#ec4899"),
+  electric: vivid("#1e3a8a", "#312e81", "#93c5fd", "#a5b4fc", "#3b82f6"),
+  sunrise: vivid("#7c2d12", "#713f12", "#fdba74", "#fde047", "#f97316"),
+  cyber: vivid("#701a75", "#155e75", "#f0abfc", "#67e8f9", "#d946ef"),
+  lagoon: vivid("#064e3b", "#164e63", "#6ee7b7", "#7dd3fc", "#10b981"),
 
 };
 

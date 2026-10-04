@@ -315,7 +315,7 @@
   "external.sort.default": "Default (inbound / host order)",
   "external.sort.remark": "By name A → Z",
   "external.sort.remark_desc": "By name Z → A",
-  "external.sort.protocol": "By protocol order (right)",
+  "external.sort.protocol": "By protocol order",
   "external.sort.reverse": "Reversed",
   "external.sort.manual": "As listed (manual)",
   "external.sort.name": "By name A → Z",
@@ -382,7 +382,7 @@
   "external.testUrl": "Test URL",
   "external.protocolOrder": "Protocol order",
   "external.protocolOrderHelp": "Used by both \"by protocol\" sorts. VLESS is split by transport and Reality.",
-  "external.sort.byProtocolOrder": "By protocol order (right)",
+  "external.sort.byProtocolOrder": "By protocol order",
   "external.running": "Fetching and testing…",
   "external.fetched": "{{count}} fetched",
   "external.inRange": "{{count}} in range",
@@ -395,5 +395,10 @@
   "external.hours_one": "{{count}} hour",
   "external.hours_other": "{{count}} hours",
   "external.minutes_one": "{{count}} minute",
-  "external.minutes_other": "{{count}} minutes"
+  "external.minutes_other": "{{count}} minutes",
+  "external.wsRename": "Name VLESS WS by use",
+  "external.wsRenameHelp": "VLESS WS (usually CDN / worker fronted) is named \"<flag> label\" instead of a city.",
+  "external.wsLabel": "Label",
+  "external.exitIp": "exits via {{ip}}",
+  "external.renameHelp": "The location is measured through each config (where it really exits), so relays are named by their real server."
 }

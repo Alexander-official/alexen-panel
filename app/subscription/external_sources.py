@@ -270,10 +270,35 @@ def _probe(port: int, url: str, timeout: float) -> Optional[int]:
     return None
 
 
-def test_outbounds(outbounds: List[dict], url: str = DEFAULT_TEST_URL, timeout: float = 5.0,
-                   batch: int = 48) -> List[Optional[int]]:
-    """latency in ms for each outbound (None = not working), tested through our own xray"""
-    results: List[Optional[int]] = [None] * len(outbounds)
+EXIT_GEO_URL = "http://ip-api.com/json/?fields=status,country,countryCode,city,query"
+
+
+def _exit_geo(port: int, timeout: float) -> Optional[dict]:
+    """where traffic through this proxy actually leaves to the internet: the
+    entry address can be a relay that forwards to a server somewhere else"""
+    proxies = {"http": f"socks5h://127.0.0.1:{port}", "https": f"socks5h://127.0.0.1:{port}"}
+    try:
+        d = requests.get(EXIT_GEO_URL, proxies=proxies, timeout=timeout).json()
+        if d.get("status") == "success":
+            return {"ip": d.get("query", ""), "country": d.get("country", ""),
+                    "cc": d.get("countryCode", ""), "city": d.get("city", "")}
+    except Exception:
+        pass
+    try:  # fallback: country only
+        text = requests.get("https://www.cloudflare.com/cdn-cgi/trace", proxies=proxies, timeout=timeout).text
+        kv = dict(line.split("=", 1) for line in text.splitlines() if "=" in line)
+        if kv.get("loc"):
+            return {"ip": kv.get("ip", ""), "country": "", "cc": kv["loc"], "city": ""}
+    except Exception:
+        pass
+    return None
+
+
+def probe_outbounds(outbounds: List[dict], url: str = DEFAULT_TEST_URL, timeout: float = 5.0,
+                    geo: bool = False, batch: int = 48) -> List[dict]:
+    """for each outbound {"latency": ms or None, "exit": {ip, country, cc, city} or None},
+    tested through our own xray"""
+    results: List[dict] = [{"latency": None, "exit": None} for _ in outbounds]
     for start in range(0, len(outbounds), batch):
         idx = list(range(start, min(start + batch, len(outbounds))))
         # outbounds xray rejects would make the whole batch fail to start
@@ -296,15 +321,25 @@ def test_outbounds(outbounds: List[dict], url: str = DEFAULT_TEST_URL, timeout: 
                     break
                 except OSError:
                     time.sleep(0.2)
+
+            def one(port):
+                ms = _probe(port, url, timeout)
+                return {"latency": ms, "exit": _exit_geo(port, timeout) if (geo and ms is not None) else None}
+
             with ThreadPoolExecutor(max_workers=16) as ex:
-                lat = list(ex.map(lambda p: _probe(p, url, timeout), ports))
-            for i, value in zip(idx, lat):
+                out = list(ex.map(one, ports))
+            for i, value in zip(idx, out):
                 results[i] = value
         finally:
             proc.kill()
             proc.wait()
             os.unlink(path)
     return results
+
+
+def test_outbounds(outbounds: List[dict], url: str = DEFAULT_TEST_URL, timeout: float = 5.0,
+                   batch: int = 48) -> List[Optional[int]]:
+    return [r["latency"] for r in probe_outbounds(outbounds, url, timeout, False, batch)]
 
 
 # ---------------------------------------------------------------- naming
@@ -368,7 +403,7 @@ def _same(a: str, b: str) -> bool:
     return a.casefold() in b.casefold() or b.casefold() in a.casefold()
 
 
-def rename_all(items: List[dict], mode: str):
+def rename_all(items: List[dict], mode: str, ws_label: str = ""):
     """Name items "<flag> Country" / "<flag> Country - City".
 
     When several configs land on the same name, the others get other cities
@@ -378,10 +413,28 @@ def rename_all(items: List[dict], mode: str):
     """
     import hashlib
 
-    geo = locate([it["address"] for it in items])
+    from app.subscription.external import link_kind
+
+    # where each config really exits (measured through it); the entry address
+    # only when we couldn't connect
+    need = [it["address"] for it in items if not (it.get("exit") or {}).get("cc")]
+    by_address = locate(need) if need else {}
     used: set = set()
     for it in items:
-        g = geo.get(it["address"]) or {}
+        g = it.get("exit") if (it.get("exit") or {}).get("cc") else (by_address.get(it["address"]) or {})
+        if g.get("cc") and not g.get("country"):
+            g = {**g, "country": g["cc"]}
+        if ws_label and link_kind(it["link"]) == "vless-ws" and g.get("cc"):
+            # CDN / worker fronted: its location says little, name it by use
+            name = f"{_flag(g['cc'])} {ws_label}"
+            n = 1
+            while (name if n == 1 else f"{name} {n}") in used:
+                n += 1
+            name = name if n == 1 else f"{name} {n}"
+            used.add(name)
+            it["name"] = name
+            it["link"] = set_remark(it["link"], name)
+            continue
         if not g.get("country"):
             base, name = "🏳️ Unknown", "🏳️ Unknown"
         else:
@@ -428,22 +481,28 @@ def refresh(source, test_url: str = DEFAULT_TEST_URL) -> dict:
                           "address": (p or {}).get("address") or urllib.parse.urlsplit(link).hostname or "",
                           "latency": None, "_ob": (p or {}).get("outbound")})
 
-        if source.test:
+        # connect through each config when testing, and also when renaming,
+        # since the name comes from where the config really exits
+        renaming = source.rename in ("country", "country_city")
+        if source.test or renaming:
             testable = [it for it in items if it["_ob"]]
-            lat = test_outbounds([it["_ob"] for it in testable], url=test_url,
-                                 timeout=max(1, source.test_timeout or 5))
-            for it, ms in zip(testable, lat):
-                it["latency"] = ms
+            probes = probe_outbounds([it["_ob"] for it in testable], url=test_url,
+                                     timeout=max(1, source.test_timeout or 5), geo=renaming)
+            for it, pr in zip(testable, probes):
+                it["latency"] = pr["latency"]
+                it["exit"] = pr["exit"]
+        if source.test:
+            items = [it for it in items if it["_ob"] and it["latency"] is not None]
             entry["stats"]["tested"] = len(testable)
-            items = [it for it in testable if it["latency"] is not None]
-            entry["stats"]["working"] = len(items)
-        else:
-            entry["stats"]["working"] = len(items)
+        entry["stats"]["working"] = len(items)
 
-        if source.rename in ("country", "country_city") and items:
-            rename_all(items, source.rename)
+        if renaming and items:
+            rename_all(items, source.rename, (source.ws_label or "").strip() if source.ws_rename else "")
 
         entry["items"] = [{k: v for k, v in it.items() if k != "_ob"} for it in items]
+        for it in entry["items"]:
+            ex_ = it.pop("exit", None) or {}
+            it["exit_ip"] = ex_.get("ip", "")
     except Exception as exc:
         entry["error"] = str(exc)[:300]
         # keep serving the last good result when a refresh fails
