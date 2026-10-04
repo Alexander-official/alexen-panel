@@ -8,6 +8,13 @@ import {
   FormLabel,
   HStack,
   IconButton,
+  Select,
+  Text,
+  Tooltip,
+  useToast,
+  useColorMode,
+} from "@chakra-ui/react";
+import {
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -15,12 +22,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  Select,
-  Text,
-  Tooltip,
-  useToast,
-  useColorMode
-} from "@chakra-ui/react";
+} from "./PageSurface";
 import {
   ArrowPathIcon,
   ArrowsPointingInIcon,
@@ -320,11 +322,11 @@ const CoreSettingModalContent: FC = () => {
           </HStack>
           <Box
             border="1px solid"
-            borderColor="gray.300"
-            bg="#F9F9F9"
+            borderColor="light-border"
+            bg="var(--app-surface-2)"
             _dark={{
-              borderColor: "gray.500",
-              bg: "#2e3440",
+              borderColor: "gray.600",
+              bg: "gray.750",
             }}
             borderRadius={5}
             minHeight="200px"

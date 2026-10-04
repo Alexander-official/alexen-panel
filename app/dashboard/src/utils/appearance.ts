@@ -2,9 +2,33 @@
 // and an animations on/off switch. Applied by setting CSS variables and body
 // classes, so it needs no theme rebuild and takes effect live. Saved per browser.
 
-export type AccentName = "blue" | "teal" | "purple" | "green" | "rose" | "amber";
+export type AccentName =
+  | "blue" | "teal" | "purple" | "green" | "rose" | "amber"
+  | "indigo" | "sky" | "cyan" | "emerald" | "lime" | "orange"
+  | "red" | "pink" | "fuchsia" | "violet" | "slate" | "gold";
+
+// ---- color helpers: build a whole palette from one color ----
+const hexToRgb = (hex: string) => {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+const rgbToHex = (rgb: number[]) =>
+  "#" + rgb.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
+/** mix `a` toward `b` by `t` (0..1) */
+const mix = (a: string, b: string, t: number) => {
+  const x = hexToRgb(a), y = hexToRgb(b);
+  return rgbToHex(x.map((v, i) => v + (y[i] - v) * t));
+};
+const scale = (base: string): Record<number, string> => ({
+  50: mix(base, "#ffffff", 0.55), 100: mix(base, "#ffffff", 0.45), 200: mix(base, "#ffffff", 0.33),
+  300: mix(base, "#ffffff", 0.2), 400: mix(base, "#ffffff", 0.1), 500: base,
+  600: mix(base, "#000000", 0.1), 700: mix(base, "#000000", 0.2), 800: mix(base, "#000000", 0.3),
+  900: mix(base, "#000000", 0.4),
+});
 export type Surface = "minimal" | "glass";
-export type Background = "default" | "slate" | "midnight" | "aurora" | "sunset" | "amoled";
+export type Background =
+  | "default" | "slate" | "midnight" | "aurora" | "sunset" | "amoled"
+  | "ocean" | "forest" | "wine" | "mocha" | "graphite" | "nebula" | "dracula" | "nord";
 
 export const ACCENTS: Record<AccentName, Record<number, string>> = {
   blue: {
@@ -31,6 +55,18 @@ export const ACCENTS: Record<AccentName, Record<number, string>> = {
     50: "#f8d79a", 100: "#f5c874", 200: "#f2b84e", 300: "#efa828", 400: "#e2991a",
     500: "#cb8916", 600: "#b47813", 700: "#9d6810", 800: "#86580d", 900: "#6f480a",
   },
+  indigo: scale("#5a5fe0"),
+  sky: scale("#1f9bd6"),
+  cyan: scale("#0fa5b8"),
+  emerald: scale("#12a37a"),
+  lime: scale("#6aa51c"),
+  orange: scale("#e5701f"),
+  red: scale("#dc3a3a"),
+  pink: scale("#e0408f"),
+  fuchsia: scale("#c03bd1"),
+  violet: scale("#8b4fe6"),
+  slate: scale("#5f6f86"),
+  gold: scale("#b8962e"),
 };
 
 // Each background also retints the panel itself, not just the page behind it:
@@ -38,6 +74,26 @@ export const ACCENTS: Record<AccentName, Record<number, string>> = {
 //    750 table heads/stat cards, 800 page/cards, 900) is replaced by a tinted one
 //  - light mode: gray 50-200 (hover/borders) and the surface colors are tinted
 // Every component reads these through CSS variables, so all blocks follow.
+/** a background built from one dark base and one light base color */
+function themed(dark: string, light: string, swatch: string) {
+  return {
+  light: `linear-gradient(160deg,${mix(light, "#ffffff", 0.45)},${light})`,
+  dark: `linear-gradient(160deg,${mix(dark, "#ffffff", 0.04)},${mix(dark, "#000000", 0.35)})`,
+  swatch,
+  tint: {
+    light: {
+      "gray-50": mix(light, "#ffffff", 0.6), "gray-100": mix(light, "#ffffff", 0.3),
+      "gray-200": light, border: mix(light, "#000000", 0.1),
+      surface: mix(light, "#ffffff", 0.86), "surface-2": mix(light, "#ffffff", 0.55),
+    },
+    dark: {
+      "gray-600": mix(dark, "#ffffff", 0.18), "gray-700": mix(dark, "#ffffff", 0.08),
+      "gray-750": mix(dark, "#ffffff", 0.04), "gray-800": dark, "gray-900": mix(dark, "#000000", 0.3),
+    },
+  },
+};
+}
+
 type Tint = {
   light: Record<string, string>;
   dark: Record<string, string>;
@@ -103,7 +159,17 @@ export const BACKGROUNDS: Record<
               "gray-800": "#000000", "gray-900": "#000000" },
     },
   },
+  ocean: themed("#0b2233", "#d4ebf5", "#0e7490"),
+  forest: themed("#0f2418", "#d6eedd", "#15803d"),
+  wine: themed("#2a0f1a", "#f5d9e1", "#9f1239"),
+  mocha: themed("#241a14", "#eee0d3", "#92400e"),
+  graphite: themed("#1b1d21", "#dde0e5", "#374151"),
+  nebula: themed("#1a1033", "#e3dafa", "#6d28d9"),
+  dracula: themed("#21222c", "#e2e2ef", "#bd93f9"),
+  nord: themed("#242933", "#dde3ec", "#5e81ac"),
+
 };
+
 
 const TINT_VARS = [
   "gray-50", "gray-100", "gray-200", "gray-600", "gray-700", "gray-750", "gray-800", "gray-900",

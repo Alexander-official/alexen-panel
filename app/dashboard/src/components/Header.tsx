@@ -49,6 +49,8 @@ import {
 import { Language } from "./Language";
 import useGetUser from "hooks/useGetUser";
 import { useSidebar } from "./Sidebar";
+import { sectionByPath } from "pages/sections";
+import { useLocation } from "react-router-dom";
 
 type HeaderProps = {
   actions?: ReactNode;
@@ -123,6 +125,7 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
     onShowingNodesUsage,
   } = useDashboard();
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const [appearance, setAppearance] = useState(getAppearance());
   const update = (patch: Partial<Appearance>) => {
     const next = { ...appearance, ...patch };
@@ -162,8 +165,8 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
           icon={<MenuIcon />}
           onClick={() => useSidebar.getState().setOpen(true)}
         />
-        <Text as="h1" fontWeight="semibold" fontSize="2xl">
-          {t("users")}
+        <Text as="h1" fontWeight="semibold" fontSize={{ base: "xl", md: "2xl" }} isTruncated>
+          {t(sectionByPath(pathname)?.title || "users")}
         </Text>
       </HStack>
       {showDonationNotif && (
@@ -183,9 +186,9 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
               }
               position="relative"
             ></MenuButton>
-            <MenuList minW="170px" zIndex={99999} className="menuList">
+            <MenuList minW="240px" zIndex={99999} className="menuList">
               <MenuGroup title={t("header.accentColor")} fontSize="xs">
-                <Box px={3} py={1} display="flex" gap={2}>
+                <Box px={3} py={1} display="flex" gap={2} flexWrap="wrap" maxW="232px">
                   {(Object.keys(ACCENTS) as AccentName[]).map((name) => (
                     <Box
                       key={name}
@@ -206,7 +209,7 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
                 </Box>
               </MenuGroup>
               <MenuGroup title={t("header.background")} fontSize="xs">
-                <Box px={3} py={1} display="flex" gap={2}>
+                <Box px={3} py={1} display="flex" gap={2} flexWrap="wrap" maxW="232px">
                   {(Object.keys(BACKGROUNDS) as Background[]).map((name) => (
                     <Box
                       key={name}

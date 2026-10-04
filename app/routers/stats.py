@@ -22,6 +22,14 @@ class InboundTraffic(BaseModel):
     used_traffic: int
 
 
+class TransportTraffic(BaseModel):
+    transport: str
+    protocols: List[str]
+    inbounds: int
+    used_traffic: int
+    online_ips: int = 0
+
+
 class TopUser(BaseModel):
     username: str
     admin: Optional[str] = None
@@ -33,6 +41,7 @@ class StatsOverview(BaseModel):
     active_users: int
     total_traffic: int
     inbounds: List[InboundTraffic]
+    transports: List[TransportTraffic] = []
     top_users: List[TopUser]
 
 
@@ -65,6 +74,36 @@ def stats_overview(db: Session = Depends(get_db), admin: Admin = Depends(Admin.g
         key=lambda i: i.used_traffic, reverse=True,
     )
 
+    # group traffic (and live connections) by transport, e.g. tcp / ws / grpc / hysteria
+    def transport_of(tag: str) -> str:
+        inbound = xray.config.inbounds_by_tag.get(tag) or {}
+        net = inbound.get("network") or "tcp"
+        return net if inbound.get("tls") in (None, "none") else f"{net} + {inbound['tls']}"
+
+    transports: dict = {}
+    for tag, inbound in xray.config.inbounds_by_tag.items():
+        t = transports.setdefault(transport_of(tag), {"protocols": set(), "inbounds": 0, "used": 0, "ips": 0})
+        t["protocols"].add(inbound.get("protocol") or "?")
+        t["inbounds"] += 1
+    for i in inbounds:
+        if i.inbound_tag in xray.config.inbounds_by_tag:
+            transports[transport_of(i.inbound_tag)]["used"] += i.used_traffic
+    from app.xray import online as _online
+    visible = set(user_ids)
+    for uid, ips in _online.online_users.items():
+        if uid not in visible:
+            continue
+        for entry in ips.values():
+            for tag in set(entry.get("inbounds") or []):
+                if tag in xray.config.inbounds_by_tag:
+                    transports[transport_of(tag)]["ips"] += 1
+    transport_list = sorted(
+        (TransportTraffic(transport=name, protocols=sorted(v["protocols"]), inbounds=v["inbounds"],
+                          used_traffic=v["used"], online_ips=v["ips"])
+         for name, v in transports.items()),
+        key=lambda t: (t.used_traffic, t.online_ips), reverse=True,
+    )
+
     top_rows = (
         db.query(User.username, DBAdmin.username, User.used_traffic)
         .outerjoin(DBAdmin, User.admin_id == DBAdmin.id)
@@ -79,6 +118,7 @@ def stats_overview(db: Session = Depends(get_db), admin: Admin = Depends(Admin.g
         active_users=active_users,
         total_traffic=total_traffic,
         inbounds=inbounds,
+        transports=transport_list,
         top_users=top_users,
     )
 

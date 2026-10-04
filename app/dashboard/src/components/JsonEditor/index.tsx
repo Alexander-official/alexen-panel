@@ -39,13 +39,20 @@ export const JsonEditor = forwardRef<HTMLDivElement, JSONEditorProps>(
       if (jsonEditorRef.current) jsonEditorRef.current.update(json);
     }, [json]);
 
+    // switch the syntax colors when the panel's color mode changes
+    useEffect(() => {
+      const ace = (jsonEditorRef.current as any)?.aceEditor;
+      ace?.setTheme(colorMode === "dark" ? "ace/theme/nord_dark" : "ace/theme/dawn");
+    }, [colorMode]);
+
     return (
       <Box
         ref={ref}
         border="1px solid"
-        borderColor="gray.300"
+        borderColor="light-border"
+        overflow="hidden"
         _dark={{
-          borderColor: "gray.500",
+          borderColor: "gray.600",
         }}
         borderRadius={5}
         h="full"

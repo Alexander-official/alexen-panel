@@ -31,7 +31,7 @@ import { useDashboard } from "contexts/DashboardContext";
 import useGetUser from "hooks/useGetUser";
 import { FC, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { create } from "zustand";
 
 export const SIDEBAR_WIDTH = "240px";
@@ -103,18 +103,16 @@ const SectionTitle: FC<{ children: ReactNode }> = ({ children }) => (
 const SidebarContent: FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const here = pathname.replace(/^\/+|\/+$/g, "");
   const { userData, getUserIsSuccess } = useGetUser();
   const isSudo = getUserIsSuccess && userData.is_sudo;
-  const {
-    onEditingHosts,
-    onResetAllUsage,
-    onEditingNodes,
-    onManagingAdmins,
-    onShowingStats,
-    onManagingGroups,
-    onEditingSubSettings,
-    onShowingNodesUsage,
-  } = useDashboard();
+  const { onResetAllUsage } = useDashboard();
+  const page = (path: string) => () => {
+    onNavigate?.();
+    navigate(`/${path}`);
+    window.scrollTo({ top: 0 });
+  };
 
   const go = (fn: () => void) => () => {
     onNavigate?.();
@@ -134,13 +132,14 @@ const SidebarContent: FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
       <NavItem
         icon={<UsersNavIcon />}
         label={t("users")}
-        active
-        onClick={go(() => window.scrollTo({ top: 0, behavior: "smooth" }))}
+        active={here === ""}
+        onClick={page("")}
       />
       <NavItem
         icon={<StatsNavIcon />}
         label={t("stats.title")}
-        onClick={go(() => onShowingStats(true))}
+        active={here === "statistics"}
+        onClick={page("statistics")}
       />
 
       {isSudo && (
@@ -149,39 +148,46 @@ const SidebarContent: FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
           <NavItem
             icon={<AdminsNavIcon />}
             label={t("header.adminsSettings")}
-            onClick={go(() => onManagingAdmins(true))}
+            active={here === "admins"}
+            onClick={page("admins")}
           />
           <NavItem
             icon={<NodesNavIcon />}
             label={t("header.nodeSettings")}
-            onClick={go(() => onEditingNodes(true))}
+            active={here === "nodes"}
+            onClick={page("nodes")}
           />
           <NavItem
             icon={<NodesUsageNavIcon />}
             label={t("header.nodesUsage")}
-            onClick={go(() => onShowingNodesUsage(true))}
+            active={here === "nodes-usage"}
+            onClick={page("nodes-usage")}
           />
           <NavItem
             icon={<HostsNavIcon />}
             label={t("header.hostSettings")}
-            onClick={go(() => onEditingHosts(true))}
+            active={here === "hosts"}
+            onClick={page("hosts")}
           />
           <NavItem
             icon={<GroupsNavIcon />}
             label={t("header.groupSettings")}
-            onClick={go(() => onManagingGroups(true))}
+            active={here === "groups"}
+            onClick={page("groups")}
           />
 
           <SectionTitle>{t("sidebar.settings")}</SectionTitle>
           <NavItem
             icon={<SubNavIcon />}
             label={t("header.subSettings")}
-            onClick={go(() => onEditingSubSettings(true))}
+            active={here === "sub"}
+            onClick={page("sub")}
           />
           <NavItem
             icon={<CoreNavIcon />}
             label={t("sidebar.coreSettings")}
-            onClick={go(() => useDashboard.setState({ isEditingCore: true }))}
+            active={here === "core"}
+            onClick={page("core")}
           />
           <NavItem
             icon={<ResetNavIcon />}

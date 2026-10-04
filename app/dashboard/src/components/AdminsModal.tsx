@@ -8,23 +8,26 @@ import {
   HStack,
   IconButton,
   Input,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
   Text,
   Tooltip,
   VStack,
   chakra,
   useToast,
 } from "@chakra-ui/react";
+import {
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalHeader,
+  ModalOverlay,
+} from "./PageSurface";
 import { PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useDashboard } from "contexts/DashboardContext";
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetch } from "service/http";
+import { useQuery } from "react-query";
 import { formatBytes } from "utils/formatByte";
 
 const EditIcon = chakra(PencilIcon, { baseStyle: { w: 4, h: 4 } });
@@ -68,6 +71,10 @@ const emptyForm: FormState = {
 };
 
 export const AdminsModal: FC = () => {
+  const { data: groupNames } = useQuery<string[]>({
+    queryKey: "host-group-names",
+    queryFn: () => fetch("/groups").then((d: any) => d.groups.map((g: any) => g.name)),
+  });
   const { isManagingAdmins, onManagingAdmins } = useDashboard();
   const { t } = useTranslation();
   const toast = useToast();
@@ -311,14 +318,44 @@ export const AdminsModal: FC = () => {
                     <FormLabel fontSize="sm">
                       {t("admins.hostGroups")}
                     </FormLabel>
-                    <Input
-                      size="sm"
-                      placeholder={t("admins.hostGroupsPlaceholder")}
-                      value={form.host_groups}
-                      onChange={(e) =>
-                        setForm({ ...form, host_groups: e.target.value })
-                      }
-                    />
+                    {/* pick from the groups created on the Groups page */}
+                    <HStack spacing={2} flexWrap="wrap">
+                      {(groupNames || []).map((g) => {
+                        const list = form.host_groups
+                          .split(",")
+                          .map((x) => x.trim())
+                          .filter(Boolean);
+                        const on = list.includes(g);
+                        return (
+                          <Button
+                            key={g}
+                            size="xs"
+                            borderRadius="full"
+                            colorScheme="primary"
+                            variant={on ? "solid" : "outline"}
+                            onClick={() =>
+                              setForm({
+                                ...form,
+                                host_groups: (on
+                                  ? list.filter((x) => x !== g)
+                                  : [...list, g]
+                                ).join(", "),
+                              })
+                            }
+                          >
+                            {g}
+                          </Button>
+                        );
+                      })}
+                      {groupNames && groupNames.length === 0 && (
+                        <Text fontSize="xs" color="gray.500">
+                          {t("admins.noGroupsYet")}
+                        </Text>
+                      )}
+                    </HStack>
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      {t("admins.hostGroupsPlaceholder")}
+                    </Text>
                   </FormControl>
                 </>
               )}

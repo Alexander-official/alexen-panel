@@ -257,3 +257,35 @@
 .ace-nord-dark .ace_indent-guide-active {
 	box-shadow: inset -1px 0 0 0 #8395b8b3;
 }
+
+/* follow the panel theme instead of the editor's own fixed colors */
+.jsoneditor .ace_editor,
+.jsoneditor .ace-dawn,
+.jsoneditor .ace-nord-dark,
+.jsoneditor .ace_scroller,
+.jsoneditor .ace_content {
+	background-color: var(--app-surface-2) !important;
+}
+.jsoneditor .ace_gutter {
+	background: var(--chakra-colors-gray-100) !important;
+	color: var(--chakra-colors-gray-500) !important;
+}
+.jsoneditor .ace_gutter-active-line,
+.jsoneditor .ace_marker-layer .ace_active-line {
+	background: color-mix(in srgb, var(--chakra-colors-primary-500) 12%, transparent) !important;
+}
+.jsoneditor .ace_marker-layer .ace_selection {
+	background: color-mix(in srgb, var(--chakra-colors-primary-500) 30%, transparent) !important;
+}
+.chakra-ui-dark .jsoneditor .ace_editor,
+.chakra-ui-dark .jsoneditor .ace-dawn,
+.chakra-ui-dark .jsoneditor .ace-nord-dark,
+.chakra-ui-dark .jsoneditor .ace_scroller,
+.chakra-ui-dark .jsoneditor .ace_content {
+	background-color: var(--chakra-colors-gray-750) !important;
+}
+.chakra-ui-dark .jsoneditor .ace_gutter {
+	background: var(--chakra-colors-gray-800) !important;
+	color: var(--chakra-colors-gray-500) !important;
+}
+.jsoneditor .ace_print-margin { display: none; }

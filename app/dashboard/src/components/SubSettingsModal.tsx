@@ -5,6 +5,12 @@ import {
   FormControl,
   FormLabel,
   Input,
+  Text,
+  Textarea,
+  VStack,
+  useToast,
+} from "@chakra-ui/react";
+import {
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -12,11 +18,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  Text,
-  Textarea,
-  VStack,
-  useToast,
-} from "@chakra-ui/react";
+} from "./PageSurface";
 import { useDashboard } from "contexts/DashboardContext";
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

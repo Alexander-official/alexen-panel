@@ -1,7 +1,8 @@
 import { createHashRouter } from "react-router-dom";
 import { fetch } from "../service/http";
 import { getAuthToken } from "../utils/authStorage";
-import { Dashboard } from "./Dashboard";
+import { Dashboard, UsersView } from "./Dashboard";
+import { SECTIONS, SectionPage } from "./sections";
 import { Login } from "./Login";
 const fetchAdminLoader = () => {
     return fetch("/admin", {
@@ -16,6 +17,13 @@ export const router = createHashRouter([
         element: <Dashboard />,
         errorElement: <Login />,
         loader: fetchAdminLoader,
+        children: [
+            { index: true, element: <UsersView /> },
+            ...SECTIONS.map((section) => ({
+                path: section.path,
+                element: <SectionPage key={section.path} section={section} />,
+            })),
+        ],
     },
     {
         path: "/login/",

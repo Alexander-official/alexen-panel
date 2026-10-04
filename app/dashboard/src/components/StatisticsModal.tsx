@@ -3,17 +3,19 @@ import {
   Card,
   Divider,
   HStack,
+  Progress,
+  SimpleGrid,
+  Text,
+  VStack,
+} from "@chakra-ui/react";
+import {
   Modal,
   ModalBody,
   ModalCloseButton,
   ModalContent,
   ModalHeader,
   ModalOverlay,
-  Progress,
-  SimpleGrid,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+} from "./PageSurface";
 import { useDashboard } from "contexts/DashboardContext";
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
@@ -27,6 +29,13 @@ type Overview = {
   active_users: number;
   total_traffic: number;
   inbounds: { inbound_tag: string; protocol: string | null; used_traffic: number }[];
+  transports: {
+    transport: string;
+    protocols: string[];
+    inbounds: number;
+    used_traffic: number;
+    online_ips: number;
+  }[];
   top_users: { username: string; admin: string | null; used_traffic: number }[];
 };
 
@@ -55,6 +64,9 @@ export const StatisticsModal: FC = () => {
   const providers = providerData?.providers || [];
   const maxProviderUsers = Math.max(1, ...providers.map((p) => p.users));
 
+  const transports = data?.transports || [];
+  const maxTransport = Math.max(1, ...transports.map((x) => x.used_traffic));
+
   const maxInbound = Math.max(1, ...(data?.inbounds || []).map((i) => i.used_traffic));
 
   return (
@@ -75,6 +87,35 @@ export const StatisticsModal: FC = () => {
               label={t("stats.totalTraffic")}
               value={data ? (formatBytes(data.total_traffic) as string) : "—"}
             />
+          </SimpleGrid>
+
+          <Text fontSize="sm" fontWeight="medium" mb={2}>
+            {t("stats.byTransport")}
+          </Text>
+          <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={2} mb={5}>
+            {transports.map((x) => (
+              <Card key={x.transport} p={3} borderWidth="1px" boxShadow="none" _dark={{ borderColor: "gray.600" }}>
+                <HStack justifyContent="space-between" mb={1}>
+                  <Text fontSize="sm" fontWeight="semibold" textTransform="uppercase">
+                    {x.transport}
+                  </Text>
+                  <Text fontSize="sm" fontWeight="semibold">
+                    {formatBytes(x.used_traffic)}
+                  </Text>
+                </HStack>
+                <Progress
+                  value={(x.used_traffic / maxTransport) * 100}
+                  size="xs"
+                  borderRadius="full"
+                  colorScheme="primary"
+                  mb={2}
+                />
+                <Text fontSize="xs" color="gray.500">
+                  {x.protocols.join(", ")} ·{" "}
+                  {t("stats.transportMeta", { inbounds: x.inbounds, ips: x.online_ips })}
+                </Text>
+              </Card>
+            ))}
           </SimpleGrid>
 
           <Text fontSize="sm" fontWeight="medium" mb={2}>

@@ -17,12 +17,6 @@ import {
   IconButton,
   InputGroup,
   InputRightElement,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
   Popover,
   PopoverArrow,
   PopoverBody,
@@ -37,6 +31,14 @@ import {
   chakra,
   useToast,
 } from "@chakra-ui/react";
+import {
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalHeader,
+  ModalOverlay,
+} from "./PageSurface";
 import {
   ArrowDownIcon,
   ArrowUpIcon,

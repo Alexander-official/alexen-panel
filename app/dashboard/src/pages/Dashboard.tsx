@@ -12,20 +12,22 @@ import { UsersTable } from "components/UsersTable";
 import { fetchInbounds, useDashboard } from "contexts/DashboardContext";
 import { FC, lazy, ReactNode, Suspense, useEffect, useState } from "react";
 import { Statistics } from "../components/Statistics";
+import { Outlet } from "react-router-dom";
 
-// Rarely used windows pull in heavy libraries (json editor, charts, carousel).
-// They are split into their own chunks and only fetched the first time they open.
+// the users list, the default page
+export const UsersView: FC = () => (
+  <>
+    <Statistics mt={{ base: 3, md: 4 }} />
+    <Filters />
+    <UsersTable />
+  </>
+);
+
+// The QR window pulls in a carousel; fetch it the first time it opens.
+// Other sections are pages, see pages/sections.tsx.
 const named = <T extends string>(loader: () => Promise<Record<T, any>>, name: T) =>
   lazy(() => loader().then((m) => ({ default: m[name] })));
 
-const AdminsModal = named(() => import("components/AdminsModal"), "AdminsModal");
-const StatisticsModal = named(() => import("components/StatisticsModal"), "StatisticsModal");
-const GroupSettingsModal = named(() => import("components/GroupSettingsModal"), "GroupSettingsModal");
-const SubSettingsModal = named(() => import("components/SubSettingsModal"), "SubSettingsModal");
-const CoreSettingsModal = named(() => import("components/CoreSettingsModal"), "CoreSettingsModal");
-const HostsDialog = named(() => import("components/HostsDialog"), "HostsDialog");
-const NodesDialog = named(() => import("components/NodesModal"), "NodesDialog");
-const NodesUsage = named(() => import("components/NodesUsage"), "NodesUsage");
 const QRCodeDialog = named(() => import("components/QRCodeDialog"), "QRCodeDialog");
 
 // mounts its children the first time `when` is true, then keeps them mounted
@@ -46,14 +48,6 @@ export const Dashboard: FC = () => {
   // per-flag selectors so the page doesn't re-render on every store change
   const s = {
     QRcodeLinks: useDashboard((d) => d.QRcodeLinks),
-    isEditingHosts: useDashboard((d) => d.isEditingHosts),
-    isManagingAdmins: useDashboard((d) => d.isManagingAdmins),
-    isShowingStats: useDashboard((d) => d.isShowingStats),
-    isManagingGroups: useDashboard((d) => d.isManagingGroups),
-    isEditingSubSettings: useDashboard((d) => d.isEditingSubSettings),
-    isEditingNodes: useDashboard((d) => d.isEditingNodes),
-    isShowingNodesUsage: useDashboard((d) => d.isShowingNodesUsage),
-    isEditingCore: useDashboard((d) => d.isEditingCore),
   };
   return (
     <>
@@ -69,9 +63,7 @@ export const Dashboard: FC = () => {
       >
         <Box w="full">
           <Header />
-          <Statistics mt={{ base: 3, md: 4 }} />
-          <Filters />
-          <UsersTable />
+          <Outlet />
           <UserDialog />
           <DeleteUserModal />
           <ResetUserUsageModal />
@@ -79,30 +71,6 @@ export const Dashboard: FC = () => {
           <ResetAllUsageModal />
           <OnFirstOpen when={s.QRcodeLinks !== null}>
             <QRCodeDialog />
-          </OnFirstOpen>
-          <OnFirstOpen when={s.isEditingHosts}>
-            <HostsDialog />
-          </OnFirstOpen>
-          <OnFirstOpen when={s.isManagingAdmins}>
-            <AdminsModal />
-          </OnFirstOpen>
-          <OnFirstOpen when={s.isShowingStats}>
-            <StatisticsModal />
-          </OnFirstOpen>
-          <OnFirstOpen when={s.isManagingGroups}>
-            <GroupSettingsModal />
-          </OnFirstOpen>
-          <OnFirstOpen when={s.isEditingSubSettings}>
-            <SubSettingsModal />
-          </OnFirstOpen>
-          <OnFirstOpen when={s.isEditingNodes}>
-            <NodesDialog />
-          </OnFirstOpen>
-          <OnFirstOpen when={s.isShowingNodesUsage}>
-            <NodesUsage />
-          </OnFirstOpen>
-          <OnFirstOpen when={s.isEditingCore}>
-            <CoreSettingsModal />
           </OnFirstOpen>
         </Box>
         <Footer />
