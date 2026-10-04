@@ -25,6 +25,7 @@ from app.db.models import (
     ProxyInbound,
     ProxyTypes,
     System,
+    Settings,
     User,
     UserHWIDDevice,
     UserTemplate,
@@ -221,6 +222,10 @@ UsersSortingOptions = Enum('UsersSortingOptions', {
     '-data_limit': User.data_limit.desc(),
     '-expire': User.expire.desc(),
     '-created_at': User.created_at.desc(),
+    'online_ip_count': User.online_ip_count.asc(),
+    '-online_ip_count': User.online_ip_count.desc(),
+    'hwid_count': User.hwid_count.asc(),
+    '-hwid_count': User.hwid_count.desc(),
 })
 
 
@@ -1563,6 +1568,8 @@ def register_hwid_device(db: Session, dbuser: User, hwid: str, platform: Optiona
     device.device_model = (device_model or None) and device_model[:128]
     device.user_agent = (user_agent or None) and user_agent[:512]
     device.updated_at = datetime.utcnow()
+    db.flush()
+    dbuser.hwid_count = db.query(UserHWIDDevice).filter(UserHWIDDevice.user_id == dbuser.id).count()
     db.commit()
     return True
 
@@ -1578,6 +1585,8 @@ def remove_hwid_devices(db: Session, dbuser: User, device_id: Optional[int] = No
     if device_id is not None:
         query = query.filter(UserHWIDDevice.id == device_id)
     count = query.delete(synchronize_session=False)
+    db.flush()
+    dbuser.hwid_count = db.query(UserHWIDDevice).filter(UserHWIDDevice.user_id == dbuser.id).count()
     db.commit()
     return count
 
@@ -1608,3 +1617,18 @@ def clamp_user_limits_to_admin(admin: Admin, ip_limit, hwid_limit):
     if admin.max_user_hwid_limit:
         hwid_limit = min(hwid_limit or admin.max_user_hwid_limit, admin.max_user_hwid_limit)
     return ip_limit, hwid_limit
+
+
+def get_setting(db: Session, key: str, default=None):
+    row = db.query(Settings).filter(Settings.key == key).first()
+    return row.data if row and row.data is not None else default
+
+
+def set_setting(db: Session, key: str, data) -> None:
+    row = db.query(Settings).filter(Settings.key == key).first()
+    if row is None:
+        row = Settings(key=key, data=data)
+        db.add(row)
+    else:
+        row.data = data
+    db.commit()

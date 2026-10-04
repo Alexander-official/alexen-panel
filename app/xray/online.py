@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from app import xray
 from app.db import GetDB
-from app.db.models import Node
+from app.db.models import Node, User
 from app.xray import ip_limit
 from app.xray import geoip
 from xray_api import XRay as XRayAPI
@@ -18,6 +18,7 @@ MASTER_NAME = "Master"
 online_users: Dict[int, Dict[str, dict]] = {}
 updated_at: Optional[datetime] = None
 _last_apis: Dict[str, object] = {}
+_prev_online: Dict[int, int] = {}
 
 
 def _fetch(api: XRayAPI):
@@ -68,6 +69,22 @@ def refresh():
         for ip, entry in ips.items():
             entry["first_seen"] = prev.get(ip, {}).get("first_seen") or now
             entry["provider"] = geoip.provider(ip)
+
+    # persist per-user online IP count so the users table can sort by it
+    try:
+        from sqlalchemy import update as _sql_update
+        counts = {uid: len(ips) for uid, ips in users.items()}
+        with GetDB() as db:
+            # zero out users that were online before but aren't now
+            stale = set(_prev_online) - set(counts)
+            if stale:
+                db.execute(_sql_update(User).where(User.id.in_(stale)).values(online_ip_count=0))
+            for uid, c in counts.items():
+                db.execute(_sql_update(User).where(User.id == uid).values(online_ip_count=c))
+            db.commit()
+        _prev_online.clear(); _prev_online.update(counts)
+    except Exception as exc:
+        logger.warning(f"online: failed to persist ip counts: {exc}")
 
     online_users = users
     updated_at = datetime.utcnow()

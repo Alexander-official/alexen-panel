@@ -366,16 +366,14 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                               👤 {user.admin.username}
                             </Text>
                           )}
-                          {!!user.hwid_limit && (
-                            <Text fontSize="xs" color="gray.500">
-                              📱 {user.hwid_limit}
-                            </Text>
-                          )}
-                          {!!user.ip_limit && (
-                            <Text fontSize="xs" color="gray.500">
-                              IP {user.ip_limit}
-                            </Text>
-                          )}
+                          <Text fontSize="xs" color="gray.500">
+                            📶 {user.online_ip_count ?? 0}
+                            {user.ip_limit ? `/${user.ip_limit}` : ""}
+                          </Text>
+                          <Text fontSize="xs" color="gray.500">
+                            📱 {user.hwid_count ?? 0}
+                            {user.hwid_limit ? `/${user.hwid_limit}` : ""}
+                          </Text>
                         </HStack>
                       </Td>
                       <Td borderBottom={0} minW="50px" pl={0} pr={0}>

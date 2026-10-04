@@ -62,6 +62,8 @@ export type User = {
   note: string;
   online_at: string;
   admin?: { username: string } | null;
+  online_ip_count?: number;
+  hwid_count?: number;
 };
 
 export type UserCreate = Pick<

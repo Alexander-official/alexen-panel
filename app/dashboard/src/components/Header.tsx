@@ -21,6 +21,8 @@ import {
   DocumentMinusIcon,
   LinkIcon,
   MoonIcon,
+  DocumentTextIcon,
+  RectangleGroupIcon,
   SquaresPlusIcon,
   SunIcon,
   UsersIcon,
@@ -68,6 +70,8 @@ const NodesUsageIcon = chakra(ChartPieIcon, iconProps);
 const ResetUsageIcon = chakra(DocumentMinusIcon, iconProps);
 const AdminsIcon = chakra(UsersIcon, iconProps);
 const StatsIcon = chakra(ChartPieIcon, iconProps);
+const GroupsIcon = chakra(RectangleGroupIcon, iconProps);
+const SubIcon = chakra(DocumentTextIcon, iconProps);
 const NotificationCircle = chakra(Box, {
   baseStyle: {
     bg: "yellow.500",
@@ -111,6 +115,8 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
     onEditingNodes,
     onManagingAdmins,
     onShowingStats,
+    onManagingGroups,
+    onEditingSubSettings,
     onShowingNodesUsage,
   } = useDashboard();
   const { t } = useTranslation();
@@ -174,6 +180,22 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
                     onClick={onEditingHosts.bind(null, true)}
                   >
                     {t("header.hostSettings")}
+                  </MenuItem>
+                  <MenuItem
+                    maxW="170px"
+                    fontSize="sm"
+                    icon={<GroupsIcon />}
+                    onClick={onManagingGroups.bind(null, true)}
+                  >
+                    {t("header.groupSettings")}
+                  </MenuItem>
+                  <MenuItem
+                    maxW="170px"
+                    fontSize="sm"
+                    icon={<SubIcon />}
+                    onClick={onEditingSubSettings.bind(null, true)}
+                  >
+                    {t("header.subSettings")}
                   </MenuItem>
                   <MenuItem
                     maxW="170px"

@@ -4,7 +4,9 @@ from distutils.version import LooseVersion
 from fastapi import APIRouter, Depends, Header, Path, Request, Response
 from fastapi.responses import HTMLResponse
 
+import time as _time
 from app.db import Session, crud, get_db
+from app.routers.settings import get_subscription_settings
 from app.dependencies import get_validated_sub, validate_dates
 from app.models.user import SubscriptionUserResponse, UserResponse
 from app.subscription.share import encode_title, generate_subscription
@@ -34,6 +36,46 @@ client_config = {
 }
 
 router = APIRouter(tags=['Subscription'], prefix=f'/{XRAY_SUBSCRIPTION_PATH}')
+
+
+def _hdr_value(value: str) -> str:
+    value = (value or "").strip()
+    if not value:
+        return ""
+    return value if value.startswith("base64:") else encode_title(value)
+
+
+def build_sub_headers(db: Session, user: UserResponse) -> dict:
+    """profile-title and announce, overridden per user state from the settings."""
+    cfg = get_subscription_settings(db)
+    title, announce = cfg.profile_title, cfg.announce
+    status = getattr(user, "status", None)
+    status = status.value if hasattr(status, "value") else status
+
+    now = _time.time()
+    is_expired = status == "expired" or (user.expire and user.expire < now)
+    is_limited = status == "limited" or (
+        user.data_limit and (user.used_traffic or 0) >= user.data_limit)
+
+    if status == "disabled":
+        title = cfg.disabled_title or title
+        announce = cfg.disabled_announce or announce
+    elif is_expired:
+        title = cfg.expired_title or title
+        announce = cfg.expired_announce or announce
+    elif is_limited:
+        title = cfg.limited_title or title
+        announce = cfg.limited_announce or announce
+    elif user.expire:
+        days_left = (user.expire - now) / 86400
+        if 0 < days_left <= max(0, cfg.near_expire_days):
+            title = cfg.near_expire_title or title
+            announce = cfg.near_expire_announce or announce
+    headers = {"profile-title": _hdr_value(title) or encode_title(SUB_PROFILE_TITLE)}
+    a = _hdr_value(announce)
+    if a:
+        headers["announce"] = a
+    return headers
 
 
 def get_subscription_user_info(user: UserResponse) -> dict:
@@ -91,8 +133,8 @@ def user_subscription(
         "content-disposition": f'attachment; filename="{user.username}"',
         "profile-web-page-url": str(request.url),
         "support-url": SUB_SUPPORT_URL,
-        "profile-title": encode_title(SUB_PROFILE_TITLE),
         "profile-update-interval": SUB_UPDATE_INTERVAL,
+        **build_sub_headers(db, user),
         "subscription-userinfo": "; ".join(
             f"{key}={val}"
             for key, val in get_subscription_user_info(user).items()
@@ -201,8 +243,8 @@ def user_subscription_with_client_type(
         "content-disposition": f'attachment; filename="{user.username}"',
         "profile-web-page-url": str(request.url),
         "support-url": SUB_SUPPORT_URL,
-        "profile-title": encode_title(SUB_PROFILE_TITLE),
         "profile-update-interval": SUB_UPDATE_INTERVAL,
+        **build_sub_headers(db, user),
         "subscription-userinfo": "; ".join(
             f"{key}={val}"
             for key, val in get_subscription_user_info(user).items()

@@ -8,6 +8,7 @@ import {
   IconButton,
   Input,
   InputGroup,
+  Select,
   InputLeftElement,
   InputRightElement,
   Spinner,
@@ -109,6 +110,20 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
       </GridItem>
       <GridItem colSpan={2} order={{ base: 1, md: 2 }}>
         <HStack justifyContent="flex-end" alignItems="center" h="full">
+          <Select
+            size="sm"
+            maxW="190px"
+            borderColor="light-border"
+            value={filters.sort || "-created_at"}
+            onChange={(e) => onFilterChange({ sort: e.target.value, offset: 0 })}
+          >
+            <option value="-created_at">{t("sort.newest")}</option>
+            <option value="username">{t("sort.username")}</option>
+            <option value="-used_traffic">{t("sort.usage")}</option>
+            <option value="expire">{t("sort.expire")}</option>
+            <option value="-online_ip_count">{t("sort.onlineIps")}</option>
+            <option value="-hwid_count">{t("sort.devices")}</option>
+          </Select>
           <IconButton
             aria-label="refresh users"
             disabled={loading}

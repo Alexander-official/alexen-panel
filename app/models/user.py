@@ -76,6 +76,8 @@ class User(BaseModel):
     sub_updated_at: Optional[datetime] = Field(None, nullable=True)
     sub_last_user_agent: Optional[str] = Field(None, nullable=True)
     sub_request_count: Optional[int] = 0
+    online_ip_count: Optional[int] = 0
+    hwid_count: Optional[int] = 0
     online_at: Optional[datetime] = Field(None, nullable=True)
     on_hold_expire_duration: Optional[int] = Field(None, nullable=True)
     on_hold_timeout: Optional[Union[datetime, None]] = Field(None, nullable=True)

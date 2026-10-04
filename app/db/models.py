@@ -95,6 +95,8 @@ class User(Base):
     sub_updated_at = Column(DateTime, nullable=True, default=None)
     sub_last_user_agent = Column(String(512), nullable=True, default=None)
     sub_request_count = Column(Integer, nullable=False, default=0)
+    online_ip_count = Column(Integer, nullable=False, default=0)
+    hwid_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     note = Column(String(500), nullable=True, default=None)
     online_at = Column(DateTime, nullable=True, default=None)
@@ -287,6 +289,13 @@ class System(Base):
     id = Column(Integer, primary_key=True)
     uplink = Column(BigInteger, default=0)
     downlink = Column(BigInteger, default=0)
+
+
+class Settings(Base):
+    __tablename__ = "settings"
+
+    key = Column(String(64), primary_key=True)
+    data = Column(JSON, nullable=True)
 
 
 class JWT(Base):
