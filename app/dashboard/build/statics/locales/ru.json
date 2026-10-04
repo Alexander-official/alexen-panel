@@ -94,7 +94,7 @@
   "memoryUsage": "Память",
   "next": "Вперед",
   "nodes.addHostForEveryInbound": "Добавить этот узел, как новый хост для каждого inbound",
-  "nodes.addNewMarzbanNode": "Добавить новый узел Marzban",
+  "nodes.addNewMarzbanNode": "Добавить ноду",
   "nodes.addNode": "Добавить узел",
   "nodes.addNodeSuccess": "Узел {{name}} успешно добавлен",
   "nodes.apply": "Настройки узла успешно обновлены",
