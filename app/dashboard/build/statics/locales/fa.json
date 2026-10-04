@@ -276,5 +276,8 @@
   "sub.nearExpireDays": "چند روز مانده نمایش",
   "sub.directives": "دستورها",
   "sub.base64Hint": "مقدار را base64 می‌کند",
-  "sub.placeholders": "متغیرها"
+  "sub.placeholders": "متغیرها",
+  "usersTable.activeIps": "آی‌پی",
+  "usersTable.devices": "دستگاه",
+  "all": "همه"
 }

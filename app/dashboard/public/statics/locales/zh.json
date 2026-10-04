@@ -272,5 +272,8 @@
   "sub.nearExpireDays": "到期前几天显示",
   "sub.directives": "指令",
   "sub.base64Hint": "对值进行编码",
-  "sub.placeholders": "占位符"
+  "sub.placeholders": "占位符",
+  "usersTable.activeIps": "IP",
+  "usersTable.devices": "设备",
+  "all": "全部"
 }

@@ -271,5 +271,8 @@
   "sub.nearExpireDays": "За сколько дней показывать",
   "sub.directives": "Директивы",
   "sub.base64Hint": "кодирует значение",
-  "sub.placeholders": "Плейсхолдеры"
+  "sub.placeholders": "Плейсхолдеры",
+  "usersTable.activeIps": "IP",
+  "usersTable.devices": "Устр.",
+  "all": "все"
 }

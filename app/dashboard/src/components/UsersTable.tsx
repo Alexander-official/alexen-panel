@@ -525,54 +525,51 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
             <Th
               position="sticky"
               top={{ base: "unset", md: top }}
-              width="400px"
-              minW="150px"
-              cursor={"pointer"}
+              width="90px"
+              minW="80px"
+              cursor="pointer"
+              onClick={handleSort.bind(null, "hwid_count")}
             >
-              <HStack position="relative" gap={"5px"}>
-                <Text
-                  _dark={{
-                    bg: "gray.750",
-                  }}
-                  _light={{
-                    bg: "#F9FAFB",
-                  }}
-                  userSelect="none"
-                  pointerEvents="none"
-                  zIndex={1}
-                >
-                  {t("usersTable.status")}
-                  {filters.status ? ": " + filters.status : ""}
-                </Text>
-                <Text>/</Text>
-                <Sort sort={filters.sort} column="expire" />
-                <HStack onClick={handleSort.bind(null, "expire")}>
-                  <Text>Sort by expire</Text>
-                </HStack>
+              <HStack>
+                <span>{t("usersTable.devices")}</span>
+                <Sort sort={filters.sort} column="hwid_count" />
+              </HStack>
+            </Th>
+            <Th
+              position="sticky"
+              top={{ base: "unset", md: top }}
+              width="90px"
+              minW="80px"
+              cursor="pointer"
+              onClick={handleSort.bind(null, "online_ip_count")}
+            >
+              <HStack>
+                <span>{t("usersTable.activeIps")}</span>
+                <Sort sort={filters.sort} column="online_ip_count" />
+              </HStack>
+            </Th>
+            <Th
+              position="sticky"
+              top={{ base: "unset", md: top }}
+              width="170px"
+              minW="150px"
+            >
+              <HStack gap="6px">
+                <Text>{t("usersTable.status")}</Text>
                 <Select
-                  fontSize="xs"
-                  fontWeight="extrabold"
-                  textTransform="uppercase"
-                  cursor="pointer"
-                  position={"absolute"}
-                  p={0}
-                  left={"-40px"}
-                  border={0}
-                  h="auto"
+                  size="xs"
+                  variant="unstyled"
                   w="auto"
-                  icon={<></>}
-                  _focusVisible={{
-                    border: "0 !important",
-                  }}
-                  value={filters.sort}
+                  cursor="pointer"
+                  value={filters.status || ""}
                   onChange={handleStatusFilter}
                 >
-                  <option></option>
-                  <option>active</option>
-                  <option>on_hold</option>
-                  <option>disabled</option>
-                  <option>limited</option>
-                  <option>expired</option>
+                  <option value="">{t("all") || "all"}</option>
+                  <option value="active">active</option>
+                  <option value="on_hold">on_hold</option>
+                  <option value="disabled">disabled</option>
+                  <option value="limited">limited</option>
+                  <option value="expired">expired</option>
                 </Select>
               </HStack>
             </Th>
@@ -614,8 +611,33 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                       {user.username}
                       <OnlineStatus lastOnline={user.online_at} />
                     </div>
+                    {isSudo && user.admin?.username && (
+                      <Text fontSize="xs" color="gray.500" pl="20px" isTruncated>
+                        👤 {user.admin.username}
+                      </Text>
+                    )}
                   </Td>
-                  <Td width="400px" minW="150px">
+                  <Td width="90px" minW="80px">
+                    <Text fontSize="sm">
+                      📱 {user.hwid_count ?? 0}
+                      {user.hwid_limit ? (
+                        <Text as="span" color="gray.500">
+                          /{user.hwid_limit}
+                        </Text>
+                      ) : null}
+                    </Text>
+                  </Td>
+                  <Td width="90px" minW="80px">
+                    <Text fontSize="sm">
+                      📶 {user.online_ip_count ?? 0}
+                      {user.ip_limit ? (
+                        <Text as="span" color="gray.500">
+                          /{user.ip_limit}
+                        </Text>
+                      ) : null}
+                    </Text>
+                  </Td>
+                  <Td width="170px" minW="150px">
                     <StatusBadge
                       expiryDate={user.expire}
                       status={user.status}
@@ -638,7 +660,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
             })}
           {users.length == 0 && (
             <Tr>
-              <Td colSpan={4}>
+              <Td colSpan={6}>
                 <EmptySection isFiltered={isFiltered} />
               </Td>
             </Tr>

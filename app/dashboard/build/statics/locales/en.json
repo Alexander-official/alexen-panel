@@ -271,5 +271,8 @@
   "sub.nearExpireDays": "Days before expiry to show",
   "sub.directives": "Directives",
   "sub.base64Hint": "before a value encodes it",
-  "sub.placeholders": "Placeholders"
+  "sub.placeholders": "Placeholders",
+  "usersTable.activeIps": "IPs",
+  "usersTable.devices": "Devices",
+  "all": "all"
 }
