@@ -10,13 +10,46 @@ import threading
 import urllib.parse
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 SETTINGS_KEY = "external_configs"
 
 GENERATED_SORTS = ("default", "remark", "remark_desc", "protocol", "reverse")
 EXTERNAL_SORTS = ("manual", "name", "name_desc", "protocol")
-DEFAULT_PROTOCOL_ORDER = ["vless", "vmess", "trojan", "ss", "hysteria2", "tuic", "wireguard"]
+# VLESS is split by transport / security, the rest by protocol
+VLESS_KINDS = ["vless-reality", "vless-tcp", "vless-ws", "vless-grpc", "vless-xhttp", "vless-httpupgrade"]
+DEFAULT_PROTOCOL_ORDER = VLESS_KINDS + ["vmess", "trojan", "ss", "hysteria2", "tuic", "wireguard"]
+
+
+def normalize_order(order: List[str]) -> List[str]:
+    """expand an old plain "vless" entry into the VLESS kinds (in its place) and
+    add any kind the list doesn't have yet at the end"""
+    out: List[str] = []
+    for key in order or []:
+        for k in (VLESS_KINDS if key == "vless" else [key]):
+            if k in DEFAULT_PROTOCOL_ORDER and k not in out:
+                out.append(k)
+    return out + [k for k in DEFAULT_PROTOCOL_ORDER if k not in out]
+
+
+def link_kind(link: str) -> str:
+    """protocol of a share link; VLESS also by transport ("vless-ws") or reality"""
+    scheme = _scheme(link)
+    if scheme != "vless":
+        return scheme
+    q = urllib.parse.parse_qs(urllib.parse.urlsplit(link).query)
+    if (q.get("security") or [""])[0] == "reality":
+        return "vless-reality"
+    net = (q.get("type") or ["tcp"])[0].lower()
+    return {
+        "tcp": "vless-tcp", "raw": "vless-tcp", "ws": "vless-ws", "grpc": "vless-grpc", "gun": "vless-grpc",
+        "xhttp": "vless-xhttp", "splithttp": "vless-xhttp", "httpupgrade": "vless-httpupgrade",
+    }.get(net, "vless-tcp")
+
+
+def protocol_rank(order: List[str]):
+    rank = {k: i for i, k in enumerate(normalize_order(order))}
+    return lambda link: rank.get(link_kind(link), len(rank))
 
 # the name part after "#" may contain spaces when links are pasted by hand
 _LINK_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://[^\s#]+(#.*)?$")
@@ -54,9 +87,14 @@ class ExternalSettings(BaseModel):
     configs: List[ExternalConfig] = []
     generated_sort: str = "default"
     external_sort: str = "manual"
-    # used when external_sort == "protocol"
+    # used by both "by protocol" sorts
     protocol_order: List[str] = DEFAULT_PROTOCOL_ORDER
     test_url: str = "https://www.gstatic.com/generate_204"
+
+    @field_validator("protocol_order", mode="after")
+    @classmethod
+    def _normalize(cls, v):
+        return normalize_order(v)
 
 
 _cache: Optional[ExternalSettings] = None
@@ -108,13 +146,13 @@ def _name_key(text: str) -> str:
     return text[i:].lower()
 
 
-def sort_generated(links: List[str], mode: str) -> List[str]:
+def sort_generated(links: List[str], mode: str, order: Optional[List[str]] = None) -> List[str]:
     if mode == "remark":
         return sorted(links, key=lambda l: _name_key(_remark(l)))
     if mode == "remark_desc":
         return sorted(links, key=lambda l: _name_key(_remark(l)), reverse=True)
     if mode == "protocol":
-        return sorted(links, key=lambda l: l.split("://", 1)[0].lower())  # stable: keeps inbound order inside
+        return sorted(links, key=protocol_rank(order or DEFAULT_PROTOCOL_ORDER))  # stable: keeps inbound order inside
     if mode == "reverse":
         return list(reversed(links))
     return links
@@ -147,7 +185,7 @@ def apply(links: List[str], *, active: bool, host_groups: Optional[list], variab
     """Order the panel's links and put the external ones around them.
     With tagged=True returns (link, source) pairs, for the preview."""
     s = settings or load()
-    own = [(l, "generated") for l in sort_generated(links, s.generated_sort)]
+    own = [(l, "generated") for l in sort_generated(links, s.generated_sort, s.protocol_order)]
 
     configs = [c for c in s.configs if _visible(c, active, host_groups)]
     if s.external_sort == "name":
@@ -161,8 +199,8 @@ def apply(links: List[str], *, active: bool, host_groups: Optional[list], variab
         target.extend((_fill(l, variables), "external") for l in c.link_list())
 
     if s.external_sort == "protocol":
-        rank = {p: i for i, p in enumerate(s.protocol_order or DEFAULT_PROTOCOL_ORDER)}
-        key = lambda pair: rank.get(_scheme(pair[0]), len(rank))
+        rank = protocol_rank(s.protocol_order)
+        key = lambda pair: rank(pair[0])
         top.sort(key=key)  # stable: keeps each protocol's own order
         bottom.sort(key=key)
 

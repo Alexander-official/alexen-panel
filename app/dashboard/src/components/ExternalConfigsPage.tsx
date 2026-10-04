@@ -63,7 +63,7 @@ type ExternalSettings = {
   protocol_order: string[];
   test_url: string;
 };
-type SourceItem = { link: string; name: string; protocol: string; latency: number | null };
+type SourceItem = { link: string; name: string; protocol: string; kind?: string; latency: number | null };
 type SourceStatus = {
   id: string;
   running: boolean;
@@ -102,6 +102,12 @@ const empty = (kind: ExternalConfig["kind"] = "subscription"): ExternalConfig =>
 const icon = { width: 16, height: 16 };
 const PROTOCOL_LABEL: Record<string, string> = {
   vless: "VLESS",
+  "vless-reality": "VLESS Reality",
+  "vless-tcp": "VLESS TCP",
+  "vless-ws": "VLESS WS",
+  "vless-grpc": "VLESS gRPC",
+  "vless-xhttp": "VLESS XHTTP",
+  "vless-httpupgrade": "VLESS HTTPUpgrade",
   vmess: "VMess",
   trojan: "Trojan",
   ss: "Shadowsocks",
@@ -368,7 +374,7 @@ const SourceResult: FC<{ status?: SourceStatus; saved: boolean; onRefresh: () =>
                 {it.name}
               </Text>
               <Badge variant="outline" fontSize="2xs">
-                {PROTOCOL_LABEL[it.protocol] || it.protocol}
+                {PROTOCOL_LABEL[it.kind || it.protocol] || it.kind || it.protocol}
               </Badge>
               {it.latency != null && (
                 <Text fontSize="xs" color={it.latency < 400 ? "green.400" : it.latency < 1000 ? "orange.400" : "red.400"} w="56px" textAlign="right">
@@ -514,7 +520,7 @@ export const ExternalConfigsPage: FC = () => {
               <Input size="sm" fontFamily="mono" fontSize="xs" value={draft.test_url} onChange={(e) => update({ test_url: e.target.value.trim() })} />
             </FormControl>
           </VStack>
-          <Box opacity={draft.external_sort === "protocol" ? 1 : 0.5}>
+          <Box opacity={draft.external_sort === "protocol" || draft.generated_sort === "protocol" ? 1 : 0.5}>
             <Text fontSize="sm" fontWeight="medium" mb={1}>
               {t("external.protocolOrder")}
             </Text>

@@ -146,8 +146,9 @@ def external_sources_status(admin: Admin = Depends(Admin.check_sudo_admin)):
         if c.kind != "subscription":
             continue
         e = es.get_cache().get(c.id) or {}
+        items = [{**it, "kind": _external.link_kind(it["link"])} for it in e.get("items", [])]
         out.append(SourceStatus(id=c.id, running=es.is_running(c.id), updated_at=e.get("updated_at", 0),
-                                error=e.get("error", ""), stats=e.get("stats", {}), items=e.get("items", [])))
+                                error=e.get("error", ""), stats=e.get("stats", {}), items=items))
     return out
 
 

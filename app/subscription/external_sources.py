@@ -348,21 +348,62 @@ def locate(addresses: List[str]) -> Dict[str, dict]:
     return {a: _geo_cache.get(ip or "", {}) for a, ip in ips.items()}
 
 
+_cities: Optional[Dict[str, List[str]]] = None
+
+
+def _country_cities(cc: str) -> List[str]:
+    """largest cities of a country (GeoNames cities15000, CC BY 4.0), biggest first"""
+    global _cities
+    if _cities is None:
+        path = os.path.join(os.path.dirname(__file__), "cities.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _cities = json.load(f)
+        except OSError:
+            _cities = {}
+    return _cities.get((cc or "").upper(), [])
+
+
+def _same(a: str, b: str) -> bool:
+    return a.casefold() in b.casefold() or b.casefold() in a.casefold()
+
+
 def rename_all(items: List[dict], mode: str):
-    """name items "<flag> Country" / "<flag> Country - City"; repeats get " 2", " 3"..."""
+    """Name items "<flag> Country" / "<flag> Country - City".
+
+    When several configs land on the same name, the others get other cities
+    of that country instead of " 2", " 3": picked by a hash of the link, so a
+    config keeps its name across refreshes. Numbers only when a country runs
+    out of cities.
+    """
+    import hashlib
+
     geo = locate([it["address"] for it in items])
-    seen: Dict[str, int] = {}
+    used: set = set()
     for it in items:
         g = geo.get(it["address"]) or {}
-        if g.get("country"):
-            name = f"{_flag(g['cc'])} {g['country']}"
-            if mode == "country_city" and g.get("city"):
-                name += f" - {g['city']}"
+        if not g.get("country"):
+            base, name = "🏳️ Unknown", "🏳️ Unknown"
         else:
-            name = "🏳️ Unknown"
-        seen[name] = seen.get(name, 0) + 1
-        it["name"] = name if seen[name] == 1 else f"{name} {seen[name]}"
-        it["link"] = set_remark(it["link"], it["name"])
+            base = f"{_flag(g['cc'])} {g['country']}"
+            name = f"{base} - {g['city']}" if mode == "country_city" and g.get("city") else base
+        if name in used and g.get("country"):
+            # another city of the same country, stable per link
+            free = [c for c in _country_cities(g["cc"])
+                    if f"{base} - {c}" not in used and not _same(c, g.get("city") or "\0")]
+            # prefer well-known (big) cities, the smaller ones only when those run out
+            pool = free[:10]
+            if pool:
+                h = int(hashlib.sha1(it["link"].split("#", 1)[0].encode()).hexdigest(), 16)
+                name = f"{base} - {pool[h % len(pool)]}"
+        if name in used:
+            n = 2
+            while f"{name} {n}" in used:
+                n += 1
+            name = f"{name} {n}"
+        used.add(name)
+        it["name"] = name
+        it["link"] = set_remark(it["link"], name)
 
 
 # ---------------------------------------------------------------- refresh
