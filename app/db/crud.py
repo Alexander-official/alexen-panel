@@ -113,6 +113,7 @@ def add_host(db: Session, inbound_tag: str, host: ProxyHostModify) -> List[Proxy
         ProxyHost(
             remark=host.remark,
             address=host.address,
+            group_name=host.group_name,
             port=host.port,
             path=host.path,
             sni=host.sni,
@@ -145,6 +146,7 @@ def update_hosts(db: Session, inbound_tag: str, modified_hosts: List[ProxyHostMo
         ProxyHost(
             remark=host.remark,
             address=host.address,
+            group_name=host.group_name,
             port=host.port,
             path=host.path,
             sni=host.sni,
@@ -1565,3 +1567,18 @@ def remove_hwid_devices(db: Session, dbuser: User, device_id: Optional[int] = No
     count = query.delete(synchronize_session=False)
     db.commit()
     return count
+
+
+def reseller_user_count(db: Session, admin: Admin) -> int:
+    return db.query(User.id).filter(User.admin_id == admin.id).count()
+
+
+def check_reseller_can_add_user(db: Session, admin: Admin) -> Optional[str]:
+    """None if the reseller may create one more user, otherwise the reason it can't (sudoers are never limited)"""
+    if admin.is_sudo:
+        return None
+    if admin.users_limit and reseller_user_count(db, admin) >= admin.users_limit:
+        return f"User limit reached ({admin.users_limit})"
+    if admin.traffic_limit and (admin.users_usage or 0) >= admin.traffic_limit:
+        return "Traffic quota reached"
+    return None

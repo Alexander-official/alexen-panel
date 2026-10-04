@@ -153,6 +153,7 @@ const hostsSchema = z.record(
       alpn: z.string(),
       fingerprint: z.string(),
       use_sni_as_host: z.boolean().default(false),
+      group_name: z.string().nullable(),
     })
   )
 );
@@ -199,6 +200,7 @@ const AccordionInbound: FC<AccordionInboundType> = ({
   const handleAddHost = () => {
     addHost({
       host: "",
+      group_name: "",
       sni: "",
       port: null,
       path: null,
@@ -535,6 +537,15 @@ const AccordionInbound: FC<AccordionInboundType> = ({
                     {accordionErrors && accordionErrors[index]?.address && (
                       <Error>{accordionErrors[index]?.address?.message}</Error>
                     )}
+                  </FormControl>
+
+                  <FormControl>
+                    <Input
+                      size="sm"
+                      borderRadius="4px"
+                      placeholder={t("hostsDialog.groupName")}
+                      {...form.register(hostKey + "." + index + ".group_name")}
+                    />
                   </FormControl>
 
                   <Accordion w="full" allowToggle>

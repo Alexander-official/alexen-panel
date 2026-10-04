@@ -56,10 +56,13 @@ def add_user(
                 detail=f"Protocol {proxy_type} is disabled on your server",
             )
 
+    dbadmin = crud.get_admin(db, admin.username)
+    reason = crud.check_reseller_can_add_user(db, dbadmin)
+    if reason:
+        raise HTTPException(status_code=403, detail=reason)
+
     try:
-        dbuser = crud.create_user(
-            db, new_user, admin=crud.get_admin(db, admin.username)
-        )
+        dbuser = crud.create_user(db, new_user, admin=dbadmin)
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="User already exists")

@@ -48,6 +48,7 @@ import { OnlineBadge } from "./OnlineBadge";
 import { OnlineStatus } from "./OnlineStatus";
 import { Pagination } from "./Pagination";
 import { StatusBadge } from "./StatusBadge";
+import useGetUser from "hooks/useGetUser";
 
 const EmptySectionIcon = chakra(AddFileIcon);
 
@@ -196,6 +197,8 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
   } = useDashboard();
 
   const { t } = useTranslation();
+  const { userData } = useGetUser();
+  const isSudo = !!userData?.is_sudo;
   const [selectedRow, setSelectedRow] = useState<ExpandedIndex | undefined>(
     undefined
   );
@@ -357,6 +360,16 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                           <OnlineBadge lastOnline={user.online_at} />
                           <Text isTruncated>{user.username}</Text>
                         </div>
+                        {isSudo && user.admin?.username && (
+                          <Text
+                            fontSize="xs"
+                            color="gray.500"
+                            isTruncated
+                            pl="20px"
+                          >
+                            {user.admin.username}
+                          </Text>
+                        )}
                       </Td>
                       <Td borderBottom={0} minW="50px" pl={0} pr={0}>
                         <StatusBadge

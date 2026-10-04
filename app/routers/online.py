@@ -84,6 +84,13 @@ def get_online_summary(
     )
 
 
+@router.delete("/user/{username}/online-ips/{ip}", responses={403: responses._403, 404: responses._404})
+def disconnect_user_ip(ip: str, dbuser: UserResponse = Depends(get_validated_user)):
+    """Kick one online IP of the user: it's blocked for a few minutes so its sessions drop"""
+    ip_limit.ban_ip(dbuser.id, ip)
+    return {"detail": f"{ip} disconnected"}
+
+
 @router.get("/user/{username}/online-ips", response_model=UserOnlineIPs,
             responses={403: responses._403, 404: responses._404})
 def get_user_online_ips(dbuser: UserResponse = Depends(get_validated_user)):

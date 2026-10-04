@@ -1,4 +1,15 @@
-import { Badge, Box, HStack, Text, VStack, Wrap } from "@chakra-ui/react";
+import {
+  Badge,
+  Box,
+  HStack,
+  IconButton,
+  Text,
+  Tooltip,
+  VStack,
+  Wrap,
+  chakra,
+} from "@chakra-ui/react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import dayjs from "dayjs";
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,14 +24,20 @@ type OnlineIP = {
   blocked: boolean;
 };
 
+const KickIcon = chakra(XMarkIcon, { baseStyle: { w: 4, h: 4 } });
+
 export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
   const { t } = useTranslation();
-  const { data } = useQuery<{ ips: OnlineIP[]; ip_limit: number | null }>({
+  const { data, refetch } = useQuery<{ ips: OnlineIP[]; ip_limit: number | null }>({
     queryKey: ["user-online-ips", username],
     queryFn: () => fetch(`/user/${username}/online-ips`),
     refetchInterval: 10000,
   });
   const ips = data?.ips ?? [];
+  const kick = (ip: string) =>
+    fetch(`/user/${username}/online-ips/${ip}`, { method: "DELETE" }).then(() =>
+      refetch()
+    );
 
   return (
     <VStack alignItems="flex-start" w="full" spacing={2}>
@@ -54,9 +71,21 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
                 </Badge>
               )}
             </HStack>
-            <Text fontSize="xs" color="gray.500">
-              {dayjs.utc(ip.last_seen).local().format("HH:mm:ss")}
-            </Text>
+            <HStack>
+              <Text fontSize="xs" color="gray.500">
+                {dayjs.utc(ip.last_seen).local().format("HH:mm:ss")}
+              </Text>
+              <Tooltip label={t("online.disconnect")}>
+                <IconButton
+                  aria-label="disconnect"
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="red"
+                  icon={<KickIcon />}
+                  onClick={() => kick(ip.ip)}
+                />
+              </Tooltip>
+            </HStack>
           </HStack>
           <Wrap mt={1} spacing={1}>
             {ip.nodes.map((node) => (

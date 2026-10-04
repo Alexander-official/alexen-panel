@@ -21,6 +21,18 @@ applied_rules: Dict[str, Set[str]] = {}
 # core name -> when it answered it has no RoutingService (stock marzban-node), retried every 10 minutes
 unsupported_cores: Dict[str, float] = {}
 UNSUPPORTED_RETRY_SECONDS = 600
+# manual kicks: user id -> ip -> unix time the block expires
+manual_bans: Dict[int, Dict[str, float]] = {}
+MANUAL_BAN_SECONDS = 300
+
+
+def ban_ip(user_id: int, ip: str, seconds: int = MANUAL_BAN_SECONDS):
+    """Kick an online IP: block it for a while so its sessions drop (re-connects are refused)"""
+    manual_bans.setdefault(user_id, {})[ip] = time.time() + seconds
+
+
+def unban_ip(user_id: int, ip: str):
+    manual_bans.get(user_id, {}).pop(ip, None)
 
 
 def _rule_tag(user_id: int, ip: str) -> str:
@@ -51,15 +63,37 @@ def _desired_rules(online_users: Dict[int, Dict[str, dict]]) -> Dict[str, Tuple[
             .filter(User.id.in_(online_users.keys()), User.ip_limit > 0).all()
 
     inbound_tags = list(xray.config.inbounds_by_tag)
+
+    # usernames for everyone we might build a rule for (ip-limited users + manually banned users)
+    now = time.time()
+    banned_user_ids = {uid for uid, ips in manual_bans.items()
+                       if any(exp > now for exp in ips.values())}
+    with GetDB() as db:
+        extra = {}
+        if banned_user_ids:
+            extra = dict(db.query(User.id, User.username).filter(User.id.in_(banned_user_ids)).all())
+    usernames = {uid: username for uid, username, _ in limits}
+    usernames.update(extra)
+
+    def emails_for(uid):
+        return [user_email(uid, usernames[uid], tag) for tag in inbound_tags]
+
     rules = {}
     for user_id, username, limit in limits:
         seen = first_seen.get(user_id, {})
         ips = sorted(seen, key=seen.get)
         if len(ips) <= limit:
             continue
-        emails = [user_email(user_id, username, tag) for tag in inbound_tags]
         for ip in ips[limit:]:
-            rules[_rule_tag(user_id, ip)] = (emails, ip)
+            rules[_rule_tag(user_id, ip)] = (emails_for(user_id), ip)
+
+    # manual kicks (expire on their own)
+    for user_id in banned_user_ids:
+        for ip, exp in list(manual_bans[user_id].items()):
+            if exp <= now:
+                del manual_bans[user_id][ip]
+            elif user_id in usernames:
+                rules[_rule_tag(user_id, ip)] = (emails_for(user_id), ip)
     return rules
 
 

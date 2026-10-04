@@ -44,14 +44,15 @@ STATUS_TEXTS = {
 }
 
 
-def generate_v2ray_links(proxies: dict, inbounds: dict, extra_data: dict, reverse: bool) -> list:
+def generate_v2ray_links(proxies: dict, inbounds: dict, extra_data: dict, reverse: bool, host_groups: list = None) -> list:
     format_variables = setup_format_variables(extra_data)
     conf = V2rayShareLink()
-    return process_inbounds_and_tags(inbounds, proxies, format_variables, conf=conf, reverse=reverse)
+    return process_inbounds_and_tags(inbounds, proxies, format_variables, conf=conf, reverse=reverse, host_groups=host_groups)
 
 
 def generate_clash_subscription(
-        proxies: dict, inbounds: dict, extra_data: dict, reverse: bool, is_meta: bool = False
+        proxies: dict, inbounds: dict, extra_data: dict, reverse: bool, is_meta: bool = False,
+        host_groups: list = None
 ) -> str:
     if is_meta is True:
         conf = ClashMetaConfiguration()
@@ -60,40 +61,40 @@ def generate_clash_subscription(
 
     format_variables = setup_format_variables(extra_data)
     return process_inbounds_and_tags(
-        inbounds, proxies, format_variables, conf=conf, reverse=reverse
+        inbounds, proxies, format_variables, conf=conf, reverse=reverse, host_groups=host_groups
     )
 
 
 def generate_singbox_subscription(
-        proxies: dict, inbounds: dict, extra_data: dict, reverse: bool
+        proxies: dict, inbounds: dict, extra_data: dict, reverse: bool, host_groups: list = None
 ) -> str:
     conf = SingBoxConfiguration()
 
     format_variables = setup_format_variables(extra_data)
     return process_inbounds_and_tags(
-        inbounds, proxies, format_variables, conf=conf, reverse=reverse
+        inbounds, proxies, format_variables, conf=conf, reverse=reverse, host_groups=host_groups
     )
 
 
 def generate_outline_subscription(
-        proxies: dict, inbounds: dict, extra_data: dict, reverse: bool,
+        proxies: dict, inbounds: dict, extra_data: dict, reverse: bool, host_groups: list = None,
 ) -> str:
     conf = OutlineConfiguration()
 
     format_variables = setup_format_variables(extra_data)
     return process_inbounds_and_tags(
-        inbounds, proxies, format_variables, conf=conf, reverse=reverse
+        inbounds, proxies, format_variables, conf=conf, reverse=reverse, host_groups=host_groups
     )
 
 
 def generate_v2ray_json_subscription(
-        proxies: dict, inbounds: dict, extra_data: dict, reverse: bool,
+        proxies: dict, inbounds: dict, extra_data: dict, reverse: bool, host_groups: list = None,
 ) -> str:
     conf = V2rayJsonConfig()
 
     format_variables = setup_format_variables(extra_data)
     return process_inbounds_and_tags(
-        inbounds, proxies, format_variables, conf=conf, reverse=reverse
+        inbounds, proxies, format_variables, conf=conf, reverse=reverse, host_groups=host_groups
     )
 
 
@@ -103,11 +104,13 @@ def generate_subscription(
         as_base64: bool,
         reverse: bool,
 ) -> str:
+    admin = getattr(user, "admin", None)
     kwargs = {
         "proxies": user.proxies,
         "inbounds": user.inbounds,
         "extra_data": user.__dict__,
         "reverse": reverse,
+        "host_groups": (admin.host_groups or None) if admin else None,
     }
 
     if config_format == "v2ray":
@@ -242,6 +245,7 @@ def process_inbounds_and_tags(
             OutlineConfiguration
         ],
         reverse=False,
+        host_groups: list = None,
 ) -> Union[List, str]:
     _inbounds = []
     for protocol, tags in inbounds.items():
@@ -266,6 +270,9 @@ def process_inbounds_and_tags(
             format_variables.update({"TRANSPORT": inbound["network"]})
             host_inbound = inbound.copy()
             for host in xray.hosts.get(tag, []):
+                # reseller host groups: when the owner admin has groups, only hosts in them are shown
+                if host_groups and host.get("group_name") and host["group_name"] not in host_groups:
+                    continue
                 sni = ""
                 sni_list = host["sni"] or inbound["sni"]
                 if sni_list:

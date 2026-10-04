@@ -154,6 +154,7 @@ class FormatVariables(dict):
 class ProxyHost(BaseModel):
     remark: str
     address: str
+    group_name: Optional[str] = Field(None, nullable=True)
     port: Optional[int] = Field(None, nullable=True)
     sni: Optional[str] = Field(None, nullable=True)
     host: Optional[str] = Field(None, nullable=True)
