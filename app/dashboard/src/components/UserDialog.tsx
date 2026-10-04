@@ -749,7 +749,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                               borderRadius="6px"
                               placeholder={
                                 maxIp
-                                  ? `max ${maxIp}`
+                                  ? `0-${maxIp}`
                                   : t("userDialog.ipLimitPlaceholder")
                               }
                               max={maxIp}
@@ -777,7 +777,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                               borderRadius="6px"
                               placeholder={
                                 maxHwid
-                                  ? `max ${maxHwid}`
+                                  ? `0-${maxHwid}`
                                   : t("userDialog.ipLimitPlaceholder")
                               }
                               max={maxHwid}

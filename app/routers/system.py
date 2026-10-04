@@ -43,18 +43,15 @@ def get_system_stats(
     online_users = crud.count_online_users(db, 24)
     realtime_bandwidth_stats = realtime_bandwidth()
 
-    # a reseller sees only their own users' total traffic (not the global counter)
+    # a reseller sees only their own users' traffic. admins.users_usage is a
+    # cumulative counter, so it does not drop when a user's traffic is reset.
+    traffic_limit = None
     if not admin.is_sudo:
-        from sqlalchemy import func as _func
-        from app.db.models import User as _User
-        reseller_traffic = int(
-            db.query(_func.coalesce(_func.sum(_User.used_traffic), 0))
-            .filter(_User.admin_id == dbadmin.id).scalar() or 0
-        )
-        incoming_bandwidth = reseller_traffic
+        incoming_bandwidth = int(dbadmin.users_usage or 0)
         outgoing_bandwidth = 0
         incoming_speed = 0
         outgoing_speed = 0
+        traffic_limit = dbadmin.traffic_limit or None
     else:
         incoming_bandwidth = system.uplink
         outgoing_bandwidth = system.downlink
@@ -78,6 +75,7 @@ def get_system_stats(
         outgoing_bandwidth=outgoing_bandwidth,
         incoming_bandwidth_speed=incoming_speed,
         outgoing_bandwidth_speed=outgoing_speed,
+        traffic_limit=traffic_limit,
     )
 
 

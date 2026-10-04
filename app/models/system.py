@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 
 
@@ -18,3 +19,4 @@ class SystemStats(BaseModel):
     outgoing_bandwidth: int
     incoming_bandwidth_speed: int
     outgoing_bandwidth_speed: int
+    traffic_limit: Optional[int] = None

@@ -195,9 +195,25 @@ export const Statistics: FC<BoxProps> = (props) => {
       <StatisticCard
         title={t("dataUsage")}
         content={
-          systemData &&
-          formatBytes(
-            systemData.incoming_bandwidth + systemData.outgoing_bandwidth
+          systemData && (
+            <HStack alignItems="flex-end">
+              <Text>
+                {formatBytes(
+                  systemData.incoming_bandwidth + systemData.outgoing_bandwidth
+                )}
+              </Text>
+              {systemData.traffic_limit ? (
+                <Text
+                  fontWeight="normal"
+                  fontSize="lg"
+                  as="span"
+                  display="inline-block"
+                  pb="5px"
+                >
+                  / {formatBytes(systemData.traffic_limit)}
+                </Text>
+              ) : null}
+            </HStack>
           )
         }
         icon={<NetworkIcon />}
