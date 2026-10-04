@@ -15,22 +15,38 @@ from pydantic import BaseModel, Field
 SETTINGS_KEY = "external_configs"
 
 GENERATED_SORTS = ("default", "remark", "remark_desc", "protocol", "reverse")
-EXTERNAL_SORTS = ("manual", "name", "name_desc")
+EXTERNAL_SORTS = ("manual", "name", "name_desc", "protocol")
+DEFAULT_PROTOCOL_ORDER = ["vless", "vmess", "trojan", "ss", "hysteria2", "tuic", "wireguard"]
 
-_LINK_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://\S+$")
+# the name part after "#" may contain spaces when links are pasted by hand
+_LINK_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://[^\s#]+(#.*)?$")
 
 
 class ExternalConfig(BaseModel):
     id: str
     name: str = Field("", max_length=128)
+    # "links": share links pasted below; "subscription": pulled from `url`
+    kind: str = "links"
     # one or more share links, one per line
     links: str = ""
+    # subscription sources
+    url: str = ""
+    user_agent: str = ""
+    range_start: int = Field(1, ge=1)  # 1-based, inclusive
+    range_end: int = Field(0, ge=0)  # 0 = up to the last one
+    rename: str = "country"  # "none" | "country" | "country_city"
+    test: bool = False  # test through our xray and keep only working links
+    test_timeout: int = Field(5, ge=1, le=30)  # seconds
+    refresh_minutes: int = Field(60, ge=5, le=10080)
     enabled: bool = True
     position: str = "bottom"  # "top" | "bottom"
     only_active: bool = True  # hide from expired / limited / disabled users
     groups: List[str] = []  # empty = everyone; else only users of admins in these host groups
 
     def link_list(self) -> List[str]:
+        if self.kind == "subscription":
+            from app.subscription.external_sources import cached_links
+            return [it["link"] for it in cached_links(self.id)]
         return [ln.strip() for ln in (self.links or "").splitlines() if _LINK_RE.match(ln.strip())]
 
 
@@ -38,6 +54,9 @@ class ExternalSettings(BaseModel):
     configs: List[ExternalConfig] = []
     generated_sort: str = "default"
     external_sort: str = "manual"
+    # used when external_sort == "protocol"
+    protocol_order: List[str] = DEFAULT_PROTOCOL_ORDER
+    test_url: str = "https://www.gstatic.com/generate_204"
 
 
 _cache: Optional[ExternalSettings] = None
@@ -69,7 +88,15 @@ def save(db, settings: ExternalSettings) -> ExternalSettings:
     return settings
 
 
+def _scheme(link: str) -> str:
+    s = link.split("://", 1)[0].lower()
+    return {"hy2": "hysteria2", "shadowsocks": "ss"}.get(s, s)
+
+
 def _remark(link: str) -> str:
+    if _scheme(link) == "vmess":
+        from app.subscription.external_sources import _remark_of
+        return _remark_of(link) or link[:40]
     return urllib.parse.unquote(link.split("#", 1)[1]) if "#" in link else link
 
 
@@ -132,6 +159,12 @@ def apply(links: List[str], *, active: bool, host_groups: Optional[list], variab
     for c in configs:
         target = top if c.position == "top" else bottom
         target.extend((_fill(l, variables), "external") for l in c.link_list())
+
+    if s.external_sort == "protocol":
+        rank = {p: i for i, p in enumerate(s.protocol_order or DEFAULT_PROTOCOL_ORDER)}
+        key = lambda pair: rank.get(_scheme(pair[0]), len(rank))
+        top.sort(key=key)  # stable: keeps each protocol's own order
+        bottom.sort(key=key)
 
     result = top + own + bottom
     return result if tagged else [l for l, _ in result]

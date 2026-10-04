@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -70,6 +70,16 @@ def _check_external(settings: "_external.ExternalSettings"):
     for c in settings.configs:
         if c.position not in ("top", "bottom"):
             raise HTTPException(400, f"{c.name}: position must be top or bottom")
+        if c.kind not in ("links", "subscription"):
+            raise HTTPException(400, f"{c.name}: unknown kind")
+        if c.kind == "subscription":
+            if not c.url.startswith(("http://", "https://")):
+                raise HTTPException(400, f"{c.name or 'source'}: subscription url must start with http(s)://")
+            if c.rename not in ("none", "country", "country_city"):
+                raise HTTPException(400, f"{c.name}: unknown rename mode")
+            if c.range_end and c.range_end < c.range_start:
+                raise HTTPException(400, f"{c.name}: range end is before range start")
+            continue
         if c.links.strip() and not c.link_list():
             raise HTTPException(400, f"{c.name or 'config'}: no valid link (expected scheme://...)")
 
@@ -86,7 +96,10 @@ def update_external_configs(settings: _external.ExternalSettings,
                             db: Session = Depends(get_db),
                             admin: Admin = Depends(Admin.check_sudo_admin)):
     _check_external(settings)
-    return _external.save(db, settings)
+    saved = _external.save(db, settings)
+    from app.subscription import external_sources
+    external_sources.forget([c.id for c in saved.configs])
+    return saved
 
 
 @router.post("/external-configs/preview", response_model=ExternalPreview)
@@ -113,3 +126,38 @@ def preview_external_configs(settings: _external.ExternalSettings,
         username=user.username,
         items=[ExternalPreviewItem(remark=_external._remark(l), link=l, source=src) for l, src in pairs],
     )
+
+
+class SourceStatus(BaseModel):
+    id: str
+    running: bool = False
+    updated_at: int = 0
+    error: str = ""
+    stats: dict = {}
+    items: _List[dict] = []
+
+
+@router.get("/external-configs/sources", response_model=_List[SourceStatus])
+def external_sources_status(admin: Admin = Depends(Admin.check_sudo_admin)):
+    """Last fetch/test result of every subscription source"""
+    from app.subscription import external_sources as es
+    out = []
+    for c in _external.load().configs:
+        if c.kind != "subscription":
+            continue
+        e = es.get_cache().get(c.id) or {}
+        out.append(SourceStatus(id=c.id, running=es.is_running(c.id), updated_at=e.get("updated_at", 0),
+                                error=e.get("error", ""), stats=e.get("stats", {}), items=e.get("items", [])))
+    return out
+
+
+@router.post("/external-configs/sources/{source_id}/refresh")
+def refresh_external_source(source_id: str, bg: BackgroundTasks,
+                            admin: Admin = Depends(Admin.check_sudo_admin)):
+    """Fetch, test and rename one source now (runs in the background)"""
+    from app.subscription import external_sources as es
+    if not any(c.id == source_id and c.kind == "subscription" for c in _external.load().configs):
+        raise HTTPException(404, "Source not found (save it first)")
+    es._running.add(source_id)
+    bg.add_task(es.refresh_due, [source_id])
+    return {"detail": "refresh started"}
