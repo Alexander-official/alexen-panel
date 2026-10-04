@@ -339,7 +339,7 @@
   "external.addButton": "Добавить",
   "external.list": "Внешние конфиги",
   "external.listHelp": "Порядок задаётся стрелками.",
-  "external.listSortedHelp": "Отсортировано по имени, стрелки не действуют.",
+  "external.listSortedHelp": "Сортируется автоматически (см. порядок ссылок), стрелки не действуют.",
   "external.empty": "Пока ничего нет.",
   "external.unnamed": "(без названия)",
   "external.activeOnlyBadge": "только активным",

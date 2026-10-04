@@ -344,7 +344,7 @@
   "external.addButton": "افزودن",
   "external.list": "کانفیگ‌های خارجی",
   "external.listHelp": "با فلش‌ها ترتیب را تنظیم کنید.",
-  "external.listSortedHelp": "بر اساس نام مرتب شده است.",
+  "external.listSortedHelp": "به‌طور خودکار مرتب شده (ترتیب لینک‌ها)، فلش‌ها اثری ندارند.",
   "external.empty": "هنوز چیزی اضافه نشده.",
   "external.unnamed": "(بدون نام)",
   "external.activeOnlyBadge": "فقط فعال",

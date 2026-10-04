@@ -340,7 +340,7 @@
   "external.addButton": "添加",
   "external.list": "外部配置",
   "external.listHelp": "用箭头调整顺序。",
-  "external.listSortedHelp": "已按名称排序，箭头无效。",
+  "external.listSortedHelp": "已自动排序（见链接顺序），箭头无效。",
   "external.empty": "尚未添加。",
   "external.unnamed": "（未命名）",
   "external.activeOnlyBadge": "仅活跃",

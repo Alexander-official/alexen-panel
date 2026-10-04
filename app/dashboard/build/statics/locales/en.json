@@ -339,7 +339,7 @@
   "external.addButton": "Add",
   "external.list": "External configs",
   "external.listHelp": "Use the arrows to set the order.",
-  "external.listSortedHelp": "Sorted by name (see Order of links), the arrows have no effect.",
+  "external.listSortedHelp": "Sorted automatically (see Order of links), the arrows have no effect.",
   "external.empty": "Nothing added yet.",
   "external.unnamed": "(no name)",
   "external.activeOnlyBadge": "active only",
@@ -371,8 +371,6 @@
   "external.rangeAll": "last",
   "external.rangeHelp": "Which configs of the subscription to take, in its own order (empty \"to\" = up to the last one).",
   "external.refresh": "Refresh every",
-  "external.minutes": "{{count}} minutes",
-  "external.hours": "{{count}} hours",
   "external.rename": "Naming",
   "external.renameCountry": "Country",
   "external.renameCity": "Country - City",
@@ -393,5 +391,9 @@
   "external.saveFirst": "Save to start fetching",
   "external.refreshNow": "Refresh now",
   "external.showConfigs": "Configs",
-  "external.testBadge": "ping test"
+  "external.testBadge": "ping test",
+  "external.hours_one": "{{count}} hour",
+  "external.hours_other": "{{count}} hours",
+  "external.minutes_one": "{{count}} minute",
+  "external.minutes_other": "{{count}} minutes"
 }
