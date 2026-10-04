@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import { fetch } from "service/http";
 import { formatBytes } from "utils/formatByte";
+import { useOnlineProviders } from "./UsersTable";
 
 type Overview = {
   total_users: number;
@@ -49,6 +50,10 @@ export const StatisticsModal: FC = () => {
     enabled: isShowingStats,
     refetchInterval: isShowingStats ? 10000 : false,
   });
+
+  const { data: providerData } = useOnlineProviders();
+  const providers = providerData?.providers || [];
+  const maxProviderUsers = Math.max(1, ...providers.map((p) => p.users));
 
   const maxInbound = Math.max(1, ...(data?.inbounds || []).map((i) => i.used_traffic));
 
@@ -98,6 +103,37 @@ export const StatisticsModal: FC = () => {
             {data && data.inbounds.length === 0 && (
               <Text fontSize="xs" color="gray.500">
                 {t("stats.noData")}
+              </Text>
+            )}
+          </VStack>
+
+          <Divider mb={4} />
+
+          <Text fontSize="sm" fontWeight="medium" mb={2}>
+            {t("stats.byProvider")}
+          </Text>
+          <VStack align="stretch" spacing={2} mb={5}>
+            {providers.map((p) => (
+              <Box key={p.name}>
+                <HStack justifyContent="space-between" mb={1}>
+                  <Text fontSize="xs" isTruncated>
+                    {p.name}
+                  </Text>
+                  <Text fontSize="xs" color="gray.500" flexShrink={0}>
+                    {t("stats.providerUsers", { users: p.users, ips: p.ips })}
+                  </Text>
+                </HStack>
+                <Progress
+                  value={(p.users / maxProviderUsers) * 100}
+                  size="sm"
+                  borderRadius="full"
+                  colorScheme="primary"
+                />
+              </Box>
+            ))}
+            {providerData && providers.length === 0 && (
+              <Text fontSize="xs" color="gray.500">
+                {t("stats.noOnline")}
               </Text>
             )}
           </VStack>

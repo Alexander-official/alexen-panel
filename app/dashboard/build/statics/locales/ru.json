@@ -274,5 +274,14 @@
   "sub.placeholders": "Плейсхолдеры",
   "usersTable.activeIps": "IP",
   "usersTable.devices": "Устр.",
-  "all": "все"
+  "all": "все",
+  "stats.byProvider": "Онлайн по провайдерам",
+  "stats.providerUsers": "{{users}} польз. · {{ips}} IP",
+  "stats.noOnline": "Сейчас никого нет онлайн",
+  "sidebar.main": "Главное",
+  "sidebar.management": "Управление",
+  "sidebar.settings": "Настройки",
+  "sidebar.coreSettings": "Настройки ядра",
+  "sidebar.sudo": "Главный админ",
+  "sidebar.reseller": "Админ"
 }

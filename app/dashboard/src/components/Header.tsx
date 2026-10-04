@@ -25,6 +25,7 @@ import {
   RectangleGroupIcon,
   SquaresPlusIcon,
   SunIcon,
+  SwatchIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
 import { DONATION_URL, REPO_URL } from "constants/Project";
@@ -47,6 +48,7 @@ import {
 } from "utils/appearance";
 import { Language } from "./Language";
 import useGetUser from "hooks/useGetUser";
+import { useSidebar } from "./Sidebar";
 
 type HeaderProps = {
   actions?: ReactNode;
@@ -61,7 +63,8 @@ const iconProps = {
 const DarkIcon = chakra(MoonIcon, iconProps);
 const LightIcon = chakra(SunIcon, iconProps);
 const CoreSettingsIcon = chakra(Cog6ToothIcon, iconProps);
-const SettingsIcon = chakra(Bars3Icon, iconProps);
+const SettingsIcon = chakra(SwatchIcon, iconProps);
+const MenuIcon = chakra(Bars3Icon, { baseStyle: { w: 5, h: 5 } });
 const LogoutIcon = chakra(ArrowLeftOnRectangleIcon, iconProps);
 const DonationIcon = chakra(CurrencyDollarIcon, iconProps);
 const HostsIcon = chakra(LinkIcon, iconProps);
@@ -150,9 +153,19 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
       }}
       position="relative"
     >
-      <Text as="h1" fontWeight="semibold" fontSize="2xl">
-        {t("users")}
-      </Text>
+      <HStack spacing={2}>
+        <IconButton
+          display={{ base: "inline-flex", lg: "none" }}
+          size="sm"
+          variant="ghost"
+          aria-label="menu"
+          icon={<MenuIcon />}
+          onClick={() => useSidebar.getState().setOpen(true)}
+        />
+        <Text as="h1" fontWeight="semibold" fontSize="2xl">
+          {t("users")}
+        </Text>
+      </HStack>
       {showDonationNotif && (
         <NotificationCircle top="0" right="0" zIndex={9999} />
       )}
@@ -171,75 +184,6 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
               position="relative"
             ></MenuButton>
             <MenuList minW="170px" zIndex={99999} className="menuList">
-              {isSudo() && (
-                <>
-                  <MenuItem
-                    maxW="170px"
-                    fontSize="sm"
-                    icon={<HostsIcon />}
-                    onClick={onEditingHosts.bind(null, true)}
-                  >
-                    {t("header.hostSettings")}
-                  </MenuItem>
-                  <MenuItem
-                    maxW="170px"
-                    fontSize="sm"
-                    icon={<GroupsIcon />}
-                    onClick={onManagingGroups.bind(null, true)}
-                  >
-                    {t("header.groupSettings")}
-                  </MenuItem>
-                  <MenuItem
-                    maxW="170px"
-                    fontSize="sm"
-                    icon={<SubIcon />}
-                    onClick={onEditingSubSettings.bind(null, true)}
-                  >
-                    {t("header.subSettings")}
-                  </MenuItem>
-                  <MenuItem
-                    maxW="170px"
-                    fontSize="sm"
-                    icon={<NodesIcon />}
-                    onClick={onEditingNodes.bind(null, true)}
-                  >
-                    {t("header.nodeSettings")}
-                  </MenuItem>
-                  <MenuItem
-                    maxW="170px"
-                    fontSize="sm"
-                    icon={<AdminsIcon />}
-                    onClick={onManagingAdmins.bind(null, true)}
-                  >
-                    {t("header.adminsSettings")}
-                  </MenuItem>
-                  <MenuItem
-                    maxW="170px"
-                    fontSize="sm"
-                    icon={<NodesUsageIcon />}
-                    onClick={onShowingNodesUsage.bind(null, true)}
-                  >
-                    {t("header.nodesUsage")}
-                  </MenuItem>
-                  <MenuItem
-                    maxW="170px"
-                    fontSize="sm"
-                    icon={<ResetUsageIcon />}
-                    onClick={onResetAllUsage.bind(null, true)}
-                  >
-                    {t("resetAllUsage")}
-                  </MenuItem>
-                </>
-              )}
-              <MenuItem
-                maxW="170px"
-                fontSize="sm"
-                icon={<StatsIcon />}
-                onClick={onShowingStats.bind(null, true)}
-              >
-                {t("stats.title")}
-              </MenuItem>
-              <MenuDivider />
               <MenuGroup title={t("header.accentColor")} fontSize="xs">
                 <Box px={3} py={1} display="flex" gap={2}>
                   {(Object.keys(ACCENTS) as AccentName[]).map((name) => (
@@ -323,19 +267,6 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
               </Link>
             </MenuList>
           </Menu>
-
-          {isSudo() && (
-            <IconButton
-              size="sm"
-              variant="outline"
-              aria-label="core settings"
-              onClick={() => {
-                useDashboard.setState({ isEditingCore: true });
-              }}
-            >
-              <CoreSettingsIcon />
-            </IconButton>
-          )}
 
           <Language />
 

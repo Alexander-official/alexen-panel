@@ -8,6 +8,7 @@ import { DeleteUserModal } from "components/DeleteUserModal";
 import { Filters } from "components/Filters";
 import { Footer } from "components/Footer";
 import { Header } from "components/Header";
+import { Sidebar, SIDEBAR_WIDTH } from "components/Sidebar";
 import { HostsDialog } from "components/HostsDialog";
 import { NodesDialog } from "components/NodesModal";
 import { NodesUsage } from "components/NodesUsage";
@@ -27,7 +28,15 @@ export const Dashboard: FC = () => {
     fetchInbounds();
   }, []);
   return (
-    <VStack justifyContent="space-between" minH="100vh" p="6" rowGap={4}>
+    <>
+    <Sidebar />
+    <VStack
+      justifyContent="space-between"
+      minH="100vh"
+      p="6"
+      pl={{ base: "6", lg: `calc(${SIDEBAR_WIDTH} + 1.5rem)` }}
+      rowGap={4}
+    >
       <Box w="full">
         <Header />
         <Statistics mt="4" />
@@ -50,6 +59,7 @@ export const Dashboard: FC = () => {
       </Box>
       <Footer />
     </VStack>
+    </>
   );
 };
 

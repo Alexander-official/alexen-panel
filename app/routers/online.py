@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from sqlalchemy import func
 
@@ -97,6 +97,41 @@ def get_online_summary(
         updated_at=online.updated_at,
         users=users[:limit],
     )
+
+
+class ProviderStat(BaseModel):
+    name: str
+    users: int
+    ips: int
+
+
+class OnlineProviders(BaseModel):
+    users: Dict[str, List[str]]
+    providers: List[ProviderStat]
+
+
+@router.get("/online/providers", response_model=OnlineProviders)
+def get_online_providers(
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(Admin.get_current),
+):
+    """ISP/provider of each online user's IPs, plus a per-provider breakdown"""
+    visible = _visible_ip_counts(db, admin)
+    users: Dict[str, List[str]] = {}
+    stats: Dict[str, dict] = {}
+    for uid, (username, *_rest) in visible.items():
+        names = []
+        for entry in online.get_user_ips(uid).values():
+            name = entry.get("provider") or "Unknown"
+            stat = stats.setdefault(name, {"users": set(), "ips": 0})
+            stat["users"].add(uid)
+            stat["ips"] += 1
+            if name not in names:
+                names.append(name)
+        users[username] = names
+    providers = [ProviderStat(name=n, users=len(v["users"]), ips=v["ips"]) for n, v in stats.items()]
+    providers.sort(key=lambda p: (p.users, p.ips), reverse=True)
+    return OnlineProviders(users=users, providers=providers)
 
 
 @router.delete("/user/{username}/online-ips/{ip}", responses={403: responses._403, 404: responses._404})

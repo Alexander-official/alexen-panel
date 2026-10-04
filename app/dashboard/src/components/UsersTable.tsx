@@ -49,6 +49,37 @@ import { OnlineStatus } from "./OnlineStatus";
 import { Pagination } from "./Pagination";
 import { StatusBadge } from "./StatusBadge";
 import useGetUser from "hooks/useGetUser";
+import { useQuery } from "react-query";
+import { fetch as apiFetch } from "service/http";
+
+type OnlineProviders = {
+  users: Record<string, string[]>;
+  providers: { name: string; users: number; ips: number }[];
+};
+
+export const useOnlineProviders = () =>
+  useQuery<OnlineProviders>({
+    queryKey: "online-providers",
+    queryFn: () => apiFetch("/online/providers"),
+    refetchInterval: 10000,
+  });
+
+const ProviderTag: FC<{ names?: string[] }> = ({ names: all }) => {
+  const names = (all || []).filter((n) => n !== "Unknown");
+  if (names.length === 0) return null;
+  const label = names[0] + (names.length > 1 ? ` +${names.length - 1}` : "");
+  return (
+    <Text
+      fontSize="xs"
+      color="gray.500"
+      isTruncated
+      maxW="220px"
+      title={names.join("\n")}
+    >
+      🌐 {label}
+    </Text>
+  );
+};
 
 const EmptySectionIcon = chakra(AddFileIcon);
 
@@ -188,6 +219,8 @@ export const Sort: FC<SortType> = ({ sort, column }) => {
 };
 type UsersTableProps = {} & TableProps;
 export const UsersTable: FC<UsersTableProps> = (props) => {
+  const { data: providerData } = useOnlineProviders();
+  const providersOf = (username: string) => providerData?.users?.[username];
   const {
     filters,
     users: { users },
@@ -373,6 +406,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                             📱 {user.hwid_count ?? 0}
                             {user.hwid_limit ? `/${user.hwid_limit}` : ""}
                           </Text>
+                          <ProviderTag names={providersOf(user.username)} />
                         </HStack>
                       </Td>
                       <Td borderBottom={0} minW="50px" pl={0} pr={0}>
@@ -605,16 +639,21 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                   onClick={() => onEditingUser(user)}
                 >
                   <Td minW="140px">
-                    <div className="flex-status">
-                      <OnlineBadge lastOnline={user.online_at} />
-                      {user.username}
-                      <OnlineStatus lastOnline={user.online_at} />
-                    </div>
-                    {isSudo && user.admin?.username && (
-                      <Text fontSize="xs" color="gray.500" pl="20px" isTruncated>
-                        👤 {user.admin.username}
-                      </Text>
-                    )}
+                    <HStack justifyContent="space-between" spacing={3}>
+                      <Box minW={0}>
+                        <div className="flex-status">
+                          <OnlineBadge lastOnline={user.online_at} />
+                          {user.username}
+                          <OnlineStatus lastOnline={user.online_at} />
+                        </div>
+                        {isSudo && user.admin?.username && (
+                          <Text fontSize="xs" color="gray.500" pl="20px" isTruncated>
+                            👤 {user.admin.username}
+                          </Text>
+                        )}
+                      </Box>
+                      <ProviderTag names={providersOf(user.username)} />
+                    </HStack>
                   </Td>
                   <Td width="90px" minW="80px">
                     <Text fontSize="sm">

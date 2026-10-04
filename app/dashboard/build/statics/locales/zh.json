@@ -275,5 +275,14 @@
   "sub.placeholders": "占位符",
   "usersTable.activeIps": "IP",
   "usersTable.devices": "设备",
-  "all": "全部"
+  "all": "全部",
+  "stats.byProvider": "按运营商在线",
+  "stats.providerUsers": "{{users}} 用户 · {{ips}} IP",
+  "stats.noOnline": "当前无人在线",
+  "sidebar.main": "主要",
+  "sidebar.management": "管理",
+  "sidebar.settings": "设置",
+  "sidebar.coreSettings": "核心设置",
+  "sidebar.sudo": "超级管理员",
+  "sidebar.reseller": "管理员"
 }

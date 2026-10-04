@@ -279,5 +279,14 @@
   "sub.placeholders": "متغیرها",
   "usersTable.activeIps": "آی‌پی",
   "usersTable.devices": "دستگاه",
-  "all": "همه"
+  "all": "همه",
+  "stats.byProvider": "آنلاین بر اساس ارائه‌دهنده",
+  "stats.providerUsers": "{{users}} کاربر · {{ips}} آی‌پی",
+  "stats.noOnline": "در حال حاضر کسی آنلاین نیست",
+  "sidebar.main": "اصلی",
+  "sidebar.management": "مدیریت",
+  "sidebar.settings": "تنظیمات",
+  "sidebar.coreSettings": "تنظیمات هسته",
+  "sidebar.sudo": "ادمین اصلی",
+  "sidebar.reseller": "ادمین"
 }

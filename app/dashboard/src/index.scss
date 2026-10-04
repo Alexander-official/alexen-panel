@@ -394,3 +394,19 @@ html:not(.theme-animated) * {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
+
+/* sidebar blends into themed / glass backgrounds */
+.has-bg .alexen-sidebar,
+.theme-glass .alexen-sidebar {
+  background-color: rgba(255,255,255,0.45) !important;
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  border-color: rgba(255,255,255,0.55) !important;
+}
+.chakra-ui-dark.has-bg .alexen-sidebar,
+.chakra-ui-dark.theme-glass .alexen-sidebar,
+.has-bg .chakra-ui-dark .alexen-sidebar,
+.theme-glass .chakra-ui-dark .alexen-sidebar {
+  background-color: rgba(26,32,44,0.45) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+}

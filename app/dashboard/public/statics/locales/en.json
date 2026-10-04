@@ -274,5 +274,14 @@
   "sub.placeholders": "Placeholders",
   "usersTable.activeIps": "IPs",
   "usersTable.devices": "Devices",
-  "all": "all"
+  "all": "all",
+  "stats.byProvider": "Online by provider",
+  "stats.providerUsers": "{{users}} users · {{ips}} IPs",
+  "stats.noOnline": "Nobody is online right now",
+  "sidebar.main": "Main",
+  "sidebar.management": "Management",
+  "sidebar.settings": "Settings",
+  "sidebar.coreSettings": "Core Settings",
+  "sidebar.sudo": "Sudo admin",
+  "sidebar.reseller": "Admin"
 }
