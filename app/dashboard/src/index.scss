@@ -394,3 +394,19 @@ html:not(.theme-animated) * {
   animation: none !important;
   transition: none !important;
 }
+
+
+/* themed backgrounds: make the sticky toolbar and table header blend instead of
+   showing a solid color band */
+.has-bg #filters,
+.theme-glass #filters {
+  background: transparent !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.has-bg thead th,
+.theme-glass thead th {
+  background-color: transparent !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}

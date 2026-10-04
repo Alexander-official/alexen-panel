@@ -31,6 +31,9 @@ type SubSettings = {
   near_expire_days: number;
 };
 
+const PLACEHOLDER =
+  "#profile-title: base64: Alexander LLC\n#announce: base64: Hos geldin {username}\n#support-url: https://t.me/alexvpns";
+
 const empty: SubSettings = {
   default_template: "",
   expired_template: "",
@@ -69,25 +72,6 @@ export const SubSettingsModal: FC = () => {
       .finally(() => setLoading(false));
   };
 
-  const Field: FC<{ label: string; k: keyof SubSettings }> = ({ label, k }) => (
-    <FormControl>
-      <FormLabel fontSize="sm" mb={1}>
-        {label}
-      </FormLabel>
-      <Textarea
-        size="sm"
-        rows={5}
-        fontFamily="mono"
-        fontSize="xs"
-        value={form[k] as string}
-        onChange={(e) => set(k, e.target.value)}
-        placeholder={
-          "#profile-title: base64: Alexander LLC\n#announce: base64: Hos geldin {username}\n#support-url: https://t.me/alexvpns"
-        }
-      />
-    </FormControl>
-  );
-
   return (
     <Modal
       isOpen={isEditingSubSettings}
@@ -124,11 +108,43 @@ export const SubSettingsModal: FC = () => {
         <ModalCloseButton mt={3} />
         <ModalBody>
           <VStack align="stretch" spacing={4}>
-            <Field label={t("sub.default")} k="default_template" />
+            <FormControl>
+              <FormLabel fontSize="sm" mb={1}>{t("sub.default")}</FormLabel>
+              <Textarea
+                size="sm" rows={5} fontFamily="mono" fontSize="xs"
+                value={form.default_template}
+                onChange={(e) => set("default_template", e.target.value)}
+                placeholder={PLACEHOLDER}
+              />
+            </FormControl>
             <Divider />
-            <Field label={t("sub.expired")} k="expired_template" />
-            <Field label={t("sub.disabled")} k="disabled_template" />
-            <Field label={t("sub.limited")} k="limited_template" />
+            <FormControl>
+              <FormLabel fontSize="sm" mb={1}>{t("sub.expired")}</FormLabel>
+              <Textarea
+                size="sm" rows={5} fontFamily="mono" fontSize="xs"
+                value={form.expired_template}
+                onChange={(e) => set("expired_template", e.target.value)}
+                placeholder={PLACEHOLDER}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel fontSize="sm" mb={1}>{t("sub.disabled")}</FormLabel>
+              <Textarea
+                size="sm" rows={5} fontFamily="mono" fontSize="xs"
+                value={form.disabled_template}
+                onChange={(e) => set("disabled_template", e.target.value)}
+                placeholder={PLACEHOLDER}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel fontSize="sm" mb={1}>{t("sub.limited")}</FormLabel>
+              <Textarea
+                size="sm" rows={5} fontFamily="mono" fontSize="xs"
+                value={form.limited_template}
+                onChange={(e) => set("limited_template", e.target.value)}
+                placeholder={PLACEHOLDER}
+              />
+            </FormControl>
             <Divider />
             <FormControl>
               <FormLabel fontSize="sm" mb={1}>
@@ -144,7 +160,15 @@ export const SubSettingsModal: FC = () => {
                 }
               />
             </FormControl>
-            <Field label={t("sub.nearExpire")} k="near_expire_template" />
+            <FormControl>
+              <FormLabel fontSize="sm" mb={1}>{t("sub.nearExpire")}</FormLabel>
+              <Textarea
+                size="sm" rows={5} fontFamily="mono" fontSize="xs"
+                value={form.near_expire_template}
+                onChange={(e) => set("near_expire_template", e.target.value)}
+                placeholder={PLACEHOLDER}
+              />
+            </FormControl>
           </VStack>
         </ModalBody>
         <ModalFooter>

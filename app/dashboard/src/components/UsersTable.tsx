@@ -368,7 +368,6 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                           )}
                           <Text fontSize="xs" color="gray.500">
                             📶 {user.online_ip_count ?? 0}
-                            {user.ip_limit ? `/${user.ip_limit}` : ""}
                           </Text>
                           <Text fontSize="xs" color="gray.500">
                             📱 {user.hwid_count ?? 0}
@@ -628,14 +627,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                     </Text>
                   </Td>
                   <Td width="90px" minW="80px">
-                    <Text fontSize="sm">
-                      📶 {user.online_ip_count ?? 0}
-                      {user.ip_limit ? (
-                        <Text as="span" color="gray.500">
-                          /{user.ip_limit}
-                        </Text>
-                      ) : null}
-                    </Text>
+                    <Text fontSize="sm">📶 {user.online_ip_count ?? 0}</Text>
                   </Td>
                   <Td width="170px" minW="150px">
                     <StatusBadge
