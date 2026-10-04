@@ -103,6 +103,7 @@ def generate_subscription(
         config_format: Literal["v2ray", "clash-meta", "clash", "sing-box", "outline", "v2ray-json"],
         as_base64: bool,
         reverse: bool,
+        prefix_lines: list = None,
 ) -> str:
     admin = getattr(user, "admin", None)
     kwargs = {
@@ -114,7 +115,10 @@ def generate_subscription(
     }
 
     if config_format == "v2ray":
-        config = "\n".join(generate_v2ray_links(**kwargs))
+        links = generate_v2ray_links(**kwargs)
+        if prefix_lines:
+            links = list(prefix_lines) + links
+        config = "\n".join(links)
     elif config_format == "clash-meta":
         config = generate_clash_subscription(**kwargs, is_meta=True)
     elif config_format == "clash":

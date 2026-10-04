@@ -273,5 +273,8 @@
   "sub.disabled": "کاربران غیرفعال",
   "sub.limited": "کاربران محدود",
   "sub.nearExpire": "نزدیک انقضا",
-  "sub.nearExpireDays": "چند روز مانده نمایش"
+  "sub.nearExpireDays": "چند روز مانده نمایش",
+  "sub.directives": "دستورها",
+  "sub.base64Hint": "مقدار را base64 می‌کند",
+  "sub.placeholders": "متغیرها"
 }

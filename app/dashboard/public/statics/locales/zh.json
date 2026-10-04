@@ -269,5 +269,8 @@
   "sub.disabled": "已禁用用户",
   "sub.limited": "受限用户",
   "sub.nearExpire": "即将到期",
-  "sub.nearExpireDays": "到期前几天显示"
+  "sub.nearExpireDays": "到期前几天显示",
+  "sub.directives": "指令",
+  "sub.base64Hint": "对值进行编码",
+  "sub.placeholders": "占位符"
 }

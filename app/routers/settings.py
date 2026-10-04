@@ -14,20 +14,15 @@ SUB_SETTINGS_KEY = "subscription"
 
 
 class SubscriptionSettings(BaseModel):
-    # Each title/announce may be plain text or "base64:<...>". Empty means use the default.
-    profile_title: Optional[str] = ""
-    announce: Optional[str] = ""
-    # shown instead of the normal title/announce when the user is in that state
-    expired_title: Optional[str] = ""
-    expired_announce: Optional[str] = ""
-    disabled_title: Optional[str] = ""
-    disabled_announce: Optional[str] = ""
-    limited_title: Optional[str] = ""
-    limited_announce: Optional[str] = ""
-    # shown when the user is within `near_expire_days` of expiring
+    # A "sub page" template per user state. Each may contain directives
+    # (#profile-title, #announce, #support-url, with optional "base64:") and
+    # placeholders like {username} {used} {limit} {remaining} {expiretime}.
+    default_template: Optional[str] = ""
+    expired_template: Optional[str] = ""
+    disabled_template: Optional[str] = ""
+    limited_template: Optional[str] = ""
+    near_expire_template: Optional[str] = ""
     near_expire_days: int = 1
-    near_expire_title: Optional[str] = ""
-    near_expire_announce: Optional[str] = ""
 
 
 def get_subscription_settings(db: Session) -> SubscriptionSettings:

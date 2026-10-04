@@ -38,44 +38,44 @@ client_config = {
 router = APIRouter(tags=['Subscription'], prefix=f'/{XRAY_SUBSCRIPTION_PATH}')
 
 
-def _hdr_value(value: str) -> str:
-    value = (value or "").strip()
-    if not value:
-        return ""
-    return value if value.startswith("base64:") else encode_title(value)
-
-
-def build_sub_headers(db: Session, user: UserResponse) -> dict:
-    """profile-title and announce, overridden per user state from the settings."""
-    cfg = get_subscription_settings(db)
-    title, announce = cfg.profile_title, cfg.announce
+def _pick_template(cfg, user) -> str:
+    import time as _t
     status = getattr(user, "status", None)
     status = status.value if hasattr(status, "value") else status
-
-    now = _time.time()
+    now = _t.time()
     is_expired = status == "expired" or (user.expire and user.expire < now)
     is_limited = status == "limited" or (
         user.data_limit and (user.used_traffic or 0) >= user.data_limit)
-
-    if status == "disabled":
-        title = cfg.disabled_title or title
-        announce = cfg.disabled_announce or announce
-    elif is_expired:
-        title = cfg.expired_title or title
-        announce = cfg.expired_announce or announce
-    elif is_limited:
-        title = cfg.limited_title or title
-        announce = cfg.limited_announce or announce
-    elif user.expire:
+    if status == "disabled" and cfg.disabled_template:
+        return cfg.disabled_template
+    if is_expired and cfg.expired_template:
+        return cfg.expired_template
+    if is_limited and cfg.limited_template:
+        return cfg.limited_template
+    if user.expire and cfg.near_expire_template:
         days_left = (user.expire - now) / 86400
         if 0 < days_left <= max(0, cfg.near_expire_days):
-            title = cfg.near_expire_title or title
-            announce = cfg.near_expire_announce or announce
-    headers = {"profile-title": _hdr_value(title) or encode_title(SUB_PROFILE_TITLE)}
-    a = _hdr_value(announce)
-    if a:
-        headers["announce"] = a
-    return headers
+            return cfg.near_expire_template
+    return cfg.default_template or ""
+
+
+def build_sub_page(db: Session, user: UserResponse):
+    """Returns (prefix_lines, headers) from the admin's sub-page template for
+    the user's current state."""
+    from app.subscription.subpage import render
+    cfg = get_subscription_settings(db)
+    template = _pick_template(cfg, user)
+    prefix_lines, directives = render(template, user.__dict__)
+    headers = {}
+    if directives.get("profile-title"):
+        headers["profile-title"] = directives["profile-title"]
+    else:
+        headers["profile-title"] = encode_title(SUB_PROFILE_TITLE)
+    if directives.get("announce"):
+        headers["announce"] = directives["announce"]
+    if directives.get("support-url"):
+        headers["support-url"] = directives["support-url"]
+    return prefix_lines, headers
 
 
 def get_subscription_user_info(user: UserResponse) -> dict:
@@ -129,12 +129,13 @@ def user_subscription(
         )
 
     crud.update_user_sub(db, dbuser, user_agent)
+    prefix_lines, sub_headers = build_sub_page(db, user)
     response_headers = {
         "content-disposition": f'attachment; filename="{user.username}"',
         "profile-web-page-url": str(request.url),
         "support-url": SUB_SUPPORT_URL,
         "profile-update-interval": SUB_UPDATE_INTERVAL,
-        **build_sub_headers(db, user),
+        **sub_headers,
         "subscription-userinfo": "; ".join(
             f"{key}={val}"
             for key, val in get_subscription_user_info(user).items()
@@ -166,7 +167,7 @@ def user_subscription(
             conf = generate_subscription(user=user, config_format="v2ray-json", as_base64=False, reverse=False)
             return Response(content=conf, media_type="application/json", headers=response_headers)
         else:
-            conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False)
+            conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False, prefix_lines=prefix_lines)
             return Response(content=conf, media_type="text/plain", headers=response_headers)
 
     elif (USE_CUSTOM_JSON_DEFAULT or USE_CUSTOM_JSON_FOR_V2RAYNG) and re.match(r'^v2rayNG/(\d+\.\d+\.\d+)', user_agent):
@@ -178,7 +179,7 @@ def user_subscription(
             conf = generate_subscription(user=user, config_format="v2ray-json", as_base64=False, reverse=True)
             return Response(content=conf, media_type="application/json", headers=response_headers)
         else:
-            conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False)
+            conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False, prefix_lines=prefix_lines)
             return Response(content=conf, media_type="text/plain", headers=response_headers)
 
     elif re.match(r'^[Ss]treisand', user_agent):
@@ -186,7 +187,7 @@ def user_subscription(
             conf = generate_subscription(user=user, config_format="v2ray-json", as_base64=False, reverse=False)
             return Response(content=conf, media_type="application/json", headers=response_headers)
         else:
-            conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False)
+            conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False, prefix_lines=prefix_lines)
             return Response(content=conf, media_type="text/plain", headers=response_headers)
 
     elif (USE_CUSTOM_JSON_DEFAULT or USE_CUSTOM_JSON_FOR_HAPP) and re.match(r'^Happ/(\d+\.\d+\.\d+)', user_agent):
@@ -195,13 +196,13 @@ def user_subscription(
             conf = generate_subscription(user=user, config_format="v2ray-json", as_base64=False, reverse=False)
             return Response(content=conf, media_type="application/json", headers=response_headers)
         else:
-            conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False)
+            conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False, prefix_lines=prefix_lines)
             return Response(content=conf, media_type="text/plain", headers=response_headers)
 
 
 
     else:
-        conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False)
+        conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False, prefix_lines=prefix_lines)
         return Response(content=conf, media_type="text/plain", headers=response_headers)
 
 
@@ -239,12 +240,13 @@ def user_subscription_with_client_type(
     """Provides a subscription link based on the specified client type (e.g., Clash, V2Ray)."""
     user: UserResponse = UserResponse.model_validate(dbuser)
 
+    prefix_lines, sub_headers = build_sub_page(db, user)
     response_headers = {
         "content-disposition": f'attachment; filename="{user.username}"',
         "profile-web-page-url": str(request.url),
         "support-url": SUB_SUPPORT_URL,
         "profile-update-interval": SUB_UPDATE_INTERVAL,
-        **build_sub_headers(db, user),
+        **sub_headers,
         "subscription-userinfo": "; ".join(
             f"{key}={val}"
             for key, val in get_subscription_user_info(user).items()
