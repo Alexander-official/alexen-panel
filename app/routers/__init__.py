@@ -14,6 +14,7 @@ from . import (
     user,
     home,
     vpn,
+    chain,
 )
 
 api_router = APIRouter()
@@ -34,6 +35,7 @@ routers = [
     home.router,
     vpn.router,
     vpn.files_router,
+    chain.router,
 ]
 
 for router in routers:

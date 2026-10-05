@@ -99,7 +99,7 @@
   "nodes.addNodeSuccess": "Node {{name}} added successfully",
   "nodes.apply": "editNode",
   "nodes.certificate": "Certificate",
-  "nodes.connection-hint": "To setup a Marzban Node, you need to set this certificate on the node to initialize a secure connection between main server and the node",
+  "nodes.connection-hint": "To set up a node, install the node software on that server with this certificate: it secures the connection between the panel and the node.",
   "nodes.download-certificate": "Download certificate",
   "nodes.editNode": "Update Node",
   "nodes.hide-certificate": "Hide certificate",
@@ -110,7 +110,7 @@
   "nodes.reconnect": "Reconnect",
   "nodes.reconnecting": "Reconnecting...",
   "nodes.show-certificate": "Show certificate",
-  "nodes.title": "Using Marzban-Node, you are able to scale up your connection quality by adding different nodes on different servers.",
+  "nodes.title": "Add nodes on other servers to spread users across them; each node can also relay its traffic through another server (Exit through).",
   "nodes.usageCoefficient": "Usage Ratio",
   "on_hold": "On Hold",
   "password": "Password",
@@ -802,5 +802,14 @@
   "groups.vpnHint": "Like hosts: a service in a group is only for users of admins limited to that group; one in no group is for everyone.",
   "groups.vpnOff": "Turned off on this server (Nodes → VPN services)",
   "vpn.devices": "AmneziaWG devices per user",
-  "vpn.devicesHelp": "Each device gets its own file and key, so they can be connected at the same time (1 to {{max}}). OpenVPN needs no setting: one file works on several devices."
+  "vpn.devicesHelp": "Each device gets its own file and key, so they can be connected at the same time (1 to {{max}}). OpenVPN needs no setting: one file works on several devices.",
+  "chain.title": "Exit through",
+  "chain.help": "Users still connect to this node (so their real IPs are seen, UDP included); their traffic leaves through the chosen server over an encrypted VLESS + REALITY link the panel sets up.",
+  "chain.direct": "This server (direct)",
+  "chain.portAuto": "port: auto",
+  "chain.addressAuto": "exit address: auto",
+  "chain.portHelp": "The exit server must accept this TCP port from the relay (firewall).",
+  "chain.isExit": "Exit for: {{names}}",
+  "chain.apply": "Apply (restarts both cores)",
+  "chain.saved": "Saved: the cores restart in a few seconds"
 }

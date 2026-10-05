@@ -125,6 +125,10 @@ class XRayCore:
         if config.get('log', {}).get('logLevel') in ('none', 'error'):
             config['log']['logLevel'] = 'warning'
 
+        # relay links of the master (app/xray/chain.py)
+        from app.xray import chain
+        config = chain.apply(chain.MASTER, config)
+
         cmd = [
             self.executable_path,
             "run",

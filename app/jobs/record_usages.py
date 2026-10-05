@@ -153,8 +153,10 @@ def record_user_inbound_stats(params: list):
 
 def get_outbounds_stats(api: XRayAPI):
     try:
+        # a relay's link to its exit (app/xray/chain.py) is counted on the exit already
         params = [{"up": stat.value, "down": 0} if stat.link == "uplink" else {"up": 0, "down": stat.value}
-                  for stat in filter(attrgetter('value'), api.get_outbounds_stats(reset=True, timeout=10))]
+                  for stat in filter(attrgetter('value'), api.get_outbounds_stats(reset=True, timeout=10))
+                  if stat.name != "chain-out"]
         return params
     except xray_exc.XrayError:
         return []

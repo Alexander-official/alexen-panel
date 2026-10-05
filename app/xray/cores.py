@@ -124,13 +124,15 @@ class ConfigSet:
 
 def resolve(node_id: int, config: Union[None, XRayConfig, ConfigSet]) -> XRayConfig:
     """The startup config a node should run. A plain config passed in is taken as the
-    main core's one and only used when the node runs the main core."""
+    main core's one and only used when the node runs the main core. Relay links
+    (app/xray/chain.py) are added per node."""
+    from app.xray import chain
     if isinstance(config, ConfigSet):
-        return config.for_node(node_id)
+        return chain.apply(str(node_id), config.for_node(node_id))
     core_id = core_of(node_id)
     if core_id == MAIN and config is not None:
-        return config
-    return config_of(core_id).include_db_users()
+        return chain.apply(str(node_id), config)
+    return chain.apply(str(node_id), config_of(core_id).include_db_users())
 
 
 # ------------------------------------------------------------------ storage
