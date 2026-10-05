@@ -10,6 +10,7 @@ import {
   MenuItem,
   MenuList,
   Text,
+  Tooltip,
   useColorMode,
 } from "@chakra-ui/react";
 import {
@@ -28,24 +29,12 @@ import {
   SwatchIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import { DONATION_URL, REPO_URL } from "constants/Project";
-import { useDashboard } from "contexts/DashboardContext";
-import differenceInDays from "date-fns/differenceInDays";
-import isValid from "date-fns/isValid";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC, ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { AppearancePanel } from "./AppearancePanel";
 import { updateThemeColor } from "utils/themeColor";
-import {
-  ACCENTS,
-  AccentName,
-  applyAppearance,
-  Appearance,
-  BACKGROUNDS,
-  Background,
-  getAppearance,
-  Surface,
-} from "utils/appearance";
+import { applyAppearance, getAppearance } from "utils/appearance";
 import { Language } from "./Language";
 import useGetUser from "hooks/useGetUser";
 import { useSidebar } from "./Sidebar";
@@ -87,23 +76,6 @@ const NotificationCircle = chakra(Box, {
   },
 });
 
-const NOTIFICATION_KEY = "marzban-menu-notification";
-
-export const shouldShowDonation = (): boolean => {
-  const date = localStorage.getItem(NOTIFICATION_KEY);
-  if (!date) return true;
-  try {
-    if (date && isValid(parseInt(date))) {
-      if (differenceInDays(new Date(), new Date(parseInt(date))) >= 7)
-        return true;
-      return false;
-    }
-    return true;
-  } catch (err) {
-    return true;
-  }
-};
-
 export const Header: FC<HeaderProps> = ({ actions }) => {
   const { userData, getUserIsSuccess, getUserIsPending } = useGetUser();
 
@@ -123,27 +95,14 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
     onManagingGroups,
     onEditingSubSettings,
     onShowingNodesUsage,
-  } = useDashboard();
+  } = useDashboardPick("onEditingHosts", "onResetAllUsage", "onEditingNodes", "onManagingAdmins", "onShowingStats", "onManagingGroups", "onEditingSubSettings", "onShowingNodesUsage");
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const [appearance, setAppearance] = useState(getAppearance());
-  const update = (patch: Partial<Appearance>) => {
-    const next = { ...appearance, ...patch };
-    applyAppearance(next);
-    setAppearance(next);
-  };
-  const { colorMode, toggleColorMode } = useColorMode();
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const { colorMode } = useColorMode();
   useEffect(() => {
     applyAppearance(getAppearance());
   }, [colorMode]);
-  const [showDonationNotif, setShowDonationNotif] = useState(
-    shouldShowDonation()
-  );
-
-  const handleOnClose = () => {
-    localStorage.setItem(NOTIFICATION_KEY, new Date().getTime().toString());
-    setShowDonationNotif(false);
-  };
 
   return (
     <HStack
@@ -170,112 +129,17 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
         </Text>
       </HStack>
 
-      <Box overflow="auto" css={{ direction: "rtl" }}>
-        <HStack alignItems="center">
-          <Menu>
-            <MenuButton
-              as={IconButton}
-              size="sm"
-              variant="outline"
-              icon={
-                <>
-                  <SettingsIcon />
-                </>
-              }
-              position="relative"
-            ></MenuButton>
-            <MenuList minW="240px" zIndex={99999} className="menuList">
-              <MenuGroup title={t("header.accentColor")} fontSize="xs">
-                <Box px={3} py={1} display="flex" gap={2} flexWrap="wrap" maxW="232px">
-                  {(Object.keys(ACCENTS) as AccentName[]).map((name) => (
-                    <Box
-                      key={name}
-                      as="button"
-                      w="18px"
-                      h="18px"
-                      borderRadius="full"
-                      bg={ACCENTS[name][500]}
-                      border="2px solid"
-                      borderColor={
-                        appearance.accent === name
-                          ? colorMode === "dark" ? "white" : "gray.700"
-                          : "transparent"
-                      }
-                      onClick={() => update({ accent: name })}
-                    />
-                  ))}
-                </Box>
-              </MenuGroup>
-              <MenuGroup title={t("header.background")} fontSize="xs">
-                <Box px={3} py={1} display="flex" gap={2} flexWrap="wrap" maxW="232px">
-                  {(Object.keys(BACKGROUNDS) as Background[]).map((name) => (
-                    <Box
-                      key={name}
-                      as="button"
-                      w="18px"
-                      h="18px"
-                      borderRadius="md"
-                      bg={BACKGROUNDS[name].swatch}
-                      border="2px solid"
-                      borderColor={
-                        appearance.background === name
-                          ? "primary.500"
-                          : colorMode === "dark"
-                          ? "whiteAlpha.400"
-                          : "blackAlpha.200"
-                      }
-                      onClick={() => update({ background: name })}
-                    />
-                  ))}
-                </Box>
-              </MenuGroup>
-              <MenuItem
-                fontSize="sm"
-                onClick={() =>
-                  update({
-                    surface:
-                      appearance.surface === "glass" ? "minimal" : "glass",
-                  })
-                }
-              >
-                {appearance.surface === "glass"
-                  ? t("header.styleMinimal")
-                  : t("header.styleGlass")}
-              </MenuItem>
-              <MenuItem
-                fontSize="sm"
-                onClick={() => update({ animations: !appearance.animations })}
-              >
-                {appearance.animations
-                  ? t("header.animationsOff")
-                  : t("header.animationsOn")}
-              </MenuItem>
-              <MenuDivider />
-              <Link to={DONATION_URL} target="_blank">
-                <MenuItem
-                  maxW="170px"
-                  fontSize="sm"
-                  icon={<DonationIcon />}
-                  position="relative"
-                  onClick={handleOnClose}
-                >
-                  {t("header.donation")}{" "}
-                  {showDonationNotif && (
-                    <NotificationCircle top="3" right="2" />
-                  )}
-                </MenuItem>
-              </Link>
-              <Link to="/login">
-                <MenuItem maxW="170px" fontSize="sm" icon={<LogoutIcon />}>
-                  {t("header.logout")}
-                </MenuItem>
-              </Link>
-            </MenuList>
-          </Menu>
-
-          {/* vendor brand badge intentionally minimal */}
-        </HStack>
-      </Box>
+      <Tooltip label={t("appearance.title")} hasArrow>
+        <IconButton
+          size="sm"
+          variant="outline"
+          borderRadius="full"
+          aria-label={t("appearance.title")}
+          icon={<SettingsIcon />}
+          onClick={() => setAppearanceOpen(true)}
+        />
+      </Tooltip>
+      <AppearancePanel isOpen={appearanceOpen} onClose={() => setAppearanceOpen(false)} />
     </HStack>
   );
 };

@@ -13,7 +13,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { TrashIcon } from "@heroicons/react/24/outline";
-import { useDashboard } from "contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { Icon } from "./Icon";
@@ -31,7 +31,7 @@ export type DeleteUserModalProps = {
 
 export const DeleteUserModal: FC<DeleteUserModalProps> = () => {
   const [loading, setLoading] = useState(false);
-  const { deletingUser: user, onDeletingUser, deleteUser } = useDashboard();
+  const { deletingUser: user, onDeletingUser, deleteUser } = useDashboardPick("deletingUser", "onDeletingUser", "deleteUser");
   const { t } = useTranslation();
   const toast = useToast();
   const onClose = () => {

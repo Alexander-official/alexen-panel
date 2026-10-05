@@ -35,11 +35,23 @@ class Group(BaseModel):
     note: Optional[str] = ""
     hosts: List[int] = []
     admins: List[str] = []
+    # AmneziaWG / OpenVPN of a server, like hosts: "awg:master", "ovpn:1" (app/vpn)
+    vpn: List[str] = []
+
+
+class GroupVPN(BaseModel):
+    """a VPN service a group can hold"""
+    id: str
+    kind: str
+    server: str
+    enabled: bool
+    groups: List[str] = []
 
 
 class GroupsResponse(BaseModel):
     groups: List[Group]
     hosts: List[GroupHost]
+    vpn: List[GroupVPN] = []
 
 
 class GroupCreate(BaseModel):
@@ -51,6 +63,7 @@ class GroupModify(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=64)
     note: Optional[str] = None
     hosts: Optional[List[int]] = None
+    vpn: Optional[List[str]] = None
 
 
 def _stored(db: Session) -> List[dict]:
@@ -66,7 +79,8 @@ def _stored(db: Session) -> List[dict]:
 
 
 def _save(db: Session, groups: List[dict]):
-    crud.set_setting(db, GROUPS_KEY, [{"name": g["name"], "note": g.get("note") or ""} for g in groups])
+    crud.set_setting(db, GROUPS_KEY, [{"name": g["name"], "note": g.get("note") or "", "vpn": list(g.get("vpn") or [])}
+                                      for g in groups])
 
 
 def _rewrite(db: Session, fn):
@@ -88,8 +102,19 @@ def _response(db: Session) -> GroupsResponse:
             name=g["name"], note=g.get("note") or "",
             hosts=[h.id for h in hosts if g["name"] in split_groups(h.group_name)],
             admins=[u for u, hg in admins if hg and g["name"] in hg],
+            vpn=list(g.get("vpn") or []),
         ))
+    from app import vpn as _vpn
+    s = _vpn.load(db)
+    services = []
+    for key, name in _vpn.server_keys(db).items():
+        srv = s.servers.get(key) or _vpn.ServerVPN()
+        for kind, label, on in (("awg", "AmneziaWG", srv.awg.enabled), ("ovpn", "OpenVPN", srv.ovpn.enabled)):
+            it = _vpn.item(kind, key)
+            services.append(GroupVPN(id=it, kind=label, server=name, enabled=on,
+                                     groups=[g["name"] for g in groups if it in (g.get("vpn") or [])]))
     return GroupsResponse(
+        vpn=services,
         groups=out,
         hosts=[GroupHost(id=h.id, remark=h.remark, address=h.address, inbound_tag=h.inbound_tag,
                          groups=split_groups(h.group_name), is_disabled=bool(h.is_disabled)) for h in hosts],
@@ -133,6 +158,8 @@ def modify_group(name: str, body: GroupModify, db: Session = Depends(get_db),
                 dbadmin.host_groups = [new_name if x == name else x for x in dbadmin.host_groups]
     if body.note is not None:
         group["note"] = body.note
+    if body.vpn is not None:
+        group["vpn"] = sorted(set(body.vpn))
 
     if body.hosts is not None:
         # add this group to the chosen hosts and take it off the others;

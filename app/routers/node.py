@@ -20,6 +20,7 @@ from app.models.node import (
 )
 from app.models.proxy import ProxyHost
 from app.utils import responses
+from app.xray import cores
 
 router = APIRouter(
     tags=["Node"], prefix="/api", responses={401: responses._401, 403: responses._403}
@@ -29,11 +30,15 @@ router = APIRouter(
 def add_host_if_needed(new_node: NodeCreate, db: Session):
     """Add a host if specified in the new node settings."""
     if new_node.add_as_new_host:
-        host = ProxyHost(
-            remark=f"{new_node.name} ({{USERNAME}}) [{{PROTOCOL}} - {{TRANSPORT}}]",
-            address=new_node.address,
-        )
-        for inbound_tag in xray.config.inbounds_by_tag:
+        core_inbounds = cores.config_of(new_node.core_id).own_inbounds_by_tag
+        for inbound_tag, inbound in core_inbounds.items():
+            host = ProxyHost(
+                remark=f"{new_node.name} ({{USERNAME}}) [{{PROTOCOL}} - {{TRANSPORT}}]",
+                address=new_node.address,
+                # an extra core may serve a shared inbound on its own port
+                port=inbound.get("port") if new_node.core_id != cores.MAIN
+                and isinstance(inbound.get("port"), int) else None,
+            )
             crud.add_host(db, inbound_tag, host)
         xray.hosts.update()
 
@@ -55,6 +60,8 @@ def add_node(
     _: Admin = Depends(Admin.check_sudo_admin),
 ):
     """Add a new node to the database and optionally add it as a host."""
+    if new_node.core_id != cores.MAIN and new_node.core_id not in cores.extra:
+        raise HTTPException(status_code=400, detail="Core not found")
     try:
         dbnode = crud.create_node(db, new_node)
     except IntegrityError:
@@ -62,6 +69,7 @@ def add_node(
         raise HTTPException(
             status_code=409, detail=f'Node "{new_node.name}" already exists'
         )
+    cores.set_node_core(dbnode.id, new_node.core_id)
 
     bg.add_task(xray.operations.connect_node, node_id=dbnode.id)
     bg.add_task(add_host_if_needed, new_node, db)
@@ -164,6 +172,11 @@ def modify_node(
     _: Admin = Depends(Admin.check_sudo_admin),
 ):
     """Update a node's details. Only accessible to sudo admins."""
+    if modified_node.core_id is not None:
+        try:
+            cores.set_node_core(dbnode.id, modified_node.core_id)
+        except KeyError:
+            raise HTTPException(status_code=400, detail="Core not found")
     updated_node = crud.update_node(db, dbnode, modified_node)
     xray.operations.remove_node(updated_node.id)
     if updated_node.status != NodeStatus.disabled:
@@ -193,6 +206,7 @@ def remove_node(
     """Delete a node and remove it from xray in the background."""
     crud.remove_node(db, dbnode)
     xray.operations.remove_node(dbnode.id)
+    cores.forget_node(dbnode.id)
 
     logger.info(f'Node "{dbnode.name}" deleted')
     return {}

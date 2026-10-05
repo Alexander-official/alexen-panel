@@ -31,21 +31,21 @@
 
 table thead {
   th:first-of-type {
-    border-top-left-radius: 8px;
+    border-top-left-radius: 14px;
   }
 
   th:last-of-type {
-    border-top-right-radius: 8px;
+    border-top-right-radius: 14px;
   }
 }
 
 .last-row {
   td:first-of-type {
-    border-bottom-left-radius: 8px;
+    border-bottom-left-radius: 14px;
   }
 
   td:last-of-type {
-    border-bottom-right-radius: 8px;
+    border-bottom-right-radius: 14px;
   }
 }
 
@@ -228,54 +228,26 @@ table thead {
   box-shadow: 0px 0px 1px 1px #0000001a;
 }
 
+/* online dots: a ring that grows and fades. Only transform/opacity animate, so
+   the browser composites it instead of repainting each row every frame
+   (an animated box-shadow per dot is what made long user lists heavy) */
 .pulse {
-  animation: pulse-animation 3s infinite;
+  position: relative;
 }
-.pulse.green {
-  animation: green-pulse-animation 3s infinite;
+.pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.5;
+  animation: alexen-pulse 2.4s ease-out infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
 }
-.pulse.red{
-  animation: red-pulse-animation 3s infinite;
-}
-.pulse.orange{
-  animation: orange-pulse-animation 3s infinite;
-}
-
-@keyframes pulse-animation {
-  0% {
-    box-shadow: 0 0 0 0px rgba(0, 0, 0, 0.4);
-  }
-
-  100% {
-    box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
-  }
-}
-@keyframes green-pulse-animation {
-  0% {
-    box-shadow: 0 0 0 0px #66ff9975;
-  }
-
-  100% {
-    box-shadow: 0 0 0 10px #66ff9900;
-  }
-}
-@keyframes red-pulse-animation {
-  0% {
-    box-shadow: 0 0 0 0px #e53e3e8c;
-  }
-
-  100% {
-    box-shadow: 0 0 0 10px #e53e3e00;
-  }
-}
-@keyframes orange-pulse-animation {
-  0% {
-    box-shadow: 0 0 0 0px #fbd38d85;
-  }
-
-  100% {
-    box-shadow: 0 0 0 10px #fbd38d00;
-  }
+@keyframes alexen-pulse {
+  0% { transform: scale(1); opacity: 0.5; }
+  80%, 100% { transform: scale(2.6); opacity: 0; }
 }
 
 .flex-status {
@@ -297,6 +269,33 @@ table thead {
   --app-bg: "";
   --app-surface: #ffffff;
   --app-surface-2: #f9fafb;
+  /* hairline for borders in dark mode: translucent, so it suits every background */
+  --alexen-line: rgba(255, 255, 255, 0.08);
+  /* soft elevation for cards */
+  --alexen-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 16px rgba(16, 24, 40, 0.05);
+}
+.chakra-ui-dark {
+  --alexen-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+/* form fields: a faint fill and a hairline, the same in every theme */
+:root {
+  --alexen-field: rgba(15, 23, 42, 0.025);
+  --alexen-field-border: rgba(15, 23, 42, 0.12);
+  --alexen-field-hover: rgba(15, 23, 42, 0.22);
+}
+.chakra-ui-dark {
+  --alexen-field: rgba(255, 255, 255, 0.03);
+  --alexen-field-border: rgba(255, 255, 255, 0.10);
+  --alexen-field-hover: rgba(255, 255, 255, 0.20);
+}
+
+/* light mode without a picked background: a faint gray page, so white cards
+   stand out by fill instead of by hard borders */
+html:not(.has-bg):not(.theme-glass) body:not(.chakra-ui-dark) {
+  background-color: #f6f7f9;
+}
+html:not(.has-bg):not(.theme-glass) body:not(.chakra-ui-dark) .alexen-sidebar {
+  background-color: #fbfbfc;
 }
 
 /* page background on a fixed layer (cheaper than background-attachment: fixed) */
@@ -416,6 +415,91 @@ body.chakra-ui-dark {
   }
 }
 
+/* ---- liquid glass, refined: a specular sheen on top, a bright rim, and real
+   blur on the page cards too (desktop only; phones get tinted surfaces below) ---- */
+.theme-glass {
+  .chakra-card,
+  .chakra-modal__content,
+  .chakra-menu__menu-list,
+  .chakra-popover__content,
+  .alexen-sidebar {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.04) 46%) !important;
+  }
+}
+.theme-glass body.chakra-ui-dark {
+  .chakra-card,
+  .chakra-modal__content,
+  .chakra-menu__menu-list,
+  .chakra-popover__content,
+  .alexen-sidebar {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 46%) !important;
+  }
+}
+@media (min-width: 48em) and (hover: hover) {
+  .theme-glass .alexen-page,
+  .theme-glass #users-table,
+  .theme-glass .chakra-card {
+    -webkit-backdrop-filter: blur(16px) saturate(165%);
+    backdrop-filter: blur(16px) saturate(165%);
+  }
+}
+.theme-glass #users-table {
+  border-radius: 16px;
+  background-color: color-mix(in srgb, var(--app-surface) 50%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.theme-glass body.chakra-ui-dark #users-table {
+  background-color: color-mix(in srgb, var(--chakra-colors-gray-800) 50%, transparent);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+/* ---- clay: puffy surfaces pressed out of the page, fields pressed in ---- */
+.theme-clay {
+  --clay-out: 8px 8px 22px rgba(112, 124, 156, 0.20), -8px -8px 22px rgba(255, 255, 255, 0.92),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.85);
+  --clay-out-sm: 4px 4px 10px rgba(112, 124, 156, 0.18), -4px -4px 10px rgba(255, 255, 255, 0.9);
+  --clay-in: inset 3px 3px 7px rgba(112, 124, 156, 0.18), inset -3px -3px 7px rgba(255, 255, 255, 0.9);
+  --clay-page: var(--chakra-colors-gray-100);
+}
+.theme-clay body.chakra-ui-dark,
+.chakra-ui-dark.theme-clay {
+  --clay-out: 8px 8px 22px rgba(0, 0, 0, 0.5), -6px -6px 18px rgba(255, 255, 255, 0.035),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.05);
+  --clay-out-sm: 4px 4px 10px rgba(0, 0, 0, 0.45), -3px -3px 8px rgba(255, 255, 255, 0.03);
+  --clay-in: inset 3px 3px 7px rgba(0, 0, 0, 0.45), inset -2px -2px 6px rgba(255, 255, 255, 0.04);
+  --clay-page: var(--chakra-colors-gray-800);
+}
+html.theme-clay:not(.has-bg) body { background-color: var(--clay-page) !important; }
+.theme-clay {
+  .chakra-card,
+  .alexen-page,
+  #users-table,
+  .chakra-modal__content,
+  .chakra-menu__menu-list,
+  .chakra-popover__content,
+  .chakra-accordion__item {
+    background-color: var(--clay-page) !important;
+    border-color: transparent !important;
+    box-shadow: var(--clay-out) !important;
+  }
+  .chakra-card,
+  .alexen-page,
+  #users-table { border-radius: 24px !important; }
+  .chakra-modal__content { border-radius: 26px !important; }
+  #users-table td, #users-table th { background-color: transparent !important; border-color: transparent !important; }
+  #users-table tr + tr td { border-top: 1px solid rgba(112, 124, 156, 0.12) !important; }
+  .chakra-input, .chakra-select, .chakra-textarea, .chakra-numberinput__field {
+    background-color: var(--clay-page) !important;
+    border-color: transparent !important;
+    box-shadow: var(--clay-in) !important;
+  }
+  .chakra-input:focus-visible, .chakra-select:focus-visible, .chakra-textarea:focus-visible {
+    box-shadow: var(--clay-in), 0 0 0 2px var(--chakra-colors-primary-300) !important;
+  }
+  .chakra-button[data-variant="outline"], .chakra-button.clay-btn { box-shadow: var(--clay-out-sm); border-color: transparent; }
+}
+.theme-clay body.chakra-ui-dark #users-table tr + tr td { border-top-color: rgba(255, 255, 255, 0.05) !important; }
+
 /* ---- motion ---- */
 @media (hover: hover) {
   .theme-animated {
@@ -485,4 +569,18 @@ html:not(.theme-animated) * {
 
   /* comfortable tap targets */
   .chakra-menu__menuitem { min-height: 40px; }
+}
+
+/* the users table sits on the faint page as a white card */
+html:not(.has-bg):not(.theme-glass) body:not(.chakra-ui-dark) #users-table {
+  background-color: var(--app-surface);
+  border-radius: 14px;
+  box-shadow: var(--alexen-shadow);
+}
+
+/* login: a soft accent glow behind the card */
+.alexen-login {
+  background:
+    radial-gradient(42rem 28rem at 50% -8rem, color-mix(in srgb, var(--chakra-colors-primary-500) 22%, transparent), transparent 70%),
+    radial-gradient(30rem 22rem at 100% 100%, color-mix(in srgb, var(--chakra-colors-primary-300) 14%, transparent), transparent 70%);
 }

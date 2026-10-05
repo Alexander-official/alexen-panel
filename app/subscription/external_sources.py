@@ -533,7 +533,7 @@ def refresh_due(force_ids: Optional[List[str]] = None):
             if not forced and (not src.enabled or force_ids is not None):
                 continue
             age = now - (cache.get(src.id) or {}).get("updated_at", 0)
-            if forced or age >= max(5, src.refresh_minutes or 60) * 60:
+            if forced or age >= max(1, src.refresh_minutes or 60) * 60:
                 refresh(src, settings.test_url or DEFAULT_TEST_URL)
     finally:
         _refresh_lock.release()

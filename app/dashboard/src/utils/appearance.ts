@@ -3,6 +3,7 @@
 // classes, so it needs no theme rebuild and takes effect live. Saved per browser.
 
 export type AccentName =
+  | "periwinkle" | "lavender" | "orchid" | "blush" | "coral" | "honey" | "sage" | "mint" | "lagoonBlue" | "steel"
   | "blue" | "teal" | "purple" | "green" | "rose" | "amber"
   | "indigo" | "sky" | "cyan" | "emerald" | "lime" | "orange"
   | "red" | "pink" | "fuchsia" | "violet" | "slate" | "gold"
@@ -26,13 +27,27 @@ const scale = (base: string): Record<number, string> => ({
   600: mix(base, "#000000", 0.1), 700: mix(base, "#000000", 0.2), 800: mix(base, "#000000", 0.3),
   900: mix(base, "#000000", 0.4),
 });
-export type Surface = "minimal" | "glass";
+// minimal: soft cards · glass: liquid glass · clay: puffy claymorphism
+export type Surface = "minimal" | "glass" | "clay";
 export type Background =
   | "default" | "slate" | "midnight" | "aurora" | "sunset" | "amoled"
   | "ocean" | "forest" | "wine" | "mocha" | "graphite" | "nebula" | "dracula" | "nord"
-  | "neon" | "lava" | "toxic" | "candy" | "electric" | "sunrise" | "cyber" | "lagoon";
+  | "neon" | "lava" | "toxic" | "candy" | "electric" | "sunrise" | "cyber" | "lagoon"
+  | "mist" | "lilac" | "peach" | "sand" | "moss" | "dusk";
 
 export const ACCENTS: Record<AccentName, Record<number, string>> = {
+  // the soft set offered in the menu: muted, easy on the eyes, white text stays readable
+  periwinkle: scale("#5b7cfa"),
+  lavender: scale("#7c6cf2"),
+  orchid: scale("#a26cf0"),
+  blush: scale("#e06c9a"),
+  coral: scale("#ea7363"),
+  honey: scale("#d99a2f"),
+  sage: scale("#4fa47e"),
+  mint: scale("#2ea894"),
+  lagoonBlue: scale("#2c9fd0"),
+  steel: scale("#62708a"),
+  // older choices, still honoured when saved in a browser
   blue: {
     50: "#9cb7f2", 100: "#88a9ef", 200: "#749aec", 300: "#618ce9", 400: "#4d7de7",
     500: "#396fe4", 600: "#3364cd", 700: "#2e59b6", 800: "#284ea0", 900: "#224389",
@@ -132,7 +147,18 @@ export const BACKGROUNDS: Record<
   Background,
   { light: string; dark: string; swatch: string; tint?: Tint }
 > = {
-  default: { light: "", dark: "", swatch: "#e2e8f0" },
+  // the panel's own base: soft graphite-blue grays instead of the stock palette
+  default: {
+    light: "",
+    dark: "",
+    swatch: "#e2e8f0",
+    tint: {
+      light: { "gray-50": "#f5f6f9", "gray-100": "#eceef3", "gray-200": "#e1e4ec", border: "#e3e6ed",
+               surface: "#ffffff", "surface-2": "#f7f8fb" },
+      dark: { "gray-600": "#3a4254", "gray-700": "#232a38", "gray-750": "#1c2230", "gray-800": "#151a25",
+              "gray-900": "#0f131b" },
+    },
+  },
   slate: {
     light: "linear-gradient(160deg,#eef2f7,#e2e8f0)",
     dark: "linear-gradient(160deg,#161b26,#0f1218)",
@@ -205,27 +231,65 @@ export const BACKGROUNDS: Record<
   sunrise: vivid("#7c2d12", "#713f12", "#fdba74", "#fde047", "#f97316"),
   cyber: vivid("#701a75", "#155e75", "#f0abfc", "#67e8f9", "#d946ef"),
   lagoon: vivid("#064e3b", "#164e63", "#6ee7b7", "#7dd3fc", "#10b981"),
+  // soft set
+  mist: themed("#161b26", "#e6ebf3", "#94a3b8"),
+  lilac: themed("#1b1729", "#ebe6f7", "#a78bfa"),
+  peach: themed("#251a17", "#f8e9e1", "#f4a582"),
+  sand: themed("#211d16", "#f1ebdf", "#d6b98c"),
+  moss: themed("#141d18", "#e3eee6", "#7fb08f"),
+  dusk: themed("#1a1824", "#e9e4ee", "#8b7fa8"),
 
 };
 
+
+/** what the appearance panel offers (the rest stays valid for old saves) */
+export const ACCENT_CHOICES: AccentName[] = [
+  "periwinkle", "lavender", "orchid", "blush", "coral", "honey", "sage", "mint", "lagoonBlue", "steel",
+];
+export const BACKGROUND_CHOICES: Background[] = [
+  "default", "mist", "slate", "midnight", "nord", "dusk", "lilac", "nebula", "ocean", "moss", "forest",
+  "sand", "peach", "mocha", "aurora", "sunset", "amoled",
+];
 
 const TINT_VARS = [
   "gray-50", "gray-100", "gray-200", "gray-600", "gray-700", "gray-750", "gray-800", "gray-900",
 ];
 
 export type Appearance = {
-  accent: AccentName;
+  accent: AccentName | "custom";
   surface: Surface;
-  background: Background;
+  background: Background | "custom";
   animations: boolean;
+  // colors picked by hand, used when accent / background is "custom"
+  customAccent: string;
+  customBackground: string;
 };
+
+const luminance = (hex: string) => {
+  const [r, g, b] = hexToRgb(hex);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+};
+
+/** a background from one picked color: the color itself in the mode it suits,
+ *  a darkened / lightened version of it in the other */
+export const customBackground = (color: string) => {
+  const light = luminance(color);
+  const dark = light < 0.35 ? color : mix(color, "#000000", 0.78);
+  const lightBase = light > 0.65 ? color : mix(color, "#ffffff", 0.78);
+  return themed(dark, lightBase, color);
+};
+
+export const accentPalette = (a: Appearance) =>
+  a.accent === "custom" ? scale(a.customAccent) : ACCENTS[a.accent] || ACCENTS.periwinkle;
 
 const KEY = "alexen-appearance";
 const DEFAULT: Appearance = {
-  accent: "blue",
+  accent: "periwinkle",
   surface: "minimal",
   background: "default",
   animations: true,
+  customAccent: "#5b7cfa",
+  customBackground: "#1e293b",
 };
 
 export const getAppearance = (): Appearance => {
@@ -238,12 +302,15 @@ export const getAppearance = (): Appearance => {
 
 export const applyAppearance = (a: Appearance) => {
   const root = document.documentElement;
-  const palette = ACCENTS[a.accent] || ACCENTS.blue;
+  const palette = accentPalette(a);
   Object.entries(palette).forEach(([shade, hex]) =>
     root.style.setProperty(`--chakra-colors-primary-${shade}`, hex)
   );
 
-  const bg = BACKGROUNDS[a.background] || BACKGROUNDS.default;
+  const bg =
+    a.background === "custom"
+      ? customBackground(a.customBackground)
+      : BACKGROUNDS[a.background] || BACKGROUNDS.default;
   const dark =
     root.classList.contains("chakra-ui-dark") ||
     document.body.classList.contains("chakra-ui-dark") ||
@@ -266,6 +333,7 @@ export const applyAppearance = (a: Appearance) => {
   if (meta && dark) meta.setAttribute("content", tint["gray-800"] || "#1A202C");
 
   root.classList.toggle("theme-glass", a.surface === "glass");
+  root.classList.toggle("theme-clay", a.surface === "clay");
   root.classList.toggle("theme-animated", a.animations);
   root.classList.toggle("has-bg", !!pageBg);
 

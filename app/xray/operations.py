@@ -8,6 +8,7 @@ from app.db import GetDB, crud
 from app.models.node import NodeStatus
 from app.models.user import UserResponse
 from app.utils.concurrency import threaded_function
+from app.xray import cores
 from app.xray.config import user_email
 from app.xray.node import XRayNode
 from xray_api import XRay as XRayAPI
@@ -218,8 +219,7 @@ def connect_node(node_id, config=None):
         _change_node_status(node_id, NodeStatus.connecting)
         logger.info(f"Connecting to \"{dbnode.name}\" node")
 
-        if config is None:
-            config = xray.config.include_db_users()
+        config = cores.resolve(node_id, config)
 
         node.start(config)
         version = node.get_version()
@@ -256,8 +256,7 @@ def restart_node(node_id, config=None):
     try:
         logger.info(f"Restarting Xray core of \"{dbnode.name}\" node")
 
-        if config is None:
-            config = xray.config.include_db_users()
+        config = cores.resolve(node_id, config)
 
         node.restart(config)
         logger.info(f"Xray core of \"{dbnode.name}\" node restarted")
@@ -286,7 +285,8 @@ def terminate_ip(dbuser: "DBUser", ip: str):
     if not node_names:
         return
 
-    config = xray.config.include_db_users()
+    configs = cores.ConfigSet()
+    config = configs.get(cores.MAIN)
 
     if online.MASTER_NAME in node_names:
         try:
@@ -304,7 +304,7 @@ def terminate_ip(dbuser: "DBUser", ip: str):
             nid = ids.get(name)
             if nid is not None:
                 try:
-                    xray.operations.restart_node(nid, config)
+                    xray.operations.restart_node(nid, configs)
                 except Exception as exc:
                     logger.warning(f"terminate: node {name} restart failed: {exc}")
 

@@ -23,6 +23,7 @@ export const NodeSchema = z.object({
     .optional(),
   message: z.string().nullable().optional(),
   add_as_new_host: z.boolean().optional(),
+  core_id: z.string().optional(),
   usage_coefficient: z.number().or(z.string().transform((v) => parseFloat(v))),
 });
 
@@ -35,6 +36,7 @@ export const getNodeDefaultValues = (): NodeType => ({
   api_port: 62051,
   xray_version: "",
   usage_coefficient: 1,
+  core_id: "main",
 });
 
 export const FetchNodesQueryKey = "fetch-nodes-query-key";

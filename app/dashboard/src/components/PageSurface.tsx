@@ -45,10 +45,11 @@ export const ModalContent: FC<BoxProps & { children?: ReactNode }> = ({ children
       className="alexen-page"
       w="full"
       borderWidth="1px"
-      borderColor="light-border"
-      boxShadow="none"
-      borderRadius="12px"
-      _dark={{ borderColor: "gray.600" }}
+      borderColor="blackAlpha.50"
+      bg="var(--app-surface)"
+      boxShadow="var(--alexen-shadow)"
+      borderRadius="20px"
+      _dark={{ borderColor: "var(--alexen-line)", bg: "gray.750" }}
       {...rest}
     >
       {children}

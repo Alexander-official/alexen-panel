@@ -14,7 +14,7 @@ import {
   SignalIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import { useDashboard } from "contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC, PropsWithChildren, ReactElement, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
@@ -77,12 +77,12 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
       cursor={onClick ? "pointer" : undefined}
       p={{ base: 3, md: 5 }}
       borderWidth="1px"
-      borderColor="light-border"
-      bg="var(--app-surface-2)"
-      _dark={{ borderColor: "gray.600", bg: "gray.750" }}
+      borderColor="blackAlpha.50"
+      bg="var(--app-surface)"
+      _dark={{ borderColor: "var(--alexen-line)", bg: "gray.750" }}
       borderStyle="solid"
-      boxShadow="none"
-      borderRadius="12px"
+      boxShadow="var(--alexen-shadow)"
+      borderRadius="18px"
       width="full"
       display="flex"
       justifyContent="space-between"
@@ -95,33 +95,11 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
         <Box
           p="2"
           position="relative"
-          color="white"
-          _before={{
-            content: `""`,
-            position: "absolute",
-            top: 0,
-            left: 0,
-            bg: "primary.400",
-            display: "block",
-            w: "full",
-            h: "full",
-            borderRadius: "5px",
-            opacity: ".5",
-            z: "1",
-          }}
-          _after={{
-            content: `""`,
-            position: "absolute",
-            top: "-5px",
-            left: "-5px",
-            bg: "primary.400",
-            display: "block",
-            w: "calc(100% + 10px)",
-            h: "calc(100% + 10px)",
-            borderRadius: "8px",
-            opacity: ".4",
-            z: "1",
-          }}
+          // the original double-square badge, replaced by one soft tinted tile
+          borderRadius="14px"
+          color="primary.500"
+          bg="color-mix(in srgb, var(--chakra-colors-primary-500) 13%, transparent)"
+          _dark={{ color: "primary.300", bg: "color-mix(in srgb, var(--chakra-colors-primary-400) 18%, transparent)" }}
         >
           {icon}
         </Box>
@@ -146,7 +124,7 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
 };
 export const StatisticsQueryKey = "statistics-query-key";
 export const Statistics: FC<BoxProps> = (props) => {
-  const { version } = useDashboard();
+  const { version } = useDashboardPick("version");
   const { data: systemData } = useQuery({
     queryKey: StatisticsQueryKey,
     queryFn: () => fetch("/system"),

@@ -4,18 +4,17 @@ import traceback
 from app import app, logger, scheduler, xray
 from app.db import GetDB, crud
 from app.models.node import NodeStatus
+from app.xray import cores
 from config import JOB_CORE_HEALTH_CHECK_INTERVAL
 from xray_api import exc as xray_exc
 
 
 def core_health_check():
-    config = None
+    configs = cores.ConfigSet()
 
     # main core
     if not xray.core.started:
-        if not config:
-            config = xray.config.include_db_users()
-        xray.core.restart(config)
+        xray.core.restart(configs.get(cores.MAIN))
 
     # nodes' core
     for node_id, node in list(xray.nodes.items()):
@@ -24,18 +23,20 @@ def core_health_check():
                 assert node.started
                 node.api.get_sys_stats(timeout=2)
             except (ConnectionError, xray_exc.XrayError, AssertionError):
-                if not config:
-                    config = xray.config.include_db_users()
-                xray.operations.restart_node(node_id, config)
+                xray.operations.restart_node(node_id, configs)
 
         if not node.connected:
-            if not config:
-                config = xray.config.include_db_users()
-            xray.operations.connect_node(node_id, config)
+            xray.operations.connect_node(node_id, configs)
 
 
 @app.on_event("startup")
 def start_core():
+    try:
+        cores.reload()
+        xray.hosts.update()
+    except Exception:
+        traceback.print_exc()
+
     logger.info("Generating Xray core config")
 
     start_time = time.time()
@@ -57,8 +58,9 @@ def start_core():
         for dbnode in dbnodes:
             crud.update_node_status(db, dbnode, NodeStatus.connecting)
 
+    configs = cores.ConfigSet(config)
     for node_id in node_ids:
-        xray.operations.connect_node(node_id, config)
+        xray.operations.connect_node(node_id, configs)
 
     scheduler.add_job(core_health_check, 'interval',
                       seconds=JOB_CORE_HEALTH_CHECK_INTERVAL,

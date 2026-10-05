@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     Table,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -405,4 +406,19 @@ class NotificationReminder(Base):
     type = Column(Enum(ReminderType), nullable=False)
     threshold = Column(Integer, nullable=True)
     expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class VPNIdentity(Base):
+    """a user's AmneziaWG keys, OpenVPN certificate and tunnel address (app/vpn)"""
+    __tablename__ = "vpn_identities"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    idx = Column(Integer, nullable=False, unique=True)
+    awg_private_key = Column(String(64), nullable=False)
+    awg_public_key = Column(String(64), nullable=False)
+    awg_psk = Column(String(64), nullable=False)
+    ovpn_cn = Column(String(80), nullable=False, unique=True)
+    ovpn_cert = Column(Text, nullable=False)
+    ovpn_key = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

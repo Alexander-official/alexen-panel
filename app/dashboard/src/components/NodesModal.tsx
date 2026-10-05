@@ -16,7 +16,9 @@ import {
   Collapse,
   FormControl,
   FormLabel,
+  Select,
   HStack,
+  Input as ChakraInput,
   IconButton,
   Switch,
   Text,
@@ -63,7 +65,9 @@ import {
   generateErrorMessage,
   generateSuccessMessage,
 } from "utils/toastHandler";
-import { useDashboard } from "../contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "../contexts/DashboardContext";
+import { applyNodeVpn, NodeVpnToggles } from "./VpnPage";
+import { FetchCoresQueryKey, useCoreSettings, useCoresQuery } from "contexts/CoreSettingsContext";
 import { DeleteNodeModal } from "./DeleteNodeModal";
 import { DeleteIcon } from "./DeleteUserModal";
 import { ReloadIcon } from "./Filters";
@@ -96,6 +100,89 @@ const PlusIcon = chakra(HeroIconPlusIcon, {
     strokeWidth: 2,
   },
 });
+
+// which Xray core config (Core settings → cores) the node runs; a new core
+// (a copy of the main one) can be made right here for this node
+const NEW_CORE = "__new__";
+const CoreSelect: FC<{ form: UseFormReturn<NodeType> }> = ({ form }) => {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const { data: cores } = useCoresQuery();
+  const { createCore } = useCoreSettings();
+  const [naming, setNaming] = useState(false);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const value = form.watch("core_id") || "main";
+
+  const create = () => {
+    if (!name.trim()) return;
+    setBusy(true);
+    createCore(name.trim())
+      .then((c) => {
+        queryClient.invalidateQueries(FetchCoresQueryKey);
+        form.setValue("core_id", c.id, { shouldDirty: true });
+        setNaming(false);
+        setName("");
+      })
+      .catch((e: any) =>
+        toast({ title: e?.response?._data?.detail || "Error", status: "error", position: "top", duration: 4000 })
+      )
+      .finally(() => setBusy(false));
+  };
+
+  return (
+    <FormControl>
+      <FormLabel fontSize="sm" mb={1}>
+        {t("cores.nodeCore")}
+      </FormLabel>
+      <Select
+        size="sm"
+        borderRadius="md"
+        value={naming ? NEW_CORE : value}
+        onChange={(e) => {
+          if (e.target.value === NEW_CORE) setNaming(true);
+          else {
+            setNaming(false);
+            form.setValue("core_id", e.target.value, { shouldDirty: true });
+          }
+        }}
+      >
+        {(cores || [{ id: "main", name: "Main", inbounds: [] }]).map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.id === "main" ? t("cores.main") : c.name}
+            {c.inbounds.length ? ` · ${c.inbounds.length} inbound` : ""}
+          </option>
+        ))}
+        <option value={NEW_CORE}>+ {t("cores.newForNode")}</option>
+      </Select>
+      {naming && (
+        <HStack mt={2}>
+          <ChakraInput
+            size="sm"
+            borderRadius="md"
+            autoFocus
+            placeholder={t("cores.namePlaceholder")}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                create();
+              }
+            }}
+          />
+          <Button size="sm" colorScheme="primary" flexShrink={0} isLoading={busy} onClick={create}>
+            {t("cores.create")}
+          </Button>
+        </HStack>
+      )}
+      <Text fontSize="xs" color="gray.500" mt={1}>
+        {t(naming ? "cores.newForNodeHelp" : "cores.nodeCoreHelp")}
+      </Text>
+    </FormControl>
+  );
+};
 
 type AccordionInboundType = {
   toggleAccordion: () => void;
@@ -141,13 +228,20 @@ const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
   return (
     <AccordionItem
       border="1px solid"
-      _dark={{ borderColor: "gray.600" }}
-      _light={{ borderColor: "gray.200" }}
-      borderRadius="4px"
+      _dark={{ borderColor: "gray.600", bg: "gray.750" }}
+      _light={{ borderColor: "light-border" }}
+      borderRadius="lg"
+      bg="var(--app-surface)"
       p={1}
       w="full"
     >
-      <AccordionButton px={2} borderRadius="3px" onClick={toggleAccordion}>
+      <AccordionButton
+        px={2}
+        borderRadius="md"
+        _hover={{ bg: "var(--app-surface-2)", _dark: { bg: "gray.700" } }}
+        _expanded={{ bg: "transparent" }}
+        onClick={toggleAccordion}
+      >
         <HStack w="full" justifyContent="space-between" pr={2}>
           <Text
             as="span"
@@ -215,6 +309,7 @@ const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
           mutate={mutate}
           isLoading={isLoading}
           submitBtnText={t("nodes.editNode")}
+          vpnSlot={node.id ? <NodeVpnToggles nodeKey={String(node.id)} /> : null}
           btnLeftAdornment={
             <Tooltip label={t("delete")} placement="top">
               <IconButton
@@ -254,8 +349,14 @@ const AddNodeForm: FC<AddNodeFormType> = ({
       add_as_new_host: false,
     },
   });
+  const [vpnChoice, setVpnChoice] = useState({ awg: false, ovpn: false });
   const { isLoading, mutate } = useMutation(addNode, {
-    onSuccess: () => {
+    onSuccess: (created: any) => {
+      // the VPN choice needs the node's id: apply it once the node exists
+      if (created?.id && (vpnChoice.awg || vpnChoice.ovpn)) {
+        applyNodeVpn(String(created.id), vpnChoice).catch(() => {});
+        setVpnChoice({ awg: false, ovpn: false });
+      }
       generateSuccessMessage(
         t("nodes.addNodeSuccess", { name: form.getValues("name") }),
         toast
@@ -271,13 +372,20 @@ const AddNodeForm: FC<AddNodeFormType> = ({
   return (
     <AccordionItem
       border="1px solid"
-      _dark={{ borderColor: "gray.600" }}
-      _light={{ borderColor: "gray.200" }}
-      borderRadius="4px"
+      _dark={{ borderColor: "gray.600", bg: "gray.750" }}
+      _light={{ borderColor: "light-border" }}
+      borderRadius="lg"
+      bg="var(--app-surface)"
       p={1}
       w="full"
     >
-      <AccordionButton px={2} borderRadius="3px" onClick={toggleAccordion}>
+      <AccordionButton
+        px={2}
+        borderRadius="md"
+        _hover={{ bg: "var(--app-surface-2)", _dark: { bg: "gray.700" } }}
+        _expanded={{ bg: "transparent" }}
+        onClick={toggleAccordion}
+      >
         <Text
           as="span"
           fontWeight="medium"
@@ -301,6 +409,7 @@ const AddNodeForm: FC<AddNodeFormType> = ({
           submitBtnText={t("nodes.addNode")}
           btnProps={{ variant: "solid" }}
           addAsHost
+          vpnSlot={<NodeVpnToggles value={vpnChoice} onChange={setVpnChoice} />}
         />
       </AccordionPanel>
     </AccordionItem>
@@ -315,6 +424,7 @@ type NodeFormType = FC<{
   btnProps?: Partial<ButtonProps>;
   btnLeftAdornment?: ReactNode;
   addAsHost?: boolean;
+  vpnSlot?: ReactNode;
 }>;
 
 const NodeForm: NodeFormType = ({
@@ -325,6 +435,7 @@ const NodeForm: NodeFormType = ({
   btnProps = {},
   btnLeftAdornment,
   addAsHost = false,
+  vpnSlot,
 }) => {
   const { t } = useTranslation();
   const [showCertificate, setShowCertificate] = useState(false);
@@ -358,12 +469,16 @@ const NodeForm: NodeFormType = ({
     <form onSubmit={form.handleSubmit((v) => mutate(v))}>
       <VStack>
         {nodeSettings && nodeSettings.certificate && (
-          <Alert status="info" alignItems="start">
-            <AlertDescription
-              display="flex"
-              flexDirection="column"
-              overflow="hidden"
-            >
+          <Box
+            w="full"
+            p={3}
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="light-border"
+            bg="var(--app-surface-2)"
+            _dark={{ borderColor: "gray.600", bg: "gray.700" }}
+          >
+            <Box display="flex" flexDirection="column" overflow="hidden" fontSize="sm">
               <span>{t("nodes.connection-hint")}</span>
               <HStack justify="end" py={2}>
                 <Button
@@ -392,8 +507,7 @@ const NodeForm: NodeFormType = ({
                         : "nodes.show-certificate"
                     )}
                     onClick={setShowCertificate.bind(null, !showCertificate)}
-                    colorScheme="whiteAlpha"
-                    color="primary"
+                    variant="ghost"
                     size="xs"
                   >
                     {!showCertificate ? (
@@ -406,9 +520,9 @@ const NodeForm: NodeFormType = ({
               </HStack>
               <Collapse in={showCertificate} animateOpacity>
                 <Text
-                  bg="rgba(255,255,255,.5)"
+                  bg="var(--app-surface)"
                   _dark={{
-                    bg: "rgba(255,255,255,.2)",
+                    bg: "blackAlpha.300",
                   }}
                   rounded="md"
                   p="2"
@@ -424,8 +538,8 @@ const NodeForm: NodeFormType = ({
                   {nodeSettings.certificate}
                 </Text>
               </Collapse>
-            </AlertDescription>
-          </Alert>
+            </Box>
+          </Box>
         )}
 
         <HStack w="full">
@@ -512,6 +626,8 @@ const NodeForm: NodeFormType = ({
             />
           </Box>
         </HStack>
+        <CoreSelect form={form} />
+        {vpnSlot}
         {addAsHost && (
           <FormControl py={1}>
             <Checkbox {...form.register("add_as_new_host")}>
@@ -540,7 +656,7 @@ const NodeForm: NodeFormType = ({
 };
 
 export const NodesDialog: FC = () => {
-  const { isEditingNodes, onEditingNodes } = useDashboard();
+  const { isEditingNodes, onEditingNodes } = useDashboardPick("isEditingNodes", "onEditingNodes");
   const { t } = useTranslation();
   const [openAccordions, setOpenAccordions] = useState<any>({});
   const { data: nodes, isLoading } = useNodesQuery();

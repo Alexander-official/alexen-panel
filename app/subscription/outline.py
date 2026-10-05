@@ -18,12 +18,13 @@ class OutlineConfiguration:
     def make_outbound(
         self, remark: str, address: str, port: int, password: str, method: str
     ):
+        # Outline's access-key format only: newer clients reject unknown fields
+        # ("unknown field tag"), so the remark is not sent
         config = {
             "method": method,
             "password": password,
             "server": address,
             "server_port": port,
-            "tag": remark,
         }
         return config
 

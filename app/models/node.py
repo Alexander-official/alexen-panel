@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import ConfigDict, BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field, model_validator
 
 
 class NodeStatus(str, Enum):
@@ -26,6 +26,8 @@ class Node(BaseModel):
 
 class NodeCreate(Node):
     add_as_new_host: bool = True
+    # which Xray core config the node runs, see app/xray/cores.py
+    core_id: str = "main"
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "name": "DE node",
@@ -45,6 +47,7 @@ class NodeModify(Node):
     api_port: Optional[int] = Field(None, nullable=True)
     status: Optional[NodeStatus] = Field(None, nullable=True)
     usage_coefficient: Optional[float] = Field(None, nullable=True)
+    core_id: Optional[str] = Field(None, nullable=True)
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "name": "DE node",
@@ -62,7 +65,14 @@ class NodeResponse(Node):
     xray_version: Optional[str] = None
     status: NodeStatus
     message: Optional[str] = None
+    core_id: str = "main"
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def _fill_core(self):
+        from app.xray import cores
+        self.core_id = cores.core_of(self.id)
+        return self
 
 
 class NodeUsageResponse(BaseModel):

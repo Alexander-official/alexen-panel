@@ -15,6 +15,7 @@ import { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import { fetch } from "service/http";
+import { formatRate } from "./LiveTraffic";
 
 type OnlineIP = {
   ip: string;
@@ -24,6 +25,8 @@ type OnlineIP = {
   connected_seconds: number;
   provider: string | null;
   blocked: boolean;
+  protocol?: string | null;
+  rate?: number;
 };
 
 const KickIcon = chakra(XMarkIcon, { baseStyle: { w: 4, h: 4 } });
@@ -37,6 +40,9 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
     refetchInterval: 10000,
   });
   const ips = data?.ips ?? [];
+  const uniqueIps = new Set(ips.map((i) => i.ip)).size;
+  // how many connections share each IP (several protocols from one IP)
+  const perIp = ips.reduce<Record<string, number>>((m, i) => ({ ...m, [i.ip]: (m[i.ip] || 0) + 1 }), {});
   const kick = (ip: string) =>
     fetch(`/user/${username}/online-ips/${ip}`, { method: "DELETE" }).then(() =>
       refetch()
@@ -49,7 +55,7 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
   return (
     <VStack alignItems="flex-start" w="full" spacing={2}>
       <Text fontSize="sm" fontWeight="medium">
-        {t("online.connectedIps")} ({ips.length})
+        {t("online.connectedIps")} ({uniqueIps})
       </Text>
       {ips.length === 0 && (
         <Text fontSize="xs" color="gray.500">
@@ -58,7 +64,7 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
       )}
       {ips.map((ip) => (
         <Box
-          key={ip.ip}
+          key={`${ip.ip}-${ip.inbounds[0] || ""}`}
           w="full"
           borderWidth="1px"
           borderRadius="8px"
@@ -75,6 +81,13 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
                 <Badge colorScheme="red" fontSize="2xs">
                   {t("online.blocked")}
                 </Badge>
+              )}
+              {perIp[ip.ip] > 1 && (
+                <Tooltip label={t("online.sharedIp", { count: perIp[ip.ip] })}>
+                  <Badge colorScheme="orange" fontSize="2xs">
+                    ×{perIp[ip.ip]}
+                  </Badge>
+                </Tooltip>
               )}
             </HStack>
             <HStack>
@@ -116,6 +129,20 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
                   }s`
                 : ""}
             </Text>
+          )}
+          {(ip.protocol || (ip.rate ?? 0) >= 1) && (
+            <HStack mt={1} spacing={3} fontSize="xs">
+              {ip.protocol && (
+                <Text color="gray.500" textTransform="uppercase" letterSpacing="0.02em">
+                  {ip.protocol}
+                </Text>
+              )}
+              {(ip.rate ?? 0) >= 1 && (
+                <Text color="primary.500" fontWeight="medium">
+                  {formatRate(ip.rate!)}
+                </Text>
+              )}
+            </HStack>
           )}
           <Wrap mt={1} spacing={1}>
             {ip.nodes.map((node) => (

@@ -17,7 +17,7 @@ import {
 import { FC, useEffect, useRef, useState } from "react";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { Icon } from "./Icon";
-import { useDashboard } from "contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { useTranslation, Trans } from "react-i18next";
 
 export const ResetIcon = chakra(ArrowPathIcon, {
@@ -31,7 +31,7 @@ export type DeleteUserModalProps = {};
 
 export const ResetUserUsageModal: FC<DeleteUserModalProps> = () => {
   const [loading, setLoading] = useState(false);
-  const { resetUsageUser: user, resetDataUsage } = useDashboard();
+  const { resetUsageUser: user, resetDataUsage } = useDashboardPick("resetUsageUser", "resetDataUsage");
   const { t } = useTranslation();
   const toast = useToast();
   const onClose = () => {

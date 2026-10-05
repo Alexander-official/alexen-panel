@@ -40,7 +40,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { resetStrategy } from "constants/UserSettings";
-import { FilterUsageType, useDashboard } from "contexts/DashboardContext";
+import { FilterUsageType, useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import dayjs from "dayjs";
 import { FC, useEffect, useState } from "react";
 import { lazy, Suspense } from "react";
@@ -253,7 +253,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
     onEditingUser,
     createUser,
     onDeletingUser,
-  } = useDashboard();
+  } = useDashboardPick("editingUser", "isCreatingNewUser", "onCreateUser", "editUser", "fetchUserUsage", "fetchUserInboundUsage", "onEditingUser", "createUser", "onDeletingUser");
   const isEditing = !!editingUser;
   const isOpen = isCreatingNewUser || isEditing;
   const [loading, setLoading] = useState(false);

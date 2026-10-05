@@ -9,9 +9,11 @@ export type JSONEditorProps = {
   onChange: (value: string) => void;
   json: any;
   mode?: JSONEditorMode;
+  // the editor instance, e.g. to insert text at the cursor
+  onReady?: (editor: JSONEditor) => void;
 };
 export const JsonEditor = forwardRef<HTMLDivElement, JSONEditorProps>(
-  ({ json, onChange, mode = "code" }, ref) => {
+  ({ json, onChange, mode = "code", onReady }, ref) => {
     const { colorMode } = useColorMode();
     const options: JSONEditorOptions = {
       mode,
@@ -29,6 +31,7 @@ export const JsonEditor = forwardRef<HTMLDivElement, JSONEditorProps>(
         jsonEditorContainer.current!,
         options
       );
+      onReady?.(jsonEditorRef.current);
 
       return () => {
         if (jsonEditorRef.current) jsonEditorRef.current.destroy();

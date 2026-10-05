@@ -1,7 +1,7 @@
 import re
 from distutils.version import LooseVersion
 
-from fastapi import APIRouter, Depends, Header, Path, Request, Response
+from fastapi import HTTPException, APIRouter, Depends, Header, Path, Request, Response
 from fastapi.responses import HTMLResponse
 
 import time as _time
@@ -9,7 +9,9 @@ from app.db import Session, crud, get_db
 from app.routers.settings import get_subscription_settings
 from app.dependencies import get_validated_sub, validate_dates
 from app.models.user import SubscriptionUserResponse, UserResponse
+from app.subscription.json_sub import wants_json
 from app.subscription.share import encode_title, generate_subscription
+from app.subscription import webpage
 from app.templates import render_template
 from config import (
     HWID_LIMIT_REACHED_TEXT,
@@ -75,6 +77,8 @@ def build_sub_page(db: Session, user: UserResponse):
         headers["announce"] = directives["announce"]
     if directives.get("support-url"):
         headers["support-url"] = directives["support-url"]
+    if cfg.update_interval:
+        headers["profile-update-interval"] = str(cfg.update_interval)
     return prefix_lines, headers
 
 
@@ -103,6 +107,16 @@ def register_device(request: Request, db: Session, dbuser, user_agent: str) -> b
     )
 
 
+def _absolute_sub_url(request: Request, user: UserResponse) -> str:
+    """the user's subscription URL with scheme and host (without a URL prefix
+    in the config it is only a path: take the host the page was opened on)"""
+    url = user.subscription_url or ""
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    base = str(request.base_url).rstrip("/")
+    return base + (url if url.startswith("/") else "/" + url)
+
+
 def device_limit_response(response_headers: dict) -> Response:
     headers = {**response_headers, "announce": encode_title(HWID_LIMIT_REACHED_TEXT), "x-hwid-limit": "true"}
     return Response(content="", media_type="text/plain", headers=headers)
@@ -121,11 +135,18 @@ def user_subscription(
 
     accept_header = request.headers.get("Accept", "")
     if "text/html" in accept_header:
+        # the same links (order + external configs) the apps get
+        links = generate_subscription(user=user, config_format="v2ray", as_base64=False, reverse=False)
+        links = [l for l in links.splitlines() if l.strip()]
+        page = webpage.load(db)
+        # a custom SUBSCRIPTION_PAGE_TEMPLATE from .env still wins over the built-in page
+        if page.enabled and SUBSCRIPTION_PAGE_TEMPLATE == "subscription/index.html":
+            _, sub_headers = build_sub_page(db, user)
+            data = webpage.page_data(db, page, user, _absolute_sub_url(request, user), links, sub_headers)
+            return HTMLResponse(render_template("subscription/webpage.html", {"data": data}),
+                                headers={"cache-control": "no-store"})
         return HTMLResponse(
-            render_template(
-                SUBSCRIPTION_PAGE_TEMPLATE,
-                {"user": user}
-            )
+            render_template(SUBSCRIPTION_PAGE_TEMPLATE, {"user": user, "links": links})
         )
 
     crud.update_user_sub(db, dbuser, user_agent)
@@ -161,7 +182,7 @@ def user_subscription(
         conf = generate_subscription(user=user, config_format="outline", as_base64=False, reverse=False)
         return Response(content=conf, media_type="application/json", headers=response_headers)
 
-    elif (USE_CUSTOM_JSON_DEFAULT or USE_CUSTOM_JSON_FOR_V2RAYN) and re.match(r'^v2rayN/(\d+\.\d+)', user_agent):
+    elif wants_json('v2rayn', USE_CUSTOM_JSON_DEFAULT or USE_CUSTOM_JSON_FOR_V2RAYN) and re.match(r'^v2rayN/(\d+\.\d+)', user_agent):
         version_str = re.match(r'^v2rayN/(\d+\.\d+)', user_agent).group(1)
         if LooseVersion(version_str) >= LooseVersion("6.40"):
             conf = generate_subscription(user=user, config_format="v2ray-json", as_base64=False, reverse=False)
@@ -170,7 +191,7 @@ def user_subscription(
             conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False, prefix_lines=prefix_lines)
             return Response(content=conf, media_type="text/plain", headers=response_headers)
 
-    elif (USE_CUSTOM_JSON_DEFAULT or USE_CUSTOM_JSON_FOR_V2RAYNG) and re.match(r'^v2rayNG/(\d+\.\d+\.\d+)', user_agent):
+    elif wants_json('v2rayng', USE_CUSTOM_JSON_DEFAULT or USE_CUSTOM_JSON_FOR_V2RAYNG) and re.match(r'^v2rayNG/(\d+\.\d+\.\d+)', user_agent):
         version_str = re.match(r'^v2rayNG/(\d+\.\d+\.\d+)', user_agent).group(1)
         if LooseVersion(version_str) >= LooseVersion("1.8.29"):
             conf = generate_subscription(user=user, config_format="v2ray-json", as_base64=False, reverse=False)
@@ -183,14 +204,14 @@ def user_subscription(
             return Response(content=conf, media_type="text/plain", headers=response_headers)
 
     elif re.match(r'^[Ss]treisand', user_agent):
-        if USE_CUSTOM_JSON_DEFAULT or USE_CUSTOM_JSON_FOR_STREISAND:
+        if wants_json('streisand', USE_CUSTOM_JSON_DEFAULT or USE_CUSTOM_JSON_FOR_STREISAND):
             conf = generate_subscription(user=user, config_format="v2ray-json", as_base64=False, reverse=False)
             return Response(content=conf, media_type="application/json", headers=response_headers)
         else:
             conf = generate_subscription(user=user, config_format="v2ray", as_base64=True, reverse=False, prefix_lines=prefix_lines)
             return Response(content=conf, media_type="text/plain", headers=response_headers)
 
-    elif (USE_CUSTOM_JSON_DEFAULT or USE_CUSTOM_JSON_FOR_HAPP) and re.match(r'^Happ/(\d+\.\d+\.\d+)', user_agent):
+    elif wants_json('happ', USE_CUSTOM_JSON_DEFAULT or USE_CUSTOM_JSON_FOR_HAPP) and re.match(r'^Happ/(\d+\.\d+\.\d+)', user_agent):
         version_str = re.match(r'^Happ/(\d+\.\d+\.\d+)', user_agent).group(1)
         if LooseVersion(version_str) >= LooseVersion("1.63.1"):
             conf = generate_subscription(user=user, config_format="v2ray-json", as_base64=False, reverse=False)
@@ -229,14 +250,67 @@ def user_get_usage(
     return {"usages": usages, "username": dbuser.username}
 
 
-@router.get("/{token}/{client_type}")
-def user_subscription_with_client_type(
-    request: Request,
-    dbuser: UserResponse = Depends(get_validated_sub),
-    client_type: str = Path(..., regex="sing-box|clash-meta|clash|outline|v2ray|v2ray-json"),
+@router.get("/{token}/vpn/{key}/{filename}")
+def user_vpn_config(
+    key: str,
+    filename: str,
     db: Session = Depends(get_db),
+    dbuser: UserResponse = Depends(get_validated_sub),
+):
+    """the user's AmneziaWG (.conf) or OpenVPN (.ovpn) file for one server (app/vpn)"""
+    from app import vpn
+    if not vpn.allowed(dbuser):
+        raise HTTPException(status_code=403, detail="Subscription is not active")
+    s = vpn.load(db)
+    srv = s.servers.get(key)
+    names = vpn.server_keys(db)
+    if not srv or key not in names:
+        raise HTTPException(status_code=404, detail="Not Found")
+    base = re.sub(r"[^A-Za-z0-9_.-]+", "-", f"{dbuser.username}-{names[key]}").strip("-")
+    perms = vpn.permissions(db)
+    # amneziawg.conf is device 1; amneziawg-2.conf ... the user's other devices
+    m = re.match(r"^amneziawg(?:-(\d+))?\.conf$", filename)
+    slot = int(m.group(1)) - 1 if m and m.group(1) else 0
+    if m and srv.awg.enabled and vpn.may_use(dbuser, "awg", key, perms) and 0 <= slot < s.awg_devices:
+        body = vpn.awg_client_conf(db, s, key, dbuser, slot)
+        name = f"{base}.conf" if slot == 0 else f"{base}-{slot + 1}.conf"
+    elif filename.endswith(".ovpn") and srv.ovpn.enabled and vpn.may_use(dbuser, "ovpn", key, perms):
+        body, name = vpn.ovpn_client_conf(db, s, key, dbuser), f"{base}.ovpn"
+    else:
+        raise HTTPException(status_code=404, detail="Not Found")
+    return Response(content=body, media_type="application/octet-stream",
+                    headers={"content-disposition": f'attachment; filename="{name}"', "cache-control": "no-store"})
+
+
+@router.get("/{token}/{extra}")
+def user_subscription_extra(
+    request: Request,
+    extra: str,
+    db: Session = Depends(get_db),
+    dbuser: UserResponse = Depends(get_validated_sub),
     user_agent: str = Header(default="")
 ):
+    """/<token>/<client type> picks the format; anything else after the token (a
+    username or any text, see Domain settings) is the normal subscription"""
+    if extra in client_config:
+        return _client_type_subscription(request, dbuser, extra, db, user_agent)
+    return user_subscription(request, db, dbuser, user_agent)
+
+
+@router.get("/{token}/{extra}/{client_type}")
+def user_subscription_extra_client_type(
+    request: Request,
+    extra: str,
+    client_type: str = Path(..., pattern="^(sing-box|clash-meta|clash|outline|v2ray|v2ray-json)$"),
+    db: Session = Depends(get_db),
+    dbuser: UserResponse = Depends(get_validated_sub),
+    user_agent: str = Header(default="")
+):
+    """a link with a last part, plus a client type (e.g. Outline's /<token>/<name>/outline)"""
+    return _client_type_subscription(request, dbuser, client_type, db, user_agent)
+
+
+def _client_type_subscription(request: Request, dbuser, client_type: str, db: Session, user_agent: str):
     """Provides a subscription link based on the specified client type (e.g., Clash, V2Ray)."""
     user: UserResponse = UserResponse.model_validate(dbuser)
 

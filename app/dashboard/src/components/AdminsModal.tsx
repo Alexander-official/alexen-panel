@@ -23,7 +23,7 @@ import {
   ModalOverlay,
 } from "./PageSurface";
 import { PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { useDashboard } from "contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetch } from "service/http";
@@ -75,7 +75,7 @@ export const AdminsModal: FC = () => {
     queryKey: "host-group-names",
     queryFn: () => fetch("/groups").then((d: any) => d.groups.map((g: any) => g.name)),
   });
-  const { isManagingAdmins, onManagingAdmins } = useDashboard();
+  const { isManagingAdmins, onManagingAdmins } = useDashboardPick("isManagingAdmins", "onManagingAdmins");
   const { t } = useTranslation();
   const toast = useToast();
   const [admins, setAdmins] = useState<AdminItem[]>([]);

@@ -35,8 +35,10 @@ type GroupHost = {
   groups: string[];
   is_disabled: boolean;
 };
-type Group = { name: string; note: string; hosts: number[]; admins: string[] };
-type GroupsData = { groups: Group[]; hosts: GroupHost[] };
+type Group = { name: string; note: string; hosts: number[]; admins: string[]; vpn: string[] };
+// AmneziaWG / OpenVPN of a server (app/vpn): "awg:master", "ovpn:1"
+type GroupVPN = { id: string; kind: string; server: string; enabled: boolean; groups: string[] };
+type GroupsData = { groups: Group[]; hosts: GroupHost[]; vpn: GroupVPN[] };
 
 const KEY = "host-groups";
 const sm = { width: 16, height: 16 };
@@ -151,7 +153,7 @@ const HostOption: FC<{ host: GroupHost; selected: boolean; others: string[]; onT
   );
 };
 
-const GroupCard: FC<{ group: Group; hosts: GroupHost[] }> = ({ group, hosts }) => {
+const GroupCard: FC<{ group: Group; hosts: GroupHost[]; vpn: GroupVPN[] }> = ({ group, hosts, vpn }) => {
   const { t } = useTranslation();
   const toast = useToast();
   const qc = useQueryClient();
@@ -279,6 +281,38 @@ const GroupCard: FC<{ group: Group; hosts: GroupHost[] }> = ({ group, hosts }) =
             </Text>
           )}
         </VStack>
+      )}
+
+      {vpn.length > 0 && (
+        <Box mt={4}>
+          <Text fontSize="xs" fontWeight="semibold" color="gray.500" mb={1.5} letterSpacing="wide">
+            {t("groups.vpn")}
+          </Text>
+          <HStack spacing={1.5} flexWrap="wrap" rowGap={1.5}>
+            {vpn.map((v) => {
+              const on = (group.vpn || []).includes(v.id);
+              return (
+                <Tooltip key={v.id} label={v.enabled ? t("groups.vpnHint") : t("groups.vpnOff")} hasArrow openDelay={300}>
+                  <Button
+                    size="xs"
+                    h="26px"
+                    borderRadius="full"
+                    variant={on ? "solid" : "outline"}
+                    colorScheme="primary"
+                    opacity={v.enabled ? 1 : 0.55}
+                    isDisabled={busy}
+                    leftIcon={on ? <CheckIcon width={12} /> : undefined}
+                    onClick={() =>
+                      save({ vpn: on ? (group.vpn || []).filter((x) => x !== v.id) : [...(group.vpn || []), v.id] })
+                    }
+                  >
+                    {v.kind} · {v.server}
+                  </Button>
+                </Tooltip>
+              );
+            })}
+          </HStack>
+        </Box>
       )}
 
       <Collapse in={picking} animateOpacity unmountOnExit>
@@ -421,7 +455,7 @@ export const GroupsPage: FC = () => {
 
       <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={{ base: 3, md: 4 }} alignItems="start">
         {(data?.groups || []).map((g) => (
-          <GroupCard key={g.name} group={g} hosts={data!.hosts} />
+          <GroupCard key={g.name} group={g} hosts={data!.hosts} vpn={data!.vpn || []} />
         ))}
       </SimpleGrid>
     </VStack>

@@ -5,6 +5,7 @@ import { queryClient } from "utils/react-query";
 import { getUsersPerPageLimitSize } from "utils/userPreferenceStorage";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import { useShallow } from "zustand/react/shallow";
 
 export type FilterType = {
   search?: string;
@@ -245,3 +246,14 @@ export const useDashboard = create(
     },
   }))
 );
+
+/** subscribe to just these fields: the component re-renders only when one of
+ *  them changes, not on every store update (useDashboard() takes them all) */
+export const useDashboardPick = <K extends keyof ReturnType<typeof useDashboard.getState>>(...keys: K[]) =>
+  useDashboard(
+    useShallow((s) => {
+      const out = {} as Pick<ReturnType<typeof useDashboard.getState>, K>;
+      keys.forEach((k) => (out[k] = s[k]));
+      return out;
+    })
+  );

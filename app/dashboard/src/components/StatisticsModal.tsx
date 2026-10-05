@@ -16,7 +16,7 @@ import {
   ModalHeader,
   ModalOverlay,
 } from "./PageSurface";
-import { useDashboard } from "contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
@@ -51,7 +51,7 @@ const Stat: FC<{ label: string; value: string | number }> = ({ label, value }) =
 );
 
 export const StatisticsModal: FC = () => {
-  const { isShowingStats, onShowingStats } = useDashboard();
+  const { isShowingStats, onShowingStats } = useDashboardPick("isShowingStats", "onShowingStats");
   const { t } = useTranslation();
   const { data } = useQuery<Overview>({
     queryKey: "stats-overview",

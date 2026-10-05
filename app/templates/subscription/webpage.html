@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>{{ data.title | e }}</title>
+{#- Self-contained on purpose: no fonts, scripts or styles from other hosts, so the
+    page loads even where CDNs are blocked. Data comes from app/subscription/webpage.py -#}
+<style>
+:root {
+  --accent: {{ data.accent }};
+  --bg: #f4f5f8; --card: #ffffff; --soft: rgba(15, 23, 42, .045); --line: rgba(15, 23, 42, .08);
+  --text: #0f172a; --muted: #64748b; --shadow: 0 1px 2px rgba(16,24,40,.04), 0 6px 24px rgba(16,24,40,.06);
+  --ok: #16a34a; --warn: #d97706; --bad: #dc2626;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --clay-dark: rgba(15, 23, 42, .10); --clay-light: rgba(255, 255, 255, .95);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f17; --card: #131a26; --soft: rgba(255,255,255,.045); --line: rgba(255,255,255,.08);
+    --text: #e8edf5; --muted: #8b97ab; --shadow: 0 6px 28px rgba(0,0,0,.35);
+    --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+    --clay-dark: rgba(0, 0, 0, .45); --clay-light: rgba(255, 255, 255, .045);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f17; --card: #131a26; --soft: rgba(255,255,255,.045); --line: rgba(255,255,255,.08);
+  --text: #e8edf5; --muted: #8b97ab; --shadow: 0 6px 28px rgba(0,0,0,.35);
+  --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+  --clay-dark: rgba(0, 0, 0, .45); --clay-light: rgba(255, 255, 255, .045);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  -webkit-font-smoothing: antialiased; min-height: 100vh;
+  background-image: radial-gradient(60rem 30rem at 50% -10rem, var(--accent-soft), transparent 70%);
+  background-repeat: no-repeat;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px calc(32px + env(safe-area-inset-bottom)); }
+header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.logo { width: 40px; height: 40px; border-radius: 12px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 18px; flex-shrink: 0; overflow: hidden; }
+.logo img { width: 100%; height: 100%; object-fit: cover; }
+.brand { font-weight: 700; font-size: 18px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iconbtn { height: 36px; min-width: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: 13px; cursor: pointer; text-decoration: none; }
+select.iconbtn { padding: 0 8px; appearance: none; -webkit-appearance: none; }
+.card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); border: 1px solid var(--line); padding: 20px; margin-bottom: 14px; }
+.announce { background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 16px; padding: 12px 16px; margin-bottom: 14px; white-space: pre-line; }
+.user { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 22px; font-weight: 700; flex-shrink: 0; }
+.uname { font-size: 20px; font-weight: 700; word-break: break-all; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.active { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.pill.on_hold { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.pill.limited, .pill.expired, .pill.disabled { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.stat { background: var(--soft); border-radius: 14px; padding: 12px 14px; }
+.stat .k { font-size: 12px; color: var(--muted); }
+.stat .v { font-size: 17px; font-weight: 650; margin-top: 2px; }
+.stat .s { font-size: 12px; color: var(--muted); }
+.bar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: 8px; }
+.bar > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+h2 { font-size: 16px; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+h2 svg { color: var(--accent); }
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--soft); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; transition: background .15s, color .15s; }
+.tab.on { background: var(--accent); color: #fff; }
+.apps { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.app { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--text); font: inherit; font-size: 14px; font-weight: 550; cursor: pointer; }
+.app.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.app .star { font-size: 10px; padding: 1px 6px; border-radius: 6px; background: var(--accent); color: #fff; font-weight: 600; }
+.steps { display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: 30px 1fr; gap: 12px; }
+.step .n { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+.step .rail { display: flex; flex-direction: column; align-items: center; }
+.step .rail::after { content: ""; flex: 1; width: 2px; background: var(--line); margin: 4px 0; }
+.step:last-child .rail::after { display: none; }
+.step .body { padding-bottom: 18px; min-width: 0; }
+.step .t { font-weight: 650; margin: 4px 0 2px; }
+.step .d { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 12px; border: 0; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; background: var(--soft); color: var(--text); }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.big { height: 48px; padding: 0 22px; font-size: 15px; }
+.btn:active { transform: translateY(1px); }
+.field { display: flex; gap: 8px; align-items: center; background: var(--soft); border-radius: 12px; padding: 6px 6px 6px 12px; }
+.field code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.field .btn { height: 34px; padding: 0 12px; background: var(--card); }
+.sub { font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+.qr { display: none; margin-top: 12px; text-align: center; }
+.qr.show { display: block; }
+.qr svg { width: 220px; height: 220px; background: #fff; border-radius: 16px; padding: 8px; }
+.qr svg path { fill: #000; }
+details summary { cursor: pointer; font-weight: 650; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+details summary::-webkit-details-marker { display: none; }
+details summary .chev { transition: transform .2s; color: var(--muted); }
+details[open] summary .chev { transform: rotate(180deg); }
+.links { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 14px; }
+.links > div, .card, .step .body { min-width: 0; }
+.links .name { font-size: 12px; color: var(--muted); margin: 0 0 4px 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note { margin-top: 4px; padding: 10px 14px; border-radius: 12px; background: var(--soft); color: var(--muted); font-size: 13px; }
+.intro { white-space: pre-line; }
+.vpnrow { padding: 12px 0; border-top: 1px solid var(--line); }
+.vpnrow:first-of-type { border-top: 0; padding-top: 0; }
+.vpnrow .t { font-weight: 650; margin-bottom: 8px; }
+
+/* ---- liquid glass: translucent cards over soft color blobs ---- */
+body.style-glass {
+  background-image:
+    radial-gradient(40rem 26rem at 10% -5%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 70%),
+    radial-gradient(36rem 24rem at 100% 30%, color-mix(in srgb, #a855f7 22%, transparent), transparent 70%),
+    radial-gradient(40rem 28rem at 40% 110%, color-mix(in srgb, #06b6d4 20%, transparent), transparent 70%);
+  background-attachment: fixed;
+}
+.style-glass .card, .style-glass .iconbtn, .style-glass .announce {
+  background: color-mix(in srgb, var(--card) 58%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, .45);
+  box-shadow: 0 10px 34px rgba(31, 38, 135, .10), inset 0 1px 0 rgba(255, 255, 255, .7);
+}
+.style-glass .stat, .style-glass .field, .style-glass .tab:not(.on), .style-glass .btn:not(.primary) { background: color-mix(in srgb, var(--text) 6%, transparent); }
+
+/* ---- clay: puffy cards pressed out of the page ---- */
+body.style-clay { background-image: none; }
+.style-clay .card, .style-clay .announce {
+  border: 0; border-radius: 28px; background: var(--bg);
+  box-shadow: 10px 10px 24px var(--clay-dark), -10px -10px 24px var(--clay-light),
+    inset 2px 2px 3px var(--clay-light), inset -2px -2px 4px var(--clay-dark);
+}
+.style-clay .stat, .style-clay .field {
+  background: var(--bg); border-radius: 18px;
+  box-shadow: inset 4px 4px 10px var(--clay-dark), inset -4px -4px 10px var(--clay-light);
+}
+.style-clay .btn, .style-clay .tab, .style-clay .app, .style-clay .iconbtn {
+  border: 0; background: var(--bg);
+  box-shadow: 4px 4px 10px var(--clay-dark), -4px -4px 10px var(--clay-light);
+}
+.style-clay .btn.primary, .style-clay .tab.on { background: var(--accent); box-shadow: 4px 4px 12px color-mix(in srgb, var(--accent) 45%, transparent), inset 1px 1px 2px rgba(255,255,255,.35); }
+.style-clay .app.on { box-shadow: inset 3px 3px 8px var(--clay-dark), inset -3px -3px 8px var(--clay-light); }
+
+footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 18px; }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); opacity: 0; background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-size: 14px; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 10; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+[dir="rtl"] .step .body, [dir="rtl"] .field code { text-align: right; }
+@media (max-width: 480px) {
+  .card { padding: 16px; border-radius: 18px; } .btn.big { width: 100%; }
+  header { gap: 8px; } .iconbtn .label { display: none; } select.iconbtn { max-width: 96px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast"></div>
+<script id="data" type="application/json">{{ data | tojson }}</script>
+<script>
+(function () {
+  var D = JSON.parse(document.getElementById("data").textContent);
+
+  var L = D.texts;
+  var NAMES = { en: "English", ru: "Русский", tr: "Türkçe", fa: "فارسی", zh: "中文" };
+  var PLAT = { ios: "iOS", android: "Android", windows: "Windows", macos: "macOS", linux: "Linux", androidTV: "Android TV", appleTV: "Apple TV" };
+  var ICON = {
+    ios: '<path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.7zM14.1 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z" fill="currentColor" stroke="none"/>',
+    android: '<path d="M7 10v7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-7zM6 8.5a6 6 0 0 1 12 0zM4.5 10v5M19.5 10v5M9.5 18v3M14.5 18v3M8 3.5l1.5 2M16 3.5l-1.5 2"/>',
+    windows: '<path d="M3 5.5l7.5-1v7H3zM12.5 4.2L21 3v8.5h-8.5zM3 12.5h7.5v7L3 18.5zM12.5 12.5H21V21l-8.5-1.2z" fill="currentColor" stroke="none"/>',
+    macos: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+    linux: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/>',
+    androidTV: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/>',
+    appleTV: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/>',
+    phone: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
+    copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+    qr: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/>',
+    lock: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+    help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/>',
+    chev: '<path d="M6 9l6 6 6-6"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    download: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+    open: '<path d="M14 3h7v7M21 3l-9 9M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>'
+  };
+  var icon = function (n, s) {
+    return '<svg width="' + (s || 18) + '" height="' + (s || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON[n] || "") + "</svg>";
+  };
+  var esc = function (s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
+  };
+
+  var store = function (k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+  var pickLang = function () {
+    var saved = store("sub-lang");
+    if (saved && L[saved]) return saved;
+    if (D.lang && D.lang !== "auto" && L[D.lang]) return D.lang;
+    var nav = (navigator.languages || [navigator.language || "en"]);
+    for (var i = 0; i < nav.length; i++) { var c = String(nav[i]).slice(0, 2).toLowerCase(); if (L[c]) return c; }
+    return L.en ? "en" : Object.keys(L)[0];
+  };
+  var detect = function () {
+    var ua = navigator.userAgent || "";
+    if (/AppleTV|tvOS/i.test(ua)) return "appleTV";
+    if (/Android/i.test(ua) && /TV|AFT|BRAVIA|SMART-TV|SmartTV/i.test(ua)) return "androidTV";
+    if (/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+    if (/Android/i.test(ua)) return "android";
+    if (/Windows/i.test(ua)) return "windows";
+    if (/Macintosh|Mac OS X/i.test(ua)) return "macos";
+    if (/Linux|X11/i.test(ua)) return "linux";
+    return "android";
+  };
+
+  // per-language free text: this language, else the "any language" entry, else English
+  var local = function (m) { m = m || {}; return m[lang] || m[""] || m.en || ""; };
+  document.body.className = "style-" + (D.style || "soft");
+  if (D.css) { var st = document.createElement("style"); st.textContent = D.css; document.head.appendChild(st); }
+  var lang = pickLang();
+  var platforms = (D.order || Object.keys(D.platforms)).filter(function (p) { return D.platforms[p]; });
+  var plat = store("sub-plat");
+  if (!plat || !D.platforms[plat]) plat = detect();
+  if (!D.platforms[plat]) plat = platforms[0];
+  var appId = {};
+
+  var T = function (k, o) {
+    var v = (L[lang] && L[lang][k]) || (L.en && L.en[k]) || k;
+    if (o) Object.keys(o).forEach(function (x) { v = v.replace("{" + x + "}", o[x]); });
+    return v;
+  };
+  var bytes = function (b) {
+    var u = ["B", "KB", "MB", "GB", "TB", "PB"], i = 0;
+    b = b || 0;
+    while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+    return (i ? b.toFixed(b >= 100 ? 0 : b >= 10 ? 1 : 2) : b) + " " + u[i];
+  };
+  var date = function (ts) {
+    try { return new Date(ts * 1000).toLocaleDateString(lang === "fa" ? "fa-IR" : lang, { year: "numeric", month: "long", day: "numeric" }); }
+    catch (e) { return new Date(ts * 1000).toDateString(); }
+  };
+
+  var toastTimer;
+  var toast = function (msg) {
+    var el = document.getElementById("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.classList.remove("show"); }, 1600);
+  };
+  var copy = function (text) {
+    var done = function () { toast(T("copied")); };
+    if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done, function () { fallback(text); done(); }); }
+    else { fallback(text); done(); }
+  };
+  var fallback = function (text) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta);
+  };
+
+  var userCard = function () {
+    var u = D.user;
+    var stats = [];
+    var pct = u.limit ? Math.min(100, (u.used / u.limit) * 100) : 0;
+    stats.push('<div class="stat"><div class="k">' + T("traffic") + '</div><div class="v">' + bytes(u.used) +
+      (u.limit ? ' <span class="s">/ ' + bytes(u.limit) + "</span>" : "") + '</div><div class="s">' +
+      (u.limit ? bytes(Math.max(0, u.limit - u.used)) + " " + T("left") : T("unlimited")) + "</div>" +
+      (u.limit ? '<div class="bar"><i style="width:' + pct.toFixed(1) + "%" + (pct > 90 ? ";background:var(--bad)" : "") + '"></i></div>' : "") + "</div>");
+    var exp;
+    if (!u.expire) exp = '<div class="v">' + T("never") + "</div>";
+    else {
+      var d = Math.ceil((u.expire * 1000 - Date.now()) / 864e5);
+      exp = '<div class="v">' + esc(date(u.expire)) + '</div><div class="s"' + (d <= 3 ? ' style="color:var(' + (d < 0 ? "--bad" : "--warn") + ')"' : "") + ">" +
+        (d < 0 ? T("expired") : d === 0 ? T("today") : T("days", { n: d })) + "</div>";
+    }
+    stats.push('<div class="stat"><div class="k">' + T("expires") + "</div>" + exp + "</div>");
+    if (u.reset && u.reset !== "no_reset") stats.push('<div class="stat"><div class="k">' + T("resets") + '</div><div class="v">' + esc(T("reset." + u.reset)) + "</div></div>");
+    var st = T("status." + u.status);
+    return '<section class="card"><div class="user"><div class="avatar">' + esc((u.username || "?").charAt(0).toUpperCase()) +
+      '</div><div style="min-width:0"><div class="uname">' + esc(u.username) + '</div><span class="pill ' + esc(u.status) + '">' + esc(st) +
+      '</span></div></div><div class="stats">' + stats.join("") + "</div></section>";
+  };
+
+  var installCard = function () {
+    var apps = D.platforms[plat] || [];
+    var cur = apps.filter(function (a) { return a.id === appId[plat]; })[0] || apps.filter(function (a) { return a.featured; })[0] || apps[0];
+    var tabs = platforms.map(function (p) {
+      return '<button class="tab' + (p === plat ? " on" : "") + '" data-plat="' + p + '">' + icon(p, 16) + esc(PLAT[p] || p) + "</button>";
+    }).join("");
+    var chips = apps.map(function (a) {
+      return '<button class="app' + (cur && a.id === cur.id ? " on" : "") + '" data-app="' + esc(a.id) + '">' + esc(a.name) +
+        (a.featured ? '<span class="star">' + T("recommended") + "</span>" : "") + "</button>";
+    }).join("");
+    var body = "";
+    if (!cur) body = '<div class="d">' + T("noApps") + "</div>";
+    else {
+      var inst = cur.install.map(function (b) {
+        return '<a class="btn" href="' + esc(b.url) + '" target="_blank" rel="noopener">' + icon("download", 16) + esc(b.label) + "</a>";
+      }).join("");
+      var add = cur.add
+        ? '<div class="d">' + T("s2d") + '</div><div class="btns"><a class="btn primary big" href="' + esc(cur.add) + '">' + icon("open", 18) + esc(T("add", { app: cur.name })) +
+          '</a><button class="btn big" data-copy="sub">' + icon("copy", 16) + T("copyLink") + "</button></div>"
+        : '<div class="d">' + T("s2c") + '</div><div class="btns"><button class="btn primary big" data-copy="sub">' + icon("copy", 18) + T("copyLink") + "</button></div>";
+      body = '<div class="steps">' +
+        '<div class="step"><div class="rail"><div class="n">1</div></div><div class="body"><div class="t">' + T("s1") + '</div><div class="d">' + T("s1d") + '</div><div class="btns">' + inst + "</div></div></div>" +
+        '<div class="step"><div class="rail"><div class="n">2</div></div><div class="body"><div class="t">' + T("s2") + "</div>" + add + "</div></div>" +
+        '<div class="step"><div class="rail"><div class="n">3</div></div><div class="body"><div class="t">' + T("s3") + '</div><div class="d" style="margin:0">' + T("s3d") + "</div></div></div>" +
+        "</div>";
+      var note = local(cur.note);
+      if (note) body += '<div class="note">' + esc(note) + "</div>";
+    }
+    return '<section class="card"><h2>' + icon("phone") + T("install") + '</h2><div class="tabs" role="tablist" aria-label="' + T("platform") + '">' + tabs +
+      '</div><div class="apps">' + chips + "</div>" + body + "</section>";
+  };
+
+  // AmneziaWG / OpenVPN: a row per server with its files, and the apps for them
+  var vpnCard = function () {
+    if (!D.vpn || !D.vpn.length) return "";
+    var rows = D.vpn.map(function (v, i) {
+      var awg = v.awg || [], many = awg.length > 1, b = "", qrs = "";
+      awg.forEach(function (d) {
+        var id = "qr-vpn-" + i + "-" + d.n;
+        b += '<a class="btn primary" href="' + esc(d.url) + '">' + icon("download", 16) + T("vpnAwg") +
+          (many ? " · " + T("vpnDevice", { n: d.n }) : " · .conf") + "</a>" +
+          (d.qr ? '<button class="btn" data-qr="' + id + '" aria-label="' + T("qr") + '">' + icon("qr", 16) + "</button>" : "");
+        if (d.qr) qrs += '<div class="qr" id="' + id + '">' + (many ? '<div class="sub">' + T("vpnDevice", { n: d.n }) + "</div>" : "") + d.qr + "</div>";
+      });
+      if (v.ovpn) b += '<a class="btn" href="' + esc(v.ovpn) + '">' + icon("download", 16) + T("vpnOvpn") + " · .ovpn</a>";
+      return '<div class="vpnrow"><div class="t">' + esc(v.name) + '</div><div class="btns">' + b + "</div>" + qrs +
+        (many ? '<div class="sub">' + T("vpnDevicesHelp") + "</div>" : "") + "</div>";
+    }).join("");
+    var hasAwg = D.vpn.some(function (v) { return v.awg && v.awg.length; }), hasOvpn = D.vpn.some(function (v) { return v.ovpn; });
+    var apps = ((D.vpn_apps || {})[plat] || []).filter(function (a) { return (a.kind === "awg" && hasAwg) || (a.kind === "ovpn" && hasOvpn); });
+    var appsHtml = apps.length ? '<div class="sub">' + T("vpnApps") + '</div><div class="btns">' + apps.map(function (a) {
+      return a.install.map(function (x) {
+        return '<a class="btn" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + icon("download", 16) + esc(a.name) + (a.install.length > 1 ? " · " + esc(x.label) : "") + "</a>";
+      }).join("");
+    }).join("") + "</div>" : "";
+    return '<section class="card"><h2>' + icon("lock") + T("vpnTitle") + '</h2><div class="d" style="color:var(--muted);margin:-6px 0 14px">' + T("vpnHelp") + "</div>" + rows + appsHtml + "</section>";
+  };
+
+  var linkCard = function () {
+    var h = '<section class="card"><h2>' + icon("link") + T("link") + '</h2><div class="field"><code>' + esc(D.sub_url) +
+      '</code><button class="btn" data-copy="sub">' + icon("copy", 16) + T("copy") + "</button>" +
+      (D.qr ? '<button class="btn" data-qr="qr-sub" aria-label="' + T("qr") + '">' + icon("qr", 16) + "</button>" : "") + "</div>" +
+      (D.qr ? '<div class="qr" id="qr-sub">' + D.qr + "</div>" : "");
+    if (D.crypt) {
+      h += '<div class="sub">' + icon("lock", 14) + " " + T("crypt") + " · " + T("cryptd") + '</div><div class="field"><code>' + esc(D.crypt) +
+        '</code><button class="btn" data-copy="crypt">' + icon("copy", 16) + T("copy") + "</button>" +
+        (D.crypt_qr ? '<button class="btn" data-qr="qr-crypt" aria-label="' + T("qr") + '">' + icon("qr", 16) + "</button>" : "") + "</div>" +
+        (D.crypt_qr ? '<div class="qr" id="qr-crypt">' + D.crypt_qr + "</div>" : "");
+    }
+    return h + "</section>";
+  };
+
+  var linksCard = function () {
+    if (!D.links.length) return "";
+    var rows = D.links.map(function (l, i) {
+      var name = "";
+      try { var hash = l.split("#")[1]; if (hash) name = decodeURIComponent(hash); } catch (e) {}
+      return "<div>" + (name ? '<div class="name">' + esc(name) + "</div>" : "") + '<div class="field"><code>' + esc(l) +
+        '</code><button class="btn" data-copy-i="' + i + '">' + icon("copy", 16) + "</button></div></div>";
+    }).join("");
+    return '<section class="card"><details><summary><span>' + T("configs", { n: D.links.length }) + '</span><span class="chev">' + icon("chev") +
+      '</span></summary><div class="links">' + rows + "</div></details></section>";
+  };
+
+  var render = function () {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "fa" ? "rtl" : "ltr";
+    var langs = Object.keys(L).map(function (k) { return '<option value="' + k + '"' + (k === lang ? " selected" : "") + ">" + (NAMES[k] || k) + "</option>"; }).join("");
+    var parts = {
+      announce: function () { return D.announce ? '<div class="announce">' + esc(D.announce) + "</div>" : ""; },
+      intro: function () { var x = local(D.intro); return x ? '<section class="card intro">' + esc(x) + "</section>" : ""; },
+      user: userCard, install: installCard, vpn: vpnCard, link: linkCard, configs: linksCard
+    };
+    var body = (D.sections || []).filter(function (x) { return x.enabled && parts[x.id]; }).map(function (x) { return parts[x.id](); }).join("");
+    var foot = local(D.footer) || D.title;
+    var logo = D.logo ? '<img src="' + esc(D.logo) + '" alt="">' : esc((D.title || "S").charAt(0).toUpperCase());
+    document.getElementById("app").innerHTML =
+      '<header><div class="logo">' + logo + '</div><div class="brand">' + esc(D.title) + "</div>" +
+      (D.support ? '<a class="iconbtn" href="' + esc(D.support) + '" target="_blank" rel="noopener">' + icon("help", 16) + '<span class="label">' + T("support") + "</span></a>" : "") +
+      '<select class="iconbtn" id="lang" aria-label="Language">' + langs + "</select>" +
+      '<button class="iconbtn" id="theme" aria-label="Theme">' + icon("sun", 16) + "</button></header>" +
+      body + "<footer>" + esc(foot) + "</footer>";
+    // the picked platform may sit past the edge of the scrolling tab row
+    var on = document.querySelector(".tab.on");
+    if (on && on.parentNode.scrollWidth > on.parentNode.clientWidth)
+      on.parentNode.scrollLeft = on.offsetLeft - on.parentNode.offsetLeft - 16;
+  };
+
+  // theme: the admin's choice, then the visitor's toggle (remembered)
+  var theme = store("sub-theme") || D.theme || "auto";
+  var applyTheme = function () {
+    if (theme === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", theme);
+  };
+  applyTheme();
+
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-plat],[data-app],[data-copy],[data-copy-i],[data-qr],#theme");
+    if (!t) return;
+    if (t.dataset.plat) { plat = t.dataset.plat; store("sub-plat", plat); render(); }
+    else if (t.dataset.app) { appId[plat] = t.dataset.app; render(); }
+    else if (t.dataset.copy) copy(t.dataset.copy === "crypt" ? D.crypt : D.sub_url);
+    else if (t.dataset.copyI) copy(D.links[+t.dataset.copyI]);
+    else if (t.dataset.qr) document.getElementById(t.dataset.qr).classList.toggle("show");
+    else if (t.id === "theme") {
+      var dark = theme === "dark" || (theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+      theme = dark ? "light" : "dark"; store("sub-theme", theme); applyTheme();
+    }
+  });
+  document.addEventListener("change", function (e) {
+    if (e.target.id === "lang") { lang = e.target.value; store("sub-lang", lang); render(); }
+  });
+  render();
+})();
+</script>
+</body>
+</html>

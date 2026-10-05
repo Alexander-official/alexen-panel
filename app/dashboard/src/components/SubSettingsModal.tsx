@@ -5,6 +5,11 @@ import {
   FormControl,
   FormLabel,
   Input,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
   Text,
   Textarea,
   VStack,
@@ -19,10 +24,12 @@ import {
   ModalHeader,
   ModalOverlay,
 } from "./PageSurface";
-import { useDashboard } from "contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetch } from "service/http";
+import { emptyJsonSub, JsonSubSettings, JsonSubSettingsPanel } from "./JsonSubSettings";
+import { emptyDefaults, emptyWebPage, SubWebPagePanel, WebPageDefaults, WebPageSettings } from "./SubWebPage";
 
 type SubSettings = {
   default_template: string;
@@ -31,6 +38,7 @@ type SubSettings = {
   limited_template: string;
   near_expire_template: string;
   near_expire_days: number;
+  update_interval: number | null;
 };
 
 const PLACEHOLDER =
@@ -43,27 +51,38 @@ const empty: SubSettings = {
   limited_template: "",
   near_expire_template: "",
   near_expire_days: 1,
+  update_interval: null,
 };
 
 export const SubSettingsModal: FC = () => {
-  const { isEditingSubSettings, onEditingSubSettings } = useDashboard();
+  const { isEditingSubSettings, onEditingSubSettings } = useDashboardPick("isEditingSubSettings", "onEditingSubSettings");
   const { t } = useTranslation();
   const toast = useToast();
   const [form, setForm] = useState<SubSettings>(empty);
   const [loading, setLoading] = useState(false);
+  const [jsonSub, setJsonSub] = useState<JsonSubSettings>(emptyJsonSub);
+  const [webPage, setWebPage] = useState<WebPageSettings>(emptyWebPage);
+  const [defaults, setDefaults] = useState<WebPageDefaults>(emptyDefaults);
 
   useEffect(() => {
     if (isEditingSubSettings) {
       fetch("/sub-settings").then((d: SubSettings) => setForm({ ...empty, ...d }));
+      fetch("/json-sub-settings").then((d: JsonSubSettings) => setJsonSub({ ...emptyJsonSub, ...d }));
+      fetch("/sub-webpage").then((d: WebPageSettings) => setWebPage({ ...emptyWebPage, ...d }));
+      fetch("/sub-webpage/defaults").then((d: WebPageDefaults) => setDefaults(d));
     }
   }, [isEditingSubSettings]);
 
-  const set = (k: keyof SubSettings, v: string | number) =>
+  const set = (k: keyof SubSettings, v: string | number | null) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   const save = () => {
     setLoading(true);
-    fetch("/sub-settings", { method: "PUT", body: form })
+    Promise.all([
+      fetch("/sub-settings", { method: "PUT", body: form }),
+      fetch("/json-sub-settings", { method: "PUT", body: jsonSub }),
+      fetch("/sub-webpage", { method: "PUT", body: webPage }),
+    ])
       .then(() => {
         toast({ status: "success", title: t("admins.saved"), duration: 2000 });
         onEditingSubSettings(false);
@@ -109,7 +128,30 @@ export const SubSettingsModal: FC = () => {
         </ModalHeader>
         <ModalCloseButton mt={3} />
         <ModalBody>
+          <Tabs size="sm" variant="soft-rounded" colorScheme="primary" isLazy>
+            <TabList mb={4} gap={1} flexWrap="wrap">
+              <Tab>{t("webpage.tab")}</Tab>
+              <Tab>{t("jsonSub.tabPage")}</Tab>
+              <Tab>JSON</Tab>
+            </TabList>
+            <TabPanels>
+            <TabPanel p={0}>
+              <SubWebPagePanel value={webPage} defaults={defaults} onChange={setWebPage} />
+            </TabPanel>
+            <TabPanel p={0}>
           <VStack align="stretch" spacing={4}>
+            <FormControl>
+              <FormLabel fontSize="sm" mb={1}>{t("sub.updateInterval")}</FormLabel>
+              <Input
+                size="sm"
+                type="number"
+                maxW="120px"
+                placeholder="12"
+                value={form.update_interval ?? ""}
+                onChange={(e) => set("update_interval", e.target.value ? parseInt(e.target.value) || null : null)}
+              />
+              <Text fontSize="xs" color="gray.500" mt={1}>{t("sub.updateIntervalHelp")}</Text>
+            </FormControl>
             <FormControl>
               <FormLabel fontSize="sm" mb={1}>{t("sub.default")}</FormLabel>
               <Textarea
@@ -172,6 +214,12 @@ export const SubSettingsModal: FC = () => {
               />
             </FormControl>
           </VStack>
+            </TabPanel>
+            <TabPanel p={0}>
+              <JsonSubSettingsPanel value={jsonSub} onChange={setJsonSub} />
+            </TabPanel>
+            </TabPanels>
+          </Tabs>
         </ModalBody>
         <ModalFooter>
           <Button variant="ghost" mr={3} onClick={() => onEditingSubSettings(false)}>

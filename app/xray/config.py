@@ -68,6 +68,8 @@ class XRayConfig(dict):
         self.inbounds_by_tag = {}
         self._fallbacks_inbound = self.get_inbound(XRAY_FALLBACKS_INBOUND_TAG)
         self._resolve_inbounds()
+        # this config's own inbounds, before attach_extra() merges other cores' in
+        self.own_inbounds_by_tag = dict(self.inbounds_by_tag)
 
         self._apply_api()
         self._apply_ip_limit_outbound()
@@ -365,6 +367,29 @@ class XRayConfig(dict):
             except KeyError:
                 self.inbounds_by_protocol[inbound['protocol']] = [settings]
 
+    def attach_extra(self, configs):
+        """Merge inbounds of other cores (see app/xray/cores.py) into the inbound maps
+        used for users, hosts and subscriptions. The config itself is unchanged, so
+        include_db_users() still only fills this core's own inbounds."""
+        self.inbounds = list(self.own_inbounds_by_tag.values())
+        self.inbounds_by_tag = dict(self.own_inbounds_by_tag)
+        self.inbounds_by_protocol = {}
+        for settings in self.inbounds:
+            self.inbounds_by_protocol.setdefault(settings['protocol'], []).append(settings)
+
+        for config in configs:
+            for tag, settings in config.own_inbounds_by_tag.items():
+                existing = self.inbounds_by_tag.get(tag)
+                if existing:
+                    if existing['protocol'] != settings['protocol']:
+                        from app import logger
+                        logger.warning(f"Inbound \"{tag}\" of an extra core skipped:"
+                                       f" the tag is already {existing['protocol']}")
+                    continue
+                self.inbounds.append(settings)
+                self.inbounds_by_tag[tag] = settings
+                self.inbounds_by_protocol.setdefault(settings['protocol'], []).append(settings)
+
     def get_inbound(self, tag) -> dict:
         for inbound in self['inbounds']:
             if inbound['tag'] == tag:
@@ -423,6 +448,9 @@ class XRayConfig(dict):
                     continue
 
                 for inbound in inbounds:
+                    if inbound['tag'] not in self.own_inbounds_by_tag:
+                        continue  # belongs to another core
+                    inbound = self.own_inbounds_by_tag[inbound['tag']]
                     clients = config.get_inbound(inbound['tag'])['settings']['clients']
 
                     for row in rows:

@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Insert
 
 from app import scheduler, xray
+from app.xray import traffic
 from app.db import GetDB
+from app import logger
 from app.db.models import Admin, NodeUsage, NodeUserUsage, System, User, UserInboundUsage
 from config import (
     DISABLE_RECORDING_NODE_USAGE,
@@ -122,7 +124,7 @@ def get_users_stats(api: XRayAPI):
                               for (uid, tag), value in inbound_params.items())
         return params, inbound_params
     except xray_exc.XrayError:
-        return [], []
+        return None
 
 
 def record_user_inbound_stats(params: list):
@@ -170,6 +172,23 @@ def record_user_usages():
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {node_id: executor.submit(get_users_stats, api) for node_id, api in api_instances.items()}
     results = {node_id: future.result() for node_id, future in futures.items()}
+    # live speeds; cores that didn't answer are left out rather than counted as idle
+    answered = [node_id for node_id, result in results.items() if result is not None]
+    results = {node_id: result or ([], []) for node_id, result in results.items()}
+    # AmneziaWG / OpenVPN traffic (app/vpn) counts like any inbound of that server
+    try:
+        from app import vpn
+        for node_id, (user_params, inbound_params) in vpn.collect_usage().items():
+            got = results.setdefault(node_id, ([], []))
+            results[node_id] = (list(got[0]) + user_params, list(got[1]) + inbound_params)
+            if node_id not in answered:
+                answered.append(node_id)
+    except Exception as e:
+        logger.warning(f"VPN usage: {e}")
+    try:
+        traffic.record({node_id: result[1] for node_id, result in results.items()}, answered)
+    except Exception:
+        pass
     api_params = {node_id: result[0] for node_id, result in results.items()}
 
     inbounds_usage = defaultdict(int)
@@ -225,7 +244,7 @@ def record_user_usages():
         return
 
     for node_id, params in api_params.items():
-        record_user_stats(params, node_id, usage_coefficient[node_id])
+        record_user_stats(params, node_id, usage_coefficient.get(node_id, 1))
 
 
 def record_node_usages():

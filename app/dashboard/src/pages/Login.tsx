@@ -32,9 +32,10 @@ const schema = z.object({
 
 export const LogoIcon = chakra(Logo, {
   baseStyle: {
-    strokeWidth: "10px",
-    w: 12,
-    h: 12,
+    w: 14,
+    h: 14,
+    borderRadius: "18px",
+    boxShadow: "0 10px 30px color-mix(in srgb, var(--chakra-colors-primary-500) 40%, transparent)",
   },
 });
 
@@ -83,62 +84,66 @@ export const Login: FC = () => {
       .finally(setLoading.bind(null, false));
   };
   return (
-    <VStack justifyContent="space-between" minH="100vh" p="6" w="full">
-      <Box w="full">
-        <HStack justifyContent="end" w="full">
-          <Language />
-        </HStack>
-        <HStack w="full" justifyContent="center" alignItems="center">
-          <Box w="full" maxW="340px" mt="6">
-            <VStack alignItems="center" w="full">
-              <LogoIcon />
-              <Text fontSize="2xl" fontWeight="semibold">
-                {t("login.loginYourAccount")}
-              </Text>
-              <Text color="gray.600" _dark={{ color: "gray.400" }}>
-                {t("login.welcomeBack")}
-              </Text>
-            </VStack>
-            <Box w="full" maxW="300px" m="auto" pt="4">
-              <form onSubmit={handleSubmit(login)}>
-                <VStack mt={4} rowGap={2}>
-                  <FormControl>
-                    <Input
-                      w="full"
-                      placeholder={t("username")}
-                      {...register("username")}
-                      error={t(errors?.username?.message as string)}
-                    />
-                  </FormControl>
-                  <FormControl>
-                    <Input
-                      w="full"
-                      type="password"
-                      placeholder={t("password")}
-                      {...register("password")}
-                      error={t(errors?.password?.message as string)}
-                    />
-                  </FormControl>
-                  {error && (
-                    <Alert status="error" rounded="md">
-                      <AlertIcon />
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-                  <Button
-                    isLoading={loading}
-                    type="submit"
-                    w="full"
-                    colorScheme="primary"
-                  >
-                    {<LoginIcon marginRight={1} />}
-                    {t("login")}
-                  </Button>
-                </VStack>
-              </form>
-            </Box>
-          </Box>
-        </HStack>
+    <VStack justifyContent="space-between" minH="100dvh" p={{ base: 4, md: 6 }} w="full" className="alexen-login">
+      <HStack justifyContent="end" w="full">
+        <Language />
+      </HStack>
+      <Box
+        className="chakra-card alexen-login-card"
+        w="full"
+        maxW="400px"
+        p={{ base: 6, md: 8 }}
+        borderRadius="28px"
+        bg="var(--app-surface)"
+        borderWidth="1px"
+        borderColor="blackAlpha.50"
+        boxShadow="0 24px 64px rgba(16,24,40,.10)"
+        _dark={{ bg: "gray.750", borderColor: "var(--alexen-line)", boxShadow: "0 24px 64px rgba(0,0,0,.45)" }}
+      >
+        <VStack spacing={2} mb={6}>
+          <LogoIcon />
+          <Text fontSize="2xl" fontWeight="bold" letterSpacing="-0.02em" pt={2}>
+            {t("login.loginYourAccount")}
+          </Text>
+          <Text color="gray.500" fontSize="sm" textAlign="center">
+            {t("login.welcomeBack")}
+          </Text>
+        </VStack>
+        <form onSubmit={handleSubmit(login)}>
+          <VStack spacing={3}>
+            <FormControl>
+              <Input
+                w="full"
+                size="lg"
+                placeholder={t("username")}
+                autoComplete="username"
+                {...register("username")}
+                error={t(errors?.username?.message as string)}
+              />
+            </FormControl>
+            <FormControl>
+              <Input
+                w="full"
+                size="lg"
+                type="password"
+                placeholder={t("password")}
+                autoComplete="current-password"
+                {...register("password")}
+                error={t(errors?.password?.message as string)}
+              />
+            </FormControl>
+            {error && (
+              <Alert status="error" borderRadius="12px">
+                <AlertIcon />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <Button isLoading={loading} type="submit" w="full" size="lg" colorScheme="primary" mt={1}>
+              <LoginIcon marginRight={2} />
+              {t("login")}
+            </Button>
+          </VStack>
+        </form>
       </Box>
       <Footer />
     </VStack>

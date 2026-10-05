@@ -30,6 +30,8 @@ import {
   CpuChipIcon,
   DocumentTextIcon,
   GlobeAltIcon,
+  LinkIcon,
+  LockClosedIcon,
   ListBulletIcon,
   MoonIcon,
   RectangleGroupIcon,
@@ -38,6 +40,7 @@ import {
   Square3Stack3DIcon,
   SunIcon,
   UsersIcon,
+  ArrowsRightLeftIcon,
 } from "@heroicons/react/24/outline";
 import { BRAND_NAME } from "constants/Project";
 import { useDashboard } from "contexts/DashboardContext";
@@ -170,6 +173,8 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
               { title: t("header.nodeSettings"), path: "nodes", icon: ic(Square3Stack3DIcon) },
               { title: t("header.nodesUsage"), path: "nodes-usage", icon: ic(ChartBarIcon) },
               { title: t("sidebar.coreSettings"), path: "core", icon: ic(CpuChipIcon) },
+              { title: t("autoChange.title"), path: "auto-change", icon: ic(ArrowsRightLeftIcon) },
+              { title: t("vpn.title"), path: "vpn", icon: ic(LockClosedIcon) },
             ],
           },
           {
@@ -178,6 +183,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
             icon: ic(Cog6ToothIcon),
             items: [
               { title: t("header.subSettings"), path: "sub", icon: ic(DocumentTextIcon) },
+              { title: t("domain.title"), path: "domain", icon: ic(LinkIcon) },
               { title: t("external.title"), path: "external", icon: ic(GlobeAltIcon) },
               {
                 title: t("resetAllUsage"),

@@ -37,13 +37,20 @@ import {
 import { ReactComponent as AddFileIcon } from "assets/add_file.svg";
 import classNames from "classnames";
 import { resetStrategy, statusColors } from "constants/UserSettings";
-import { useDashboard } from "contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { t } from "i18next";
 import { FC, Fragment, useEffect, useState } from "react";
 import CopyToClipboard from "react-copy-to-clipboard";
 import { useTranslation } from "react-i18next";
 import { User } from "types/User";
 import { formatBytes } from "utils/formatByte";
+import {
+  DevicePhoneMobileIcon,
+  GlobeAltIcon,
+  SignalIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
+import { IconText, UserLiveTag } from "./LiveTraffic";
 import { OnlineBadge } from "./OnlineBadge";
 import { OnlineStatus } from "./OnlineStatus";
 import { Pagination } from "./Pagination";
@@ -64,7 +71,16 @@ export const useOnlineProviders = () =>
     refetchInterval: 10000,
   });
 
-const ProviderTag: FC<{ names?: string[] }> = ({ names: all }) => {
+// subscribes by itself (with a per-user select), so new provider data
+// re-renders only the rows it changed, not the whole table
+const ProviderTag: FC<{ username: string }> = ({ username }) => {
+  const { data: all } = useQuery<OnlineProviders, unknown, string[] | undefined>({
+    queryKey: "online-providers",
+    queryFn: () => apiFetch("/online/providers"),
+    refetchInterval: 10000,
+    select: (d) => d.users?.[username],
+    notifyOnChangeProps: ["data"],
+  });
   const names = (all || []).filter((n) => n !== "Unknown");
   if (names.length === 0) return null;
   const label = names[0] + (names.length > 1 ? ` +${names.length - 1}` : "");
@@ -76,7 +92,7 @@ const ProviderTag: FC<{ names?: string[] }> = ({ names: all }) => {
       maxW="220px"
       title={names.join("\n")}
     >
-      🌐 {label}
+      <IconText icon={GlobeAltIcon}>{label}</IconText>
     </Text>
   );
 };
@@ -219,15 +235,13 @@ export const Sort: FC<SortType> = ({ sort, column }) => {
 };
 type UsersTableProps = {} & TableProps;
 export const UsersTable: FC<UsersTableProps> = (props) => {
-  const { data: providerData } = useOnlineProviders();
-  const providersOf = (username: string) => providerData?.users?.[username];
   const {
     filters,
     users: { users },
     users: totalUsers,
     onEditingUser,
     onFilterChange,
-  } = useDashboard();
+  } = useDashboardPick("filters", "users", "onEditingUser", "onFilterChange");
 
   const { t } = useTranslation();
   const { userData } = useGetUser();
@@ -389,18 +403,21 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                         </div>
                         <HStack pl="20px" spacing={2} mt="1px" flexWrap="wrap" rowGap={0}>
                           {isSudo && user.admin?.username && (
-                            <Text fontSize="xs" color="gray.500" isTruncated>
-                              👤 {user.admin.username}
+                            <Text as="div" fontSize="xs" color="gray.500">
+                              <IconText icon={UserIcon}>{user.admin.username}</IconText>
                             </Text>
                           )}
-                          <Text fontSize="xs" color="gray.500">
-                            📶 {user.online_ip_count ?? 0}
+                          <Text as="div" fontSize="xs" color="gray.500">
+                            <IconText icon={SignalIcon}>{user.online_ip_count ?? 0}</IconText>
                           </Text>
-                          <Text fontSize="xs" color="gray.500">
-                            📱 {user.hwid_count ?? 0}
-                            {user.hwid_limit ? `/${user.hwid_limit}` : ""}
+                          <Text as="div" fontSize="xs" color="gray.500">
+                            <IconText icon={DevicePhoneMobileIcon}>
+                              {user.hwid_count ?? 0}
+                              {user.hwid_limit ? `/${user.hwid_limit}` : ""}
+                            </IconText>
                           </Text>
-                          <ProviderTag names={providersOf(user.username)} />
+                          <ProviderTag username={user.username} />
+                          <UserLiveTag username={user.username} />
                         </HStack>
                       </Td>
                       <Td borderBottom={0} minW="50px" pl={0} pr={0}>
@@ -641,22 +658,29 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                           <OnlineStatus lastOnline={user.online_at} />
                         </div>
                         {isSudo && user.admin?.username && (
-                          <Text fontSize="xs" color="gray.500" pl="20px" isTruncated>
-                            👤 {user.admin.username}
+                          <Text as="div" fontSize="xs" color="gray.500" pl="20px">
+                            <IconText icon={UserIcon}>{user.admin.username}</IconText>
                           </Text>
                         )}
                       </Box>
-                      <ProviderTag names={providersOf(user.username)} />
+                      <VStack align="flex-end" spacing={0} minW={0}>
+                        <ProviderTag username={user.username} />
+                        <UserLiveTag username={user.username} />
+                      </VStack>
                     </HStack>
                   </Td>
                   <Td width="90px" minW="80px">
-                    <Text fontSize="sm">
-                      📱 {user.hwid_count ?? 0}
-                      {user.hwid_limit ? `/${user.hwid_limit}` : ""}
+                    <Text as="div" fontSize="sm">
+                      <IconText icon={DevicePhoneMobileIcon}>
+                        {user.hwid_count ?? 0}
+                        {user.hwid_limit ? `/${user.hwid_limit}` : ""}
+                      </IconText>
                     </Text>
                   </Td>
                   <Td width="90px" minW="80px">
-                    <Text fontSize="sm">📶 {user.online_ip_count ?? 0}</Text>
+                    <Text as="div" fontSize="sm">
+                      <IconText icon={SignalIcon}>{user.online_ip_count ?? 0}</IconText>
+                    </Text>
                   </Td>
                   <Td width="170px" minW="150px">
                     <StatusBadge
@@ -698,7 +722,7 @@ type ActionButtonsProps = {
 };
 
 const ActionButtons: FC<ActionButtonsProps> = ({ user }) => {
-  const { setQRCode, setSubLink } = useDashboard();
+  const { setQRCode, setSubLink } = useDashboardPick("setQRCode", "setSubLink");
 
   const proxyLinks = user.links.join("\r\n");
 
@@ -825,7 +849,7 @@ type EmptySectionProps = {
 };
 
 const EmptySection: FC<EmptySectionProps> = ({ isFiltered }) => {
-  const { onCreateUser } = useDashboard();
+  const { onCreateUser } = useDashboardPick("onCreateUser");
   return (
     <Box
       padding="5"

@@ -11,7 +11,7 @@ import {
   ArrowLongLeftIcon,
   ArrowLongRightIcon,
 } from "@heroicons/react/24/outline";
-import { useDashboard } from "contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { ChangeEvent, FC } from "react";
 import { useTranslation } from "react-i18next";
 import { setUsersPerPageLimitSize } from "utils/userPreferenceStorage";
@@ -80,7 +80,7 @@ export const Pagination: FC = () => {
     filters,
     onFilterChange,
     users: { total },
-  } = useDashboard();
+  } = useDashboardPick("filters", "onFilterChange", "users");
   const { limit: perPage, offset } = filters;
 
   const page = (offset || 0) / (perPage || 1);

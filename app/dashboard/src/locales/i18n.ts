@@ -40,6 +40,7 @@ i18n
                     import.meta.env.BASE_URL,
                     `statics/locales/{{lng}}.json`,
                 ]),
+                queryStringParams: { v: __BUILD_ID__ },
             },
         },
         function (err, t) {

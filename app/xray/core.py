@@ -38,14 +38,29 @@ class XRayCore:
         if m:
             return m.groups()[0]
 
+    def test_config(self, config: XRayConfig):
+        """Raise ValueError with Xray's own message when it would refuse to start with this config"""
+        cmd = [self.executable_path, "run", "-test", "-config", "stdin:"]
+        try:
+            result = subprocess.run(cmd, input=config.to_json(), env=self._env, text=True,
+                                    capture_output=True, timeout=30)
+        except subprocess.TimeoutExpired:
+            return
+        if result.returncode != 0:
+            output = (result.stdout + result.stderr).strip().splitlines()
+            message = next((line for line in reversed(output) if line.strip()), "invalid config")
+            raise ValueError(re.sub(r"^.*?Failed to start: ", "", message))
+
     def get_x25519(self, private_key: str = None):
         cmd = [self.executable_path, "x25519"]
         if private_key:
             cmd.extend(['-i', private_key])
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8')
-        m = re.match(r'Private key: (.+)\nPublic key: (.+)', output)
-        if m:
-            private, public = m.groups()
+        # "Private key: / Public key:" before Xray 25.8, "PrivateKey: / Password (PublicKey):" after
+        private = re.search(r'Private ?key: *(\S+)', output, re.I)
+        public = re.search(r'Public ?key\)?: *(\S+)', output, re.I)
+        if private and public:
+            private, public = private.group(1), public.group(1)
             return {
                 "private_key": private,
                 "public_key": public

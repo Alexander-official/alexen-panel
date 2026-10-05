@@ -334,21 +334,93 @@ const ConfigForm: FC<{ value: ExternalConfig; groups: string[]; onChange: (v: Ex
           <Text fontSize="sm" mb={1.5}>
             {t("external.refresh")}
           </Text>
-          <HStack spacing={1.5} flexWrap="wrap" rowGap={1.5}>
-            {[15, 30, 60, 180, 360, 720, 1440].map((m) => (
-              <Button
-                key={m}
-                size="xs"
-                borderRadius="full"
-                colorScheme="primary"
-                variant={value.refresh_minutes === m ? "solid" : "outline"}
-                onClick={() => set({ refresh_minutes: m })}
-              >
-                {m < 60 ? t("external.minutes", { count: m }) : t("external.hours", { count: m / 60 })}
-              </Button>
-            ))}
-          </HStack>
+          <RefreshInterval value={value.refresh_minutes} onChange={(m) => set({ refresh_minutes: m })} />
         </Box>
+      )}
+    </VStack>
+  );
+};
+
+const REFRESH_PRESETS = [15, 30, 60, 180, 360, 720, 1440];
+const REFRESH_UNITS = [
+  { key: "minutes", factor: 1 },
+  { key: "hours", factor: 60 },
+  { key: "days", factor: 1440 },
+];
+const MAX_REFRESH_MINUTES = 43200;
+
+// quick buttons for the common intervals, plus a free "every N minutes/hours/days" input
+const RefreshInterval: FC<{ value: number; onChange: (minutes: number) => void }> = ({ value, onChange }) => {
+  const { t } = useTranslation();
+  const bestUnit = (m: number) => [...REFRESH_UNITS].reverse().find((u) => m % u.factor === 0) || REFRESH_UNITS[0];
+  const [unit, setUnit] = useState(() => bestUnit(value || 60));
+  const [amount, setAmount] = useState(() => String((value || 60) / bestUnit(value || 60).factor));
+  const [custom, setCustom] = useState(() => !REFRESH_PRESETS.includes(value));
+
+  // keep the input in sync when the value changes from outside (preset click, form reset)
+  useEffect(() => {
+    if (Math.round(Number(amount) * unit.factor) === value) return;
+    const u = bestUnit(value || 60);
+    setUnit(u);
+    setAmount(String((value || 60) / u.factor));
+  }, [value]);
+
+  const apply = (raw: string, u = unit) => {
+    setAmount(raw);
+    const n = Math.round(Number(raw) * u.factor);
+    if (Number.isFinite(n) && n >= 1) onChange(Math.min(n, MAX_REFRESH_MINUTES));
+  };
+
+  return (
+    <VStack align="stretch" spacing={2}>
+      <HStack spacing={1.5} flexWrap="wrap" rowGap={1.5}>
+        {REFRESH_PRESETS.map((m) => (
+          <Button
+            key={m}
+            size="xs"
+            borderRadius="full"
+            colorScheme="primary"
+            variant={!custom && value === m ? "solid" : "outline"}
+            onClick={() => {
+              setCustom(false);
+              onChange(m);
+            }}
+          >
+            {m < 60 ? t("external.minutes", { count: m }) : t("external.hours", { count: m / 60 })}
+          </Button>
+        ))}
+        <Button
+          size="xs"
+          borderRadius="full"
+          colorScheme="primary"
+          variant={custom ? "solid" : "outline"}
+          onClick={() => setCustom(true)}
+        >
+          {t("external.customInterval")}
+        </Button>
+      </HStack>
+      {custom && (
+        <HStack spacing={2} maxW="260px">
+          <NumberInput size="sm" min={1} value={amount} onChange={(v) => apply(v)}>
+            <NumberInputField borderRadius="md" />
+          </NumberInput>
+          <Select
+            size="sm"
+            borderRadius="md"
+            value={unit.key}
+            onChange={(e) => {
+              const u = REFRESH_UNITS.find((x) => x.key === e.target.value)!;
+              setUnit(u);
+              apply(amount, u);
+            }}
+          >
+            {REFRESH_UNITS.map((u) => (
+              <option key={u.key} value={u.key}>
+                {t(`external.unit.${u.key}`)}
+              </option>
+            ))}
+          </Select>
+        </HStack>
       )}
     </VStack>
   );

@@ -77,10 +77,28 @@ export const SECTIONS: Section[] = [
     Component: named(() => import("components/SubSettingsModal"), "SubSettingsModal"),
   },
   {
+    path: "domain",
+    title: "domain.title",
+    sudo: true,
+    Component: named(() => import("components/DomainSettingsPage"), "DomainSettingsPage"),
+  },
+  {
     path: "external",
     title: "external.title",
     sudo: true,
     Component: named(() => import("components/ExternalConfigsPage"), "ExternalConfigsPage"),
+  },
+  {
+    path: "auto-change",
+    title: "autoChange.title",
+    sudo: true,
+    Component: named(() => import("components/AutoChangePage"), "AutoChangePage"),
+  },
+  {
+    path: "vpn",
+    title: "vpn.title",
+    sudo: true,
+    Component: named(() => import("components/VpnPage"), "VpnPage"),
   },
   {
     path: "core",

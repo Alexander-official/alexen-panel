@@ -9,9 +9,11 @@ from . import (
     settings as settings_router,
     subscription, 
     system, 
+    traffic,
     user_template, 
     user,
     home,
+    vpn,
 )
 
 api_router = APIRouter()
@@ -26,9 +28,12 @@ routers = [
     settings_router.router,
     subscription.router,
     system.router,
+    traffic.router,
     user_template.router,
     user.router,
     home.router,
+    vpn.router,
+    vpn.files_router,
 ]
 
 for router in routers:

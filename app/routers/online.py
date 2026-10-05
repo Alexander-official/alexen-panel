@@ -29,6 +29,10 @@ class OnlineIP(BaseModel):
     connected_seconds: int = 0
     provider: Optional[str] = None
     blocked: bool = False
+    # e.g. "vless · ws · tls" of the inbound this connection uses
+    protocol: Optional[str] = None
+    # the user's current speed on that inbound, bytes/s
+    rate: float = 0
 
 
 class UserOnlineIPs(BaseModel):
@@ -151,20 +155,42 @@ def unblock_user_ip(ip: str, dbuser: UserResponse = Depends(get_validated_user))
     return {"detail": f"{ip} unblocked"}
 
 
+def _protocol_label(tag: str) -> Optional[str]:
+    if tag == "AmneziaWG":
+        return "amneziawg · udp"
+    if tag == "OpenVPN":
+        return "openvpn"
+    inbound = xray.config.inbounds_by_tag.get(tag) if tag else None
+    if not inbound:
+        return None
+    parts = [inbound["protocol"], inbound.get("network")]
+    if inbound.get("tls") not in (None, "none", ""):
+        parts.append(inbound["tls"])
+    return " · ".join(p for p in parts if p)
+
+
 @router.get("/user/{username}/online-ips", response_model=UserOnlineIPs,
             responses={403: responses._403, 404: responses._404})
 def get_user_online_ips(dbuser: UserResponse = Depends(get_validated_user)):
     """IPs the user is connected from right now"""
     user_ips = online.get_user_ips(dbuser.id)
     blocked = set(ip_limit.blocked_ips.get(dbuser.id, ()))
-    ips = [
-        OnlineIP(ip=ip, nodes=entry["nodes"], inbounds=entry["inbounds"],
-                 last_seen=datetime.utcfromtimestamp(entry["last_seen"]),
-                 connected_seconds=int(time.time() - (entry.get("first_seen") or entry["last_seen"])),
-                 provider=entry.get("provider"),
-                 blocked=ip in blocked)
-        for ip, entry in user_ips.items()
-    ]
+    from app.xray import traffic
+    rates = (traffic.live()["users"].get(dbuser.id) or {}).get("inbounds", {})
+    ips = []
+    for ip, entry in user_ips.items():
+        per = entry.get("per_inbound") or {tag: {"nodes": entry["nodes"], "last_seen": entry["last_seen"]}
+                                           for tag in (entry["inbounds"] or [""])}
+        for tag, info in per.items():
+            ips.append(OnlineIP(
+                ip=ip, nodes=info["nodes"], inbounds=[tag] if tag else [],
+                last_seen=datetime.utcfromtimestamp(info["last_seen"]),
+                connected_seconds=int(time.time() - (entry.get("first_seen") or entry["last_seen"])),
+                provider=entry.get("provider"),
+                blocked=ip in blocked,
+                protocol=_protocol_label(tag),
+                rate=rates.get(tag, 0),
+            ))
     # blocked IPs that already dropped offline still need an "unblock" entry
     for ip in blocked - set(user_ips):
         ips.append(OnlineIP(ip=ip, nodes=[], inbounds=[],

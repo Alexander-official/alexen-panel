@@ -73,7 +73,7 @@ class ExternalConfig(BaseModel):
     # VLESS WS (usually CDN / worker fronted) named "<flag> <ws_label>"
     ws_rename: bool = True
     ws_label: str = Field("4G/WiFi", max_length=32)
-    refresh_minutes: int = Field(60, ge=5, le=10080)
+    refresh_minutes: int = Field(60, ge=1, le=43200)
     enabled: bool = True
     position: str = "bottom"  # "top" | "bottom"
     only_active: bool = True  # hide from expired / limited / disabled users

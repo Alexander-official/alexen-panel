@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Dict, Optional
 
-from app import xray
+from app import logger, xray
 from app.db import GetDB
 from app.db.models import Node, User
 from app.xray import ip_limit
@@ -61,6 +61,38 @@ def refresh():
                 if inbound_tag and inbound_tag not in entry["inbounds"]:
                     entry["inbounds"].append(inbound_tag)
                 entry["last_seen"] = max(entry["last_seen"], last_seen)
+                # the same IP on two inbounds (e.g. two people behind one IP on
+                # different protocols) is shown as two connections
+                per = entry.setdefault("per_inbound", {}).setdefault(
+                    inbound_tag or "", {"nodes": [], "last_seen": 0})
+                if node_name not in per["nodes"]:
+                    per["nodes"].append(node_name)
+                per["last_seen"] = max(per["last_seen"], last_seen)
+
+    # the IP limit is enforced through Xray, so it only sees Xray's IPs
+    import copy
+    xray_users = copy.deepcopy(users)
+    # AmneziaWG / OpenVPN connections (app/vpn) join the list like any inbound
+    try:
+        from app import vpn
+        for uid, ips in vpn.online_ips().items():
+            for ip, v in ips.items():
+                entry = users.setdefault(uid, {}).setdefault(
+                    ip, {"nodes": [], "inbounds": [], "last_seen": 0, "first_seen": None, "provider": None})
+                for n in v["nodes"]:
+                    if n not in entry["nodes"]:
+                        entry["nodes"].append(n)
+                entry["last_seen"] = max(entry["last_seen"], v["last_seen"])
+                for tag in v["tags"]:
+                    if tag not in entry["inbounds"]:
+                        entry["inbounds"].append(tag)
+                    per = entry.setdefault("per_inbound", {}).setdefault(tag, {"nodes": [], "last_seen": 0})
+                    for n in v["nodes"]:
+                        if n not in per["nodes"]:
+                            per["nodes"].append(n)
+                    per["last_seen"] = max(per["last_seen"], v["last_seen"])
+    except Exception as exc:
+        logger.warning(f"online: VPN sessions: {exc}")
 
     # carry first_seen across refreshes; look up each IP's provider (cached)
     now = time.time()
@@ -90,7 +122,7 @@ def refresh():
     updated_at = datetime.utcnow()
     _last_apis.clear(); _last_apis.update(apis)
 
-    ip_limit.enforce(apis, users)
+    ip_limit.enforce(apis, xray_users)
 
 
 def get_user_ips(user_id: int) -> Dict[str, dict]:

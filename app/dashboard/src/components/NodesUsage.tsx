@@ -17,7 +17,7 @@ import {
   ModalOverlay,
 } from "./PageSurface";
 import { ChartPieIcon } from "@heroicons/react/24/outline";
-import { FilterUsageType, useDashboard } from "contexts/DashboardContext";
+import { FilterUsageType, useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { useNodes } from "contexts/NodesContext";
 import dayjs from "dayjs";
 import { FC, Suspense, useEffect, useState } from "react";
@@ -36,7 +36,7 @@ const UsageIcon = chakra(ChartPieIcon, {
 export type NodesUsageProps = {};
 
 export const NodesUsage: FC<NodesUsageProps> = () => {
-  const { isShowingNodesUsage, onShowingNodesUsage } = useDashboard();
+  const { isShowingNodesUsage, onShowingNodesUsage } = useDashboardPick("isShowingNodesUsage", "onShowingNodesUsage");
   const { fetchNodesUsage } = useNodes();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);

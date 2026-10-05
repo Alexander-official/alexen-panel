@@ -35,6 +35,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+class SubPathMiddleware:
+    """serves /<path>/... (Domain settings, app/subscription/domain.py) as
+    /<XRAY_SUBSCRIPTION_PATH>/...; the default path keeps working too"""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            from app.subscription import domain
+            custom = domain.get().path
+            if custom and custom != XRAY_SUBSCRIPTION_PATH:
+                path = scope.get("path", "")
+                if path == f"/{custom}" or path.startswith(f"/{custom}/"):
+                    scope = dict(scope)
+                    scope["path"] = f"/{XRAY_SUBSCRIPTION_PATH}" + path[len(custom) + 1:]
+                    scope["raw_path"] = scope["path"].encode()
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(SubPathMiddleware)
+
 from app import dashboard, jobs, routers, telegram  # noqa
 from app.routers import api_router  # noqa
 

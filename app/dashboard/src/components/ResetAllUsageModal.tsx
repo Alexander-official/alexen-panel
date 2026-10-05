@@ -15,7 +15,7 @@ import {
 import { FC, useState } from "react";
 import { DocumentMinusIcon } from "@heroicons/react/24/outline";
 import { Icon } from "./Icon";
-import { useDashboard } from "contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { useTranslation } from "react-i18next";
 
 export const ResetIcon = chakra(DocumentMinusIcon, {
@@ -29,7 +29,7 @@ export type DeleteUserModalProps = {};
 
 export const ResetAllUsageModal: FC<DeleteUserModalProps> = () => {
   const [loading, setLoading] = useState(false);
-  const { isResetingAllUsage, onResetAllUsage, resetAllUsage } = useDashboard();
+  const { isResetingAllUsage, onResetAllUsage, resetAllUsage } = useDashboardPick("isResetingAllUsage", "onResetAllUsage", "resetAllUsage");
   const { t } = useTranslation();
   const toast = useToast();
   const onClose = () => {

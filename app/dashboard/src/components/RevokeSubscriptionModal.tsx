@@ -13,7 +13,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
-import { useDashboard } from "contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { Icon } from "./Icon";
@@ -29,7 +29,7 @@ export type RevokeSubscriptionModalProps = {};
 
 export const RevokeSubscriptionModal: FC<RevokeSubscriptionModalProps> = () => {
   const [loading, setLoading] = useState(false);
-  const { revokeSubscriptionUser: user, revokeSubscription } = useDashboard();
+  const { revokeSubscriptionUser: user, revokeSubscription } = useDashboardPick("revokeSubscriptionUser", "revokeSubscription");
   const { t } = useTranslation();
   const toast = useToast();
   const onClose = () => {

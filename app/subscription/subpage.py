@@ -97,3 +97,15 @@ def render(template: str, extra_data: dict) -> Tuple[List[str], Dict[str, str]]:
         headers[key] = out_value
 
     return prefix_lines, headers
+
+
+def decode_header(value: str) -> str:
+    """header value back to text ("base64:..." as made above, or plain)"""
+    if not value:
+        return ""
+    if value.startswith("base64:"):
+        try:
+            return base64.b64decode(value[len("base64:"):]).decode("utf-8", "replace")
+        except Exception:
+            return ""
+    return value

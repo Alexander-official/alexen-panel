@@ -40,6 +40,7 @@ import {
   ModalOverlay,
 } from "./PageSurface";
 import {
+  ArrowsUpDownIcon,
   ArrowDownIcon,
   ArrowUpIcon,
   DocumentDuplicateIcon,
@@ -53,6 +54,9 @@ import {
   proxyHostSecurity,
 } from "constants/Proxies";
 import { useHosts } from "contexts/HostsContext";
+import { HostGroupPicker } from "./HostGroupPicker";
+import { AddHostModal } from "./InboundBuilder";
+import { formatRate, useLiveTraffic } from "./LiveTraffic";
 import { motion } from "framer-motion";
 import { FC, useEffect, useState } from "react";
 import {
@@ -66,7 +70,7 @@ import { Trans, useTranslation } from "react-i18next";
 import "slick-carousel/slick/slick-theme.css";
 import "slick-carousel/slick/slick.css";
 import { z } from "zod";
-import { useDashboard } from "../contexts/DashboardContext";
+import { useDashboard, useDashboardPick } from "../contexts/DashboardContext";
 import { DeleteIcon } from "./DeleteUserModal";
 import { Icon } from "./Icon";
 import { Input as CustomInput } from "./Input";
@@ -175,12 +179,32 @@ type AccordionInboundType = {
   toggleAccordion: () => void;
 };
 
+// current speed of an inbound, with the per-node split in a tooltip
+const InboundRate: FC<{ tag: string }> = ({ tag }) => {
+  const { data } = useLiveTraffic();
+  const entry = data?.inbounds?.[tag];
+  const nodes = Object.entries(entry?.nodes || {}).sort((a, b) => b[1] - a[1]);
+  return (
+    <Tooltip
+      label={nodes.length ? <Text whiteSpace="pre">{nodes.map(([n, r]) => `${n}: ${formatRate(r)}`).join("\n")}</Text> : ""}
+      hasArrow
+    >
+      <HStack spacing={1} mr={2} fontSize="xs" color={entry && entry.rate >= 1 ? "primary.500" : "gray.500"}>
+        <ArrowsUpDownIcon width={13} />
+        <Text as="span" whiteSpace="nowrap">
+          {formatRate(entry?.rate || 0)}
+        </Text>
+      </HStack>
+    </Tooltip>
+  );
+};
+
 const AccordionInbound: FC<AccordionInboundType> = ({
   hostKey,
   isOpen,
   toggleAccordion,
 }) => {
-  const { inbounds } = useDashboard();
+  const { inbounds } = useDashboardPick("inbounds");
   const inbound = [...inbounds.values()]
     .flat()
     .filter((inbound) => inbound.tag === hostKey)[0];
@@ -242,13 +266,13 @@ const AccordionInbound: FC<AccordionInboundType> = ({
   return (
     <AccordionItem
       border="1px solid"
-      _dark={{ borderColor: "gray.600" }}
-      _light={{ borderColor: "gray.200" }}
-      borderRadius="4px"
+      _dark={{ borderColor: "var(--alexen-line)", bg: "whiteAlpha.50" }}
+      _light={{ borderColor: "blackAlpha.100", bg: "var(--app-surface)" }}
+      borderRadius="14px"
       p={1}
       w="full"
     >
-      <AccordionButton px={2} borderRadius="3px" onClick={toggleAccordion}>
+      <AccordionButton px={3} py={2.5} borderRadius="11px" onClick={toggleAccordion}>
         <Text
           as="span"
           fontWeight="medium"
@@ -260,6 +284,7 @@ const AccordionInbound: FC<AccordionInboundType> = ({
         >
           {hostKey}
         </Text>
+        <InboundRate tag={hostKey} />
         <AccordionIcon />
       </AccordionButton>
       <AccordionPanel px={2} pb={2}>
@@ -286,11 +311,11 @@ const AccordionInbound: FC<AccordionInboundType> = ({
                   id={host.id}
                   key={host.id}
                   border="1px solid"
-                  _dark={{ borderColor: "gray.600", bg: "gray.750" }}
-                  _light={{ borderColor: "light-border", bg: "var(--app-surface-2)" }}
-                  p={2}
+                  _dark={{ borderColor: "var(--alexen-line)", bg: "gray.750" }}
+                  _light={{ borderColor: "blackAlpha.100", bg: "var(--app-surface-2)" }}
+                  p={3}
                   w="full"
-                  borderRadius="4px"
+                  borderRadius="12px"
                 >
                   <HStack w="100%" alignItems="flex-start">
                     <FormControl
@@ -542,11 +567,12 @@ const AccordionInbound: FC<AccordionInboundType> = ({
                   </FormControl>
 
                   <FormControl>
-                    <Input
-                      size="sm"
-                      borderRadius="4px"
-                      placeholder={t("hostsDialog.groupName")}
-                      {...form.register(hostKey + "." + index + ".group_name")}
+                    <Controller
+                      control={form.control}
+                      name={(hostKey + "." + index + ".group_name") as any}
+                      render={({ field }) => (
+                        <HostGroupPicker value={field.value as any} onChange={field.onChange} />
+                      )}
                     />
                   </FormControl>
 
@@ -1212,12 +1238,12 @@ const AccordionInbound: FC<AccordionInboundType> = ({
 };
 
 export const HostsDialog: FC = () => {
-  const { isEditingHosts, onEditingHosts, refetchUsers, inbounds } =
-    useDashboard();
+  const { isEditingHosts, onEditingHosts, refetchUsers, inbounds } = useDashboardPick("isEditingHosts", "onEditingHosts", "refetchUsers", "inbounds");
   const { isLoading, hosts, fetchHosts, isPostLoading, setHosts } = useHosts();
   const toast = useToast();
   const { t } = useTranslation();
   const [openAccordions, setOpenAccordions] = useState<any>({});
+  const [addingHost, setAddingHost] = useState(false);
 
   useEffect(() => {
     if (isEditingHosts) fetchHosts();
@@ -1293,9 +1319,14 @@ export const HostsDialog: FC = () => {
         <ModalBody w="440px" pb={3} pt={3}>
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-              <Text mb={3} opacity={0.8} fontSize="sm">
-                {t("hostsDialog.title")}
-              </Text>
+              <HStack mb={3} justifyContent="space-between" alignItems="center">
+                <Text opacity={0.8} fontSize="sm">
+                  {t("hostsDialog.title")}
+                </Text>
+                <Button size="xs" colorScheme="primary" flexShrink={0} onClick={() => setAddingHost(true)}>
+                  + {t("inboundBuilder.addHostButton")}
+                </Button>
+              </HStack>
               {isLoading && t("hostsDialog.loading")}
               {!isLoading &&
                 hosts &&
@@ -1339,6 +1370,7 @@ export const HostsDialog: FC = () => {
               </HStack>
             </form>
           </FormProvider>
+          <AddHostModal isOpen={addingHost} onClose={() => setAddingHost(false)} />
         </ModalBody>
       </ModalContent>
     </Modal>

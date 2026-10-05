@@ -23,6 +23,8 @@ class SubscriptionSettings(BaseModel):
     limited_template: Optional[str] = ""
     near_expire_template: Optional[str] = ""
     near_expire_days: int = 1
+    # hours between automatic updates in the apps; None: SUB_UPDATE_INTERVAL from .env
+    update_interval: Optional[int] = None
 
 
 def get_subscription_settings(db: Session) -> SubscriptionSettings:
@@ -162,3 +164,130 @@ def refresh_external_source(source_id: str, bg: BackgroundTasks,
     es._running.add(source_id)
     bg.add_task(es.refresh_due, [source_id])
     return {"detail": "refresh started"}
+
+
+# ---- Xray JSON subscription (see app/subscription/json_sub.py) ----
+from app.subscription import json_sub as _json_sub
+
+
+@router.get("/json-sub-settings", response_model=_json_sub.JsonSubSettings)
+def read_json_sub_settings(db: Session = Depends(get_db),
+                           admin: Admin = Depends(Admin.check_sudo_admin)):
+    """JSON subscription: clients, direct sites, external configs, the auto (balancer) config"""
+    return _json_sub.load(db)
+
+
+@router.put("/json-sub-settings", response_model=_json_sub.JsonSubSettings)
+def update_json_sub_settings(settings: _json_sub.JsonSubSettings,
+                             db: Session = Depends(get_db),
+                             admin: Admin = Depends(Admin.check_sudo_admin)):
+    if any(c not in _json_sub.CLIENTS for c in settings.clients):
+        raise HTTPException(400, "unknown client")
+    if settings.balancer_strategy not in ("leastPing", "leastLoad", "random", "roundRobin"):
+        raise HTTPException(400, "unknown balancer strategy")
+    if settings.balancer_position not in ("top", "bottom"):
+        raise HTTPException(400, "balancer position must be top or bottom")
+    settings.direct_domains = [d.strip() for d in settings.direct_domains if d.strip()]
+    settings.direct_ips = [d.strip() for d in settings.direct_ips if d.strip()]
+    return _json_sub.save(db, settings)
+
+
+# ---- subscription web page (see app/subscription/webpage.py) ----
+from app.subscription import webpage as _webpage
+
+
+@router.get("/sub-webpage", response_model=_webpage.WebPageSettings)
+def read_sub_webpage(db: Session = Depends(get_db),
+                     admin: Admin = Depends(Admin.check_sudo_admin)):
+    """What users see when they open their subscription link in a browser"""
+    return _webpage.load(db)
+
+
+@router.put("/sub-webpage", response_model=_webpage.WebPageSettings)
+def update_sub_webpage(settings: _webpage.WebPageSettings,
+                       db: Session = Depends(get_db),
+                       admin: Admin = Depends(Admin.check_sudo_admin)):
+    return _webpage.save(db, settings)
+
+
+@router.get("/sub-webpage/default-apps")
+def read_sub_webpage_default_apps(admin: Admin = Depends(Admin.check_sudo_admin)):
+    """the built-in app catalog, per platform"""
+    return _webpage.default_apps()
+
+
+@router.get("/sub-webpage/defaults")
+def read_sub_webpage_defaults(admin: Admin = Depends(Admin.check_sudo_admin)):
+    """the built-in app catalog and the page's own texts per language"""
+    return {"apps": _webpage.default_apps(), "texts": _webpage.default_texts(),
+            "sections": _webpage.SECTIONS, "platforms": _webpage.PLATFORMS}
+
+
+class WebPagePreview(BaseModel):
+    settings: _webpage.WebPageSettings
+    username: Optional[str] = None
+
+
+@router.post("/sub-webpage/preview")
+def preview_sub_webpage(body: WebPagePreview, db: Session = Depends(get_db),
+                        admin: Admin = Depends(Admin.check_sudo_admin)):
+    """the page as a user would see it, with settings that aren't saved yet"""
+    from fastapi.responses import HTMLResponse
+    from app.db.models import User
+    from app.models.user import UserResponse
+    from app.routers.subscription import build_sub_page
+    from app.subscription.share import generate_subscription
+    from app.templates import render_template
+    dbuser = crud.get_user(db, body.username) if body.username else None
+    dbuser = dbuser or db.query(User).order_by(User.id).first()
+    if not dbuser:
+        raise HTTPException(404, "No users yet")
+    user = UserResponse.model_validate(dbuser)
+    links = generate_subscription(user=user, config_format="v2ray", as_base64=False, reverse=False)
+    _, headers = build_sub_page(db, user)
+    url = user.subscription_url if user.subscription_url.startswith("http") else "https://example.com" + user.subscription_url
+    data = _webpage.page_data(db, body.settings, user, url, [l for l in links.splitlines() if l.strip()],
+                              headers, preview=True)
+    return HTMLResponse(render_template("subscription/webpage.html", {"data": data}))
+
+
+# ---- domain of the subscription links (see app/subscription/domain.py) ----
+from app.subscription import domain as _domain
+
+
+class DomainState(BaseModel):
+    settings: _domain.DomainSettings
+    # what .env sets, used for an empty field
+    env_url_prefix: str
+    env_path: str
+    example: str
+
+
+def _domain_state(db: Session, s: _domain.DomainSettings) -> DomainState:
+    from config import XRAY_SUBSCRIPTION_PATH, XRAY_SUBSCRIPTION_URL_PREFIX
+    from app.db.models import User
+    from app.utils.jwt import create_subscription_token
+    user = db.query(User).order_by(User.id).first()
+    name = user.username if user else "username"
+    example = _domain.build_url(name, create_subscription_token(name) if user else "<token>", s)
+    return DomainState(settings=s, env_url_prefix=XRAY_SUBSCRIPTION_URL_PREFIX, env_path=XRAY_SUBSCRIPTION_PATH,
+                       example=example)
+
+
+@router.get("/sub-domain", response_model=DomainState)
+def read_sub_domain(db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)):
+    """Which address, path and last part the subscription links use"""
+    return _domain_state(db, _domain.get())
+
+
+@router.put("/sub-domain", response_model=DomainState)
+def update_sub_domain(settings: _domain.DomainSettings, db: Session = Depends(get_db),
+                      admin: Admin = Depends(Admin.check_sudo_admin)):
+    return _domain_state(db, _domain.save(db, settings))
+
+
+@router.post("/sub-domain/example", response_model=DomainState)
+def example_sub_domain(settings: _domain.DomainSettings, db: Session = Depends(get_db),
+                       admin: Admin = Depends(Admin.check_sudo_admin)):
+    """the link a user would get with these (unsaved) settings"""
+    return _domain_state(db, settings)

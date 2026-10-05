@@ -24,7 +24,7 @@ import { shadowsocksMethods, XTLSFlows } from "constants/Proxies";
 import {
   InboundType,
   ProtocolType,
-  useDashboard,
+  useDashboard, useDashboardPick,
 } from "contexts/DashboardContext";
 import { t } from "i18next";
 import { FC, forwardRef, PropsWithChildren, useState } from "react";
@@ -149,7 +149,7 @@ const RadioCard: FC<
   ...props
 }) => {
   const form = useFormContext();
-  const { inbounds } = useDashboard();
+  const { inbounds } = useDashboardPick("inbounds");
   const { getCheckboxProps, getInputProps, getLabelProps, htmlProps } =
     useCheckbox(props);
 

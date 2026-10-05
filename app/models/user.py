@@ -313,10 +313,9 @@ class UserResponse(User):
     @model_validator(mode="after")
     def validate_subscription_url(self):
         if not self.subscription_url:
-            salt = secrets.token_hex(8)
-            url_prefix = (XRAY_SUBSCRIPTION_URL_PREFIX).replace('*', salt)
-            token = create_subscription_token(self.username)
-            self.subscription_url = f"{url_prefix}/{XRAY_SUBSCRIPTION_PATH}/{token}"
+            # domain, path and last part come from the panel's Domain settings
+            from app.subscription import domain
+            self.subscription_url = domain.build_url(self.username, create_subscription_token(self.username))
         return self
 
     @field_validator("proxies", mode="before")

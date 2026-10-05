@@ -93,9 +93,15 @@ def generate_v2ray_json_subscription(
     conf = V2rayJsonConfig()
 
     format_variables = setup_format_variables(extra_data)
-    return process_inbounds_and_tags(
-        inbounds, proxies, format_variables, conf=conf, reverse=reverse, host_groups=host_groups
+    process_inbounds_and_tags(
+        inbounds, proxies, format_variables, conf=conf, reverse=False, host_groups=host_groups
     )
+    # external configs, direct sites, the auto (balancer) config: Sub settings > JSON
+    from app.subscription import json_sub
+    status = extra_data.get("status")
+    status = getattr(status, "value", status)
+    return json_sub.finish(conf, active=status in ("active", "on_hold"), host_groups=host_groups,
+                           variables=format_variables, reverse=reverse)
 
 
 def generate_subscription(
