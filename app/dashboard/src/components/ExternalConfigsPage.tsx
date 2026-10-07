@@ -37,6 +37,7 @@ import { FC, ReactNode, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import useGetUser from "hooks/useGetUser";
+import { useLocation } from "react-router-dom";
 import { fetch } from "service/http";
 
 type ExternalConfig = {
@@ -603,7 +604,8 @@ const SudoExternalPage: FC = () => {
   const { t } = useTranslation();
   const toast = useToast();
   // "" = the general list, else one admin's own list
-  const [scope, setScope] = useState("");
+  const location = useLocation();
+  const [scope, setScope] = useState(() => new URLSearchParams(location.search).get("admin") || "");
   const { data: adminNames } = useQuery<string[]>({
     queryKey: "admin-names",
     queryFn: () => fetch("/admins").then((list: any[]) => list.filter((a) => !a.is_sudo).map((a) => a.username)),

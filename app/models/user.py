@@ -315,7 +315,8 @@ class UserResponse(User):
         if not self.subscription_url:
             # domain, path and last part come from the panel's Domain settings
             from app.subscription import domain
-            self.subscription_url = domain.build_url(self.username, create_subscription_token(self.username))
+            self.subscription_url = domain.build_url(self.username, create_subscription_token(self.username),
+                                                     admin=self.admin.username if self.admin else "")
         return self
 
     @field_validator("proxies", mode="before")

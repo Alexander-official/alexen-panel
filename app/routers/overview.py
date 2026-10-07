@@ -24,6 +24,19 @@ PERIODS = {"24h": (timedelta(hours=24), "hour"), "7d": (timedelta(days=7), "hour
 MASTER = "Master"
 
 
+def _custom_buckets(start: int, end: int, tz: int):
+    """a chosen range: hours up to 7 days, days beyond"""
+    a, b = datetime.utcfromtimestamp(start), datetime.utcfromtimestamp(end)
+    if b - a <= timedelta(days=7):
+        first = a.replace(minute=0, second=0, microsecond=0)
+        n = max(1, int((b - first).total_seconds() // 3600) + 1)
+        return [first + timedelta(hours=i) for i in range(n)], "hour"
+    local = a + timedelta(minutes=tz)
+    first = local.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(minutes=tz)
+    n = max(1, (b - first).days + 1)
+    return [first + timedelta(days=i) for i in range(n)], "day"
+
+
 def _buckets(period: str, tz: int):
     """bucket start times (UTC) for the period; days follow the viewer's time zone (tz: minutes east of UTC)"""
     span, unit = PERIODS[period]
@@ -65,10 +78,20 @@ def _protocol(tag: str) -> str:
 
 @router.get("/overview")
 def overview(period: str = Query("24h"), tz: int = Query(0, ge=-900, le=900),
+             start: Optional[int] = None, end: Optional[int] = None,
              db: Session = Depends(get_db), admin: Admin = Depends(Admin.get_current)):
-    if period not in PERIODS:
+    if period == "custom":
+        if not start or not end or end <= start:
+            raise HTTPException(400, "Pick a start and an end date")
+        if end - start > 400 * 86400:
+            raise HTTPException(400, "Pick at most 400 days")
+        points, unit = _custom_buckets(start, end, tz)
+        until = datetime.utcfromtimestamp(end)
+    elif period in PERIODS:
+        points, unit = _buckets(period, tz)
+        until = datetime.utcnow() + timedelta(hours=1)
+    else:
         raise HTTPException(400, "unknown period")
-    points, unit = _buckets(period, tz)
     at = _index(points, unit)
     since = points[0]
     size = len(points)
@@ -84,7 +107,7 @@ def overview(period: str = Query("24h"), tz: int = Query(0, ge=-900, le=900),
               uq.with_entities(User.status, func.count(User.id)).group_by(User.status).all()}
     now = time.time()
     expiring = uq.filter(User.expire.isnot(None), User.expire > now, User.expire < now + 3 * 86400).count()
-    created = uq.filter(User.created_at >= since).count()
+    created = uq.filter(User.created_at >= since, User.created_at < until).count()
     from app.xray import online as _online
     online_now = {uid: ips for uid, ips in _online.online_users.items() if uid in user_ids}
     online_ips_now = sum(len(ips) for ips in online_now.values())
@@ -96,14 +119,15 @@ def overview(period: str = Query("24h"), tz: int = Query(0, ge=-900, le=900),
     by_node: Dict[str, List[int]] = defaultdict(lambda: [0] * size)
     if admin.is_sudo:
         rows = db.query(NodeUsage.created_at, NodeUsage.node_id, NodeUsage.uplink, NodeUsage.downlink) \
-            .filter(NodeUsage.created_at >= since).all()
+            .filter(NodeUsage.created_at >= since, NodeUsage.created_at < until).all()
         for created_at, nid, up, down in rows:
             i = at(created_at)
             if i is not None:
                 by_node[node_names.get(nid, f"#{nid}")][i] += int(up or 0) + int(down or 0)
     else:
         rows = db.query(NodeUserUsage.created_at, NodeUserUsage.node_id, func.sum(NodeUserUsage.used_traffic)) \
-            .filter(NodeUserUsage.created_at >= since, NodeUserUsage.user_id.in_(user_ids or {-1})) \
+            .filter(NodeUserUsage.created_at >= since, NodeUserUsage.created_at < until,
+                    NodeUserUsage.user_id.in_(user_ids or {-1})) \
             .group_by(NodeUserUsage.created_at, NodeUserUsage.node_id).all()
         for created_at, nid, used in rows:
             i = at(created_at)
@@ -113,7 +137,8 @@ def overview(period: str = Query("24h"), tz: int = Query(0, ge=-900, le=900),
 
     # ---- top users in the period ----
     top = db.query(NodeUserUsage.user_id, func.sum(NodeUserUsage.used_traffic).label("t")) \
-        .filter(NodeUserUsage.created_at >= since, NodeUserUsage.user_id.in_(user_ids or {-1})) \
+        .filter(NodeUserUsage.created_at >= since, NodeUserUsage.created_at < until,
+                NodeUserUsage.user_id.in_(user_ids or {-1})) \
         .group_by(NodeUserUsage.user_id).order_by(func.sum(NodeUserUsage.used_traffic).desc()).limit(10).all()
     names = dict(db.query(User.id, User.username).filter(User.id.in_([u for u, _ in top] or [-1])).all())
     owners = dict(db.query(User.id, DBAdmin.username).outerjoin(DBAdmin, User.admin_id == DBAdmin.id)
@@ -124,7 +149,7 @@ def overview(period: str = Query("24h"), tz: int = Query(0, ge=-900, le=900),
     inbound_series: Dict[str, List[int]] = defaultdict(lambda: [0] * size)
     if admin.is_sudo:
         for created_at, key, value in db.query(StatHistory.created_at, StatHistory.key, StatHistory.value) \
-                .filter(StatHistory.kind == "inbound", StatHistory.created_at >= since).all():
+                .filter(StatHistory.kind == "inbound", StatHistory.created_at >= since, StatHistory.created_at < until).all():
             i = at(created_at)
             if i is not None:
                 inbound_series[key][i] += int(value or 0)
@@ -153,7 +178,8 @@ def overview(period: str = Query("24h"), tz: int = Query(0, ge=-900, le=900),
     if admin.is_sudo:
         for created_at, kind, key, value in db.query(StatHistory.created_at, StatHistory.kind, StatHistory.key,
                                                      StatHistory.value) \
-                .filter(StatHistory.kind.in_(("online", "online_ips", "users")), StatHistory.created_at >= since) \
+                .filter(StatHistory.kind.in_(("online", "online_ips", "users")), StatHistory.created_at >= since,
+                        StatHistory.created_at < until) \
                 .order_by(StatHistory.created_at).all():
             i = at(created_at)
             if i is None:

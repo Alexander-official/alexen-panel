@@ -55,6 +55,8 @@ def read_sub_settings(db: Session = Depends(get_db),
 def update_sub_settings(settings: SubscriptionSettings,
                         db: Session = Depends(get_db),
                         admin: Admin = Depends(Admin.check_sudo_admin)):
+    if "admins" not in settings.model_fields_set:
+        settings.admins = get_subscription_settings(db).admins
     crud.set_setting(db, SUB_SETTINGS_KEY, settings.model_dump())
     return settings
 
@@ -110,6 +112,8 @@ def read_external_configs(db: Session = Depends(get_db),
 def update_external_configs(settings: _external.ExternalSettings,
                             db: Session = Depends(get_db),
                             admin: Admin = Depends(Admin.check_sudo_admin)):
+    if "admins" not in settings.model_fields_set:
+        settings.admins = _external.load(db).admins
     _check_external(settings)
     saved = _external.save(db, settings)
     from app.subscription import external_sources
@@ -341,6 +345,8 @@ def read_sub_domain(db: Session = Depends(get_db), admin: Admin = Depends(Admin.
 @router.put("/sub-domain", response_model=DomainState)
 def update_sub_domain(settings: _domain.DomainSettings, db: Session = Depends(get_db),
                       admin: Admin = Depends(Admin.check_sudo_admin)):
+    if "admins" not in settings.model_fields_set:
+        settings.admins = _domain.get().admins   # the page edits the general part only
     return _domain_state(db, _domain.save(db, settings))
 
 
@@ -349,3 +355,69 @@ def example_sub_domain(settings: _domain.DomainSettings, db: Session = Depends(g
                        admin: Admin = Depends(Admin.check_sudo_admin)):
     """the link a user would get with these (unsaved) settings"""
     return _domain_state(db, settings)
+
+
+# ---- everything about one admin's subscriptions in one place (admin settings) ----
+class AdminSubProfile(BaseModel):
+    url_prefix: str = ""                       # own domain for its users' links
+    suffix: Optional[str] = None               # own last part; None: the general one
+    templates: AdminSubTemplates = AdminSubTemplates()
+    external_enabled: bool = True
+    external_label: str = ""
+    external_self_edit: bool = False
+    external_count: int = 0                    # read only: edit them on the External configs page
+    example: str = ""                          # read only
+
+
+def _profile(db: Session, name: str) -> AdminSubProfile:
+    from app.db.models import Admin as DBAdmin, User
+    from app.utils.jwt import create_subscription_token
+    d = _domain.get().admins.get(name)
+    t = get_subscription_settings(db).admins.get(name) or AdminSubTemplates()
+    e = _external.load(db).admins.get(name)
+    dbadmin = db.query(DBAdmin).filter(DBAdmin.username == name).first()
+    user = db.query(User).filter(User.admin_id == dbadmin.id).order_by(User.id).first() if dbadmin else None
+    uname = user.username if user else "username"
+    example = _domain.build_url(uname, create_subscription_token(uname) if user else "<token>", admin=name)
+    return AdminSubProfile(url_prefix=d.url_prefix if d else "", suffix=d.suffix if d else None, templates=t,
+                           external_enabled=e.enabled if e else True, external_label=e.label if e else "",
+                           external_self_edit=e.self_edit if e else False,
+                           external_count=len(e.configs) if e else 0, example=example)
+
+
+@router.get("/admin/{name}/sub-profile", response_model=AdminSubProfile)
+def read_admin_sub_profile(name: str, db: Session = Depends(get_db),
+                           admin: Admin = Depends(Admin.check_sudo_admin)):
+    """an admin's own subscription domain, texts and external configs"""
+    return _profile(db, name)
+
+
+@router.put("/admin/{name}/sub-profile", response_model=AdminSubProfile)
+def update_admin_sub_profile(name: str, body: AdminSubProfile, db: Session = Depends(get_db),
+                             admin: Admin = Depends(Admin.check_sudo_admin)):
+    # domain
+    try:
+        own = _domain.AdminDomain(url_prefix=body.url_prefix, suffix=body.suffix)
+    except Exception as e:
+        msg = e.errors()[0].get("msg", str(e)) if hasattr(e, "errors") else str(e)
+        raise HTTPException(400, msg.replace("Value error, ", ""))
+    ds = _domain.get().model_copy(deep=True)
+    if own.url_prefix or own.suffix is not None:
+        ds.admins[name] = own
+    else:
+        ds.admins.pop(name, None)
+    _domain.save(db, ds)
+    # texts
+    subs = get_subscription_settings(db)
+    if any((v or "").strip() for v in body.templates.model_dump().values()):
+        subs.admins[name] = body.templates
+    else:
+        subs.admins.pop(name, None)
+    crud.set_setting(db, SUB_SETTINGS_KEY, subs.model_dump())
+    # external configs (the list itself is edited on its page)
+    ext = _external.load(db)
+    cur = ext.admins.get(name) or _external.AdminExternal()
+    ext.admins[name] = cur.model_copy(update={"enabled": body.external_enabled, "label": body.external_label,
+                                              "self_edit": body.external_self_edit})
+    _external.save(db, ext)
+    return _profile(db, name)

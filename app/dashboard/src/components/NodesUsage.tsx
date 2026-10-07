@@ -21,7 +21,7 @@ import { FilterUsageType, useDashboard, useDashboardPick } from "contexts/Dashbo
 import { useNodes } from "contexts/NodesContext";
 import dayjs from "dayjs";
 import { FC, Suspense, useEffect, useState } from "react";
-import ReactApexChart from "react-apexcharts";
+import { StableChart } from "./StableChart";
 import { useTranslation } from "react-i18next";
 import { Icon } from "./Icon";
 import { UsageFilter, createUsageConfig } from "./UsageFilter";
@@ -99,7 +99,7 @@ export const NodesUsage: FC<NodesUsageProps> = () => {
             />
             <Box justifySelf="center" w="full" maxW="300px" mt="4">
               <Suspense fallback={<CircularProgress isIndeterminate />}>
-                <ReactApexChart
+                <StableChart
                   options={usage.options}
                   series={usage.series}
                   type="donut"

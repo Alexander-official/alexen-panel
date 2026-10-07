@@ -24,9 +24,11 @@ import {
 } from "./PageSurface";
 import { PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
-import { FC, useEffect, useState } from "react";
+import { FC, useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { fetch } from "service/http";
+import { serverMessage } from "utils/serverMessage";
+import { AdminSubProfile } from "./AdminSubProfile";
 import { useQuery } from "react-query";
 import { formatBytes } from "utils/formatByte";
 
@@ -82,6 +84,7 @@ export const AdminsModal: FC = () => {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editing, setEditing] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const profileSave = useRef<((name: string) => Promise<unknown>) | null>(null);
 
   const refresh = () =>
     fetch("/admins").then((data: AdminItem[]) => setAdmins(data));
@@ -151,6 +154,7 @@ export const AdminsModal: FC = () => {
           body: { ...body, username: form.username, password: form.password },
         });
     req
+      .then(() => (!form.is_sudo && profileSave.current ? profileSave.current(editing || form.username) : null))
       .then(() => {
         toast({ status: "success", title: t("admins.saved"), duration: 2000 });
         setShowForm(false);
@@ -159,7 +163,7 @@ export const AdminsModal: FC = () => {
       .catch((e) =>
         toast({
           status: "error",
-          title: e?.response?._data?.detail || t("admins.error"),
+          title: serverMessage(t, e?.response?._data?.detail) || t("admins.error"),
           duration: 4000,
         })
       );
@@ -171,7 +175,7 @@ export const AdminsModal: FC = () => {
       .catch((e) =>
         toast({
           status: "error",
-          title: e?.response?._data?.detail || t("admins.error"),
+          title: serverMessage(t, e?.response?._data?.detail) || t("admins.error"),
           duration: 4000,
         })
       );
@@ -359,6 +363,7 @@ export const AdminsModal: FC = () => {
                   </FormControl>
                 </>
               )}
+              {!form.is_sudo && <AdminSubProfile name={editing || ""} saveRef={profileSave} />}
               <HStack justifyContent="flex-end" pt={2}>
                 <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>
                   {t("cancel")}

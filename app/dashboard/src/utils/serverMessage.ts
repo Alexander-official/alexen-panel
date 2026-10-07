@@ -35,6 +35,9 @@ const RULES: [RegExp, string, string[]][] = [
   [/^Nothing to install$/, "nothingToInstall", []],
   [/^command failed \((\d+)\): (.+)$/, "commandFailed", ["code", "command"]],
   [/^You can't edit external configs$/, "noExternal", []],
+  [/^Use a full address like .*$/, "fullAddress", []],
+  [/^Pick a start and an end date$/, "pickRange", []],
+  [/^Pick at most 400 days$/, "rangeLong", []],
 ];
 
 export const serverMessage = (t: T, text?: string | null): string => {

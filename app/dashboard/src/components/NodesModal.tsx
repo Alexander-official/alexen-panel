@@ -49,7 +49,7 @@ import {
   useNodes,
   useNodesQuery,
 } from "contexts/NodesContext";
-import { FC, ReactNode, useState } from "react";
+import { FC, memo, ReactNode, useState } from "react";
 import { Controller, useForm, UseFormReturn } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
@@ -206,7 +206,7 @@ type AccordionInboundType = {
   node: NodeType;
 };
 
-const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
+const NodeAccordion: FC<AccordionInboundType> = memo(({ toggleAccordion, node }) => {
   const { updateNode, reconnectNode, setDeletingNode } = useNodes();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -362,7 +362,7 @@ const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
       </AccordionPanel>
     </AccordionItem>
   );
-};
+}, (a, b) => a.node === b.node);
 
 type AddNodeFormType = {
   toggleAccordion: () => void;

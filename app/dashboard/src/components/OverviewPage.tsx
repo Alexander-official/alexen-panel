@@ -5,6 +5,7 @@ import {
   ButtonGroup,
   CircularProgress,
   HStack,
+  Input,
   SimpleGrid,
   Table,
   Tbody,
@@ -27,7 +28,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { ApexOptions } from "apexcharts";
 import dayjs from "dayjs";
-import { FC, lazy, ReactNode, Suspense, useMemo, useState } from "react";
+import { FC, ReactNode, Suspense, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import { fetch } from "service/http";
@@ -36,7 +37,7 @@ import { formatBytes as rawFormatBytes } from "utils/formatByte";
 const formatBytes = (v: number, d = 2) => String(rawFormatBytes(v, d));
 import { flagEmoji } from "utils/flags";
 
-const Chart = lazy(() => import("react-apexcharts"));
+import { StableChart as Chart } from "./StableChart";
 
 type Series = number[];
 type Overview = {
@@ -198,10 +199,55 @@ const Distribution: FC<{ labels: string[]; values: number[]; colors?: string[]; 
   );
 };
 
+
+// the period: presets, or "custom" with two dates
+type Range = { period: string; start?: number; end?: number };
+const rangeQuery = (r: Range, tz: number) =>
+  `/overview?period=${r.period}&tz=${tz}` + (r.period === "custom" && r.start && r.end ? `&start=${r.start}&end=${r.end}` : "");
+const PeriodPicker: FC<{ value: Range; onChange: (r: Range) => void; size?: string }> = ({ value, onChange, size = "sm" }) => {
+  const { t } = useTranslation();
+  const day = (ts?: number) => (ts ? dayjs.unix(ts).format("YYYY-MM-DD") : "");
+  const [from, setFrom] = useState(day(value.start) || dayjs().subtract(14, "day").format("YYYY-MM-DD"));
+  const [to, setTo] = useState(day(value.end) || dayjs().format("YYYY-MM-DD"));
+  const apply = (f: string, t2: string) => {
+    const s = dayjs(f).startOf("day").unix();
+    const e = dayjs(t2).endOf("day").unix();
+    if (s && e && e > s) onChange({ period: "custom", start: s, end: Math.min(e, dayjs().unix()) });
+  };
+  return (
+    <HStack spacing={2} flexWrap="wrap" rowGap={2} justifyContent="flex-end">
+      <ButtonGroup size={size} isAttached variant="outline">
+        {[...PERIODS, "custom"].map((p) => (
+          <Button
+            key={p}
+            colorScheme="primary"
+            variant={value.period === p ? "solid" : "outline"}
+            onClick={() => (p === "custom" ? apply(from, to) : onChange({ period: p }))}
+          >
+            {t(`overview.period.${p}`)}
+          </Button>
+        ))}
+      </ButtonGroup>
+      {value.period === "custom" && (
+        <HStack spacing={1.5}>
+          <Input size={size} type="date" w="150px" borderRadius="10px" value={from} max={to} onChange={(e) => { setFrom(e.target.value); apply(e.target.value, to); }} />
+          <Text color="gray.500">–</Text>
+          <Input size={size} type="date" w="150px" borderRadius="10px" value={to} min={from} max={dayjs().format("YYYY-MM-DD")} onChange={(e) => { setTo(e.target.value); apply(from, e.target.value); }} />
+        </HStack>
+      )}
+    </HStack>
+  );
+};
+const periodLabel = (t: any, r: Range) =>
+  r.period === "custom" && r.start && r.end
+    ? `${dayjs.unix(r.start).format("D MMM")} – ${dayjs.unix(r.end).format("D MMM")}`
+    : t(`overview.period.${r.period}`);
+
 export const OverviewPage: FC = () => {
   const { t } = useTranslation();
   const base = useBase();
-  const [period, setPeriod] = useState("24h");
+  const [range, setRange] = useState<Range>({ period: "24h" });
+  const period = range.period;
   const [trafficKind, setTrafficKind] = useState<"area" | "bar">("area");
   const [perServer, setPerServer] = useState(true);
   const [statusKind, setStatusKind] = useState<Kind>("donut");
@@ -209,9 +255,9 @@ export const OverviewPage: FC = () => {
   const [serverKind, setServerKind] = useState<Kind>("donut");
   const tz = -new Date().getTimezoneOffset();
   const { data } = useQuery<Overview>({
-    queryKey: ["overview", period],
-    queryFn: () => fetch(`/overview?period=${period}&tz=${tz}`),
-    refetchInterval: 60000,
+    queryKey: ["overview", range],
+    queryFn: () => fetch(rangeQuery(range, tz)),
+    refetchInterval: range.period === "custom" ? false : 60000,
     keepPreviousData: true,
   });
 
@@ -258,21 +304,15 @@ export const OverviewPage: FC = () => {
         <Text fontSize="sm" color="gray.500">
           {t("overview.help")}
         </Text>
-        <ButtonGroup size="sm" isAttached variant="outline">
-          {PERIODS.map((p) => (
-            <Button key={p} colorScheme="primary" variant={period === p ? "solid" : "outline"} onClick={() => setPeriod(p)}>
-              {t(`overview.period.${p}`)}
-            </Button>
-          ))}
-        </ButtonGroup>
+        <PeriodPicker value={range} onChange={setRange} />
       </HStack>
 
       <SimpleGrid columns={{ base: 2, md: 3, "2xl": 6 }} spacing={3}>
         <Stat icon={UsersIcon} label={t("overview.users")} value={data.users.total} sub={t("overview.activeOf", { n: by.active || 0 })} />
         <Stat icon={SignalIcon} color="green" label={t("overview.onlineNow")} value={data.users.online} sub={t("overview.ips", { n: data.users.online_ips })} />
-        <Stat icon={ArrowTrendingUpIcon} color="purple" label={t("overview.trafficIn", { period: t(`overview.period.${period}`) })} value={formatBytes(data.traffic.total, 1)} />
+        <Stat icon={ArrowTrendingUpIcon} color="purple" label={t("overview.trafficIn", { period: periodLabel(t, range) })} value={formatBytes(data.traffic.total, 1)} />
         <Stat icon={ClockIcon} color="orange" label={t("overview.expiring")} value={data.users.expiring} sub={t("overview.expiringHelp")} />
-        <Stat icon={UserPlusIcon} color="cyan" label={t("overview.created")} value={data.users.created} sub={t(`overview.period.${period}`)} />
+        <Stat icon={UserPlusIcon} color="cyan" label={t("overview.created")} value={data.users.created} sub={periodLabel(t, range)} />
         <Stat icon={ChartPieIcon} color="red" label={t("overview.inactive")} value={(by.expired || 0) + (by.limited || 0) + (by.disabled || 0)} sub={t("overview.inactiveHelp")} />
       </SimpleGrid>
 
@@ -402,7 +442,7 @@ export const OverviewPage: FC = () => {
             </VStack>
           </Card>
         )}
-        <Card title={t("overview.topUsers", { period: t(`overview.period.${period}`) })}>
+        <Card title={t("overview.topUsers", { period: periodLabel(t, range) })}>
           {data.top_users.length ? (
             <Table size="sm" variant="simple">
               <Thead>
@@ -451,12 +491,13 @@ export const OverviewPage: FC = () => {
 export const StatsHistory: FC = () => {
   const { t } = useTranslation();
   const base = useBase();
-  const [period, setPeriod] = useState("7d");
+  const [range, setRange] = useState<Range>({ period: "7d" });
+  const period = range.period;
   const [kind, setKind] = useState<"area" | "bar">("bar");
   const tz = -new Date().getTimezoneOffset();
   const { data } = useQuery<Overview>({
-    queryKey: ["overview", period],
-    queryFn: () => fetch(`/overview?period=${period}&tz=${tz}`),
+    queryKey: ["overview", range],
+    queryFn: () => fetch(rangeQuery(range, tz)),
     keepPreviousData: true,
   });
   const categories = useMemo(
@@ -482,16 +523,10 @@ export const StatsHistory: FC = () => {
         <Text fontWeight="semibold">{t("overview.history")}</Text>
         <HStack spacing={2}>
           <KindToggle value={kind} options={TIME_KINDS} onChange={setKind} />
-          <ButtonGroup size="xs" isAttached variant="outline">
-            {PERIODS.map((p) => (
-              <Button key={p} colorScheme="primary" variant={period === p ? "solid" : "outline"} onClick={() => setPeriod(p)}>
-                {t(`overview.period.${p}`)}
-              </Button>
-            ))}
-          </ButtonGroup>
+          <PeriodPicker value={range} onChange={setRange} size="xs" />
         </HStack>
       </HStack>
-      <Card title={t("overview.trafficIn", { period: t(`overview.period.${period}`) }) + " · " + formatBytes(data.traffic.total, 1)}>
+      <Card title={t("overview.trafficIn", { period: periodLabel(t, range) }) + " · " + formatBytes(data.traffic.total, 1)}>
         <Suspense fallback={<CircularProgress isIndeterminate size="24px" />}>
           <Chart key={"s" + kind} type={kind} options={opts(servers.length)} series={servers} height={260} />
         </Suspense>

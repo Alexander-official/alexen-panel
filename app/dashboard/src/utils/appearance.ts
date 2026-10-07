@@ -397,3 +397,39 @@ function applyTiers(root: HTMLElement, dark: boolean, tint: Record<string, strin
 }
 
 export const initAppearance = () => applyAppearance(getAppearance());
+
+/** ready combinations: mode, card style, accent, background and layer colors together */
+export type Preset = {
+  id: string;
+  mode: "light" | "dark";
+  surface: Surface;
+  accent: AccentName;
+  background: Background;
+  tierContrast: number;
+  tiers?: Partial<TierColors>;
+  // what the tile shows: page, layer, item
+  look: [string, string, string];
+};
+export const PRESETS: Preset[] = [
+  { id: "amoled", mode: "dark", surface: "minimal", accent: "periwinkle", background: "amoled", tierContrast: 1.3,
+    tiers: { page: "#000000", layer: "#0c0d10", item: "#1b1d23" }, look: ["#000000", "#0c0d10", "#1b1d23"] },
+  { id: "amoledNeon", mode: "dark", surface: "minimal", accent: "mint", background: "amoled", tierContrast: 1.3,
+    tiers: { page: "#000000", layer: "#08100f", item: "#122422" }, look: ["#000000", "#08100f", "#122422"] },
+  { id: "graphite", mode: "dark", surface: "minimal", accent: "periwinkle", background: "default", tierContrast: 1, look: ["#0f131b", "#1f2430", "#2c313b"] },
+  { id: "midnight", mode: "dark", surface: "minimal", accent: "lagoonBlue", background: "midnight", tierContrast: 1.1, look: ["#0a0f24", "#141d3d", "#1d2a54"] },
+  { id: "nord", mode: "dark", surface: "minimal", accent: "steel", background: "nord", tierContrast: 1.1, look: ["#1a1e26", "#2b303b", "#3b4252"] },
+  { id: "dracula", mode: "dark", surface: "minimal", accent: "orchid", background: "dracula", tierContrast: 1.1, look: ["#181920", "#282a36", "#383a4a"] },
+  { id: "forest", mode: "dark", surface: "minimal", accent: "sage", background: "forest", tierContrast: 1.1, look: ["#0a1910", "#16301f", "#21402c"] },
+  { id: "sunset", mode: "dark", surface: "minimal", accent: "coral", background: "sunset", tierContrast: 1.1, look: ["#1c0f16", "#301a25", "#43263a"] },
+  { id: "contrast", mode: "dark", surface: "minimal", accent: "honey", background: "default", tierContrast: 2.2, look: ["#090b10", "#232936", "#3a4252"] },
+  { id: "paper", mode: "light", surface: "minimal", accent: "honey", background: "sand", tierContrast: 1, look: ["#ebe4d6", "#fbf9f5", "#efe9de"] },
+  { id: "snow", mode: "light", surface: "minimal", accent: "periwinkle", background: "default", tierContrast: 1.2, look: ["#e4e7ee", "#ffffff", "#eef0f5"] },
+  { id: "glassAurora", mode: "light", surface: "glass", accent: "mint", background: "aurora", tierContrast: 1, look: ["#e0f7fa", "#f6fdfd", "#e3f4f4"] },
+  { id: "clayPeach", mode: "light", surface: "clay", accent: "blush", background: "peach", tierContrast: 1, look: ["#f3e0d6", "#f8e9e1", "#f1ddd2"] },
+];
+
+export const presetAppearance = (p: Preset, current: Appearance): Appearance => {
+  const tiers = emptyTiers();
+  if (p.tiers) tiers[p.mode] = { page: "", layer: "", item: "", ...p.tiers };
+  return { ...current, surface: p.surface, accent: p.accent, background: p.background, tierContrast: p.tierContrast, tiers };
+};

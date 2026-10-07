@@ -9,7 +9,7 @@ Old links keep working: the token is what identifies the user, the default
 import re
 import threading
 import time
-from typing import Optional
+from typing import Dict, Optional
 from urllib.parse import quote
 
 from pydantic import BaseModel, Field, field_validator
@@ -22,6 +22,20 @@ RESERVED = {"info", "usage", "sing-box", "clash-meta", "clash", "outline", "v2ra
 _PATH_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 
+class AdminDomain(BaseModel):
+    """an admin's own address for its users' links; empty fields: the general ones"""
+    url_prefix: str = Field("", max_length=300)
+    suffix: Optional[str] = Field(None, max_length=100)
+
+    @field_validator("url_prefix")
+    @classmethod
+    def _url(cls, v: str) -> str:
+        v = v.strip().rstrip("/")
+        if v and not re.match(r"^https?://[^/\s]+(/[^\s]*)?$", v.replace("*", "x")):
+            raise ValueError("Use a full address like https://sub.example.com")
+        return v
+
+
 class DomainSettings(BaseModel):
     # e.g. https://sub.example.com or https://example.com:8443; empty: .env
     url_prefix: str = Field("", max_length=300)
@@ -29,6 +43,8 @@ class DomainSettings(BaseModel):
     path: str = Field("", max_length=64)
     # after the token: "", "{username}" or any text (may contain {username})
     suffix: str = Field("", max_length=100)
+    # admin username -> its own address (and last part) for its users
+    admins: Dict[str, AdminDomain] = {}
 
     @field_validator("url_prefix")
     @classmethod
@@ -96,12 +112,22 @@ def path() -> str:
     return get().path or XRAY_SUBSCRIPTION_PATH
 
 
-def build_url(username: str, token: str, s: Optional[DomainSettings] = None) -> str:
-    """the subscription link of a user"""
+def admin_prefix(admin: str, s: Optional[DomainSettings] = None) -> str:
+    """the admin's own address, if it has one"""
+    s = s or get()
+    own = s.admins.get(admin) if admin else None
+    return own.url_prefix if own and own.url_prefix else ""
+
+
+def build_url(username: str, token: str, s: Optional[DomainSettings] = None, admin: str = "") -> str:
+    """the subscription link of a user (an admin may have its own address)"""
     import secrets
     s = s or get()
-    prefix = (s.url_prefix or XRAY_SUBSCRIPTION_URL_PREFIX).replace("*", secrets.token_hex(8))
+    own = s.admins.get(admin) if admin else None
+    prefix = ((own.url_prefix if own and own.url_prefix else "") or s.url_prefix
+              or XRAY_SUBSCRIPTION_URL_PREFIX).replace("*", secrets.token_hex(8))
+    suffix = own.suffix if own and own.suffix is not None else s.suffix
     url = f"{prefix}/{s.path or XRAY_SUBSCRIPTION_PATH}/{token}"
-    if s.suffix:
-        url += "/" + quote(s.suffix.replace("{username}", username), safe="@._-~")
+    if suffix:
+        url += "/" + quote(suffix.replace("{username}", username), safe="@._-~")
     return url

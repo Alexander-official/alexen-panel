@@ -45,7 +45,7 @@ import dayjs from "dayjs";
 import { FC, useEffect, useState } from "react";
 import { lazy, Suspense } from "react";
 // charts are only drawn when the usage panel is opened
-const ReactApexChart = lazy(() => import("react-apexcharts"));
+import { StableChart } from "./StableChart";
 import ReactDatePicker from "react-datepicker";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -901,7 +901,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                             {t("userDialog.usageByNode")}
                           </Text>
                           <Box w="full">
-                            <ReactApexChart
+                            <StableChart
                               options={usage.options}
                               series={usage.series}
                               type="donut"
@@ -913,7 +913,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                             {t("userDialog.usageByInbound")}
                           </Text>
                           <Box w="full">
-                            <ReactApexChart
+                            <StableChart
                               options={inboundUsage.options}
                               series={inboundUsage.series}
                               type="donut"

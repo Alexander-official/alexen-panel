@@ -54,11 +54,13 @@ export type NodeStore = {
 };
 
 export const useNodesQuery = () => {
-  const { isEditingNodes } = useDashboard();
-  return useQuery({
+  const isEditingNodes = useDashboard((s) => s.isEditingNodes);
+  return useQuery<NodeType[]>({
     queryKey: FetchNodesQueryKey,
-    queryFn: useNodes.getState().fetchNodes,
-    refetchInterval: isEditingNodes ? 3000 : undefined,
+    queryFn: useNodes.getState().fetchNodes as () => Promise<NodeType[]>,
+    // quick while a node is connecting, calm otherwise
+    refetchInterval: (data) =>
+      !isEditingNodes ? false : Array.isArray(data) && data.some((n) => n.status === "connecting") ? 3000 : 15000,
     refetchOnWindowFocus: false,
   });
 };

@@ -57,6 +57,7 @@ const RULES: [string, RegExp, string, string[]][] = [
   ["DELETE", /^\/api\/user\/([^/]+)\/devices/, "userDevices", ["name"]],
   ["POST", /^\/api\/users\/reset$/, "usersReset", []],
   ["DELETE", /^\/api\/users\/expired/, "usersExpired", []],
+  ["PUT", /^\/api\/admin\/([^/]+)\/sub-profile$/, "adminSubProfile", ["name"]],
   ["POST", /^\/api\/admin$/, "adminCreate", []],
   ["PUT", /^\/api\/admin\/([^/]+)$/, "adminEdit", ["name"]],
   ["DELETE", /^\/api\/admin\/([^/]+)$/, "adminDelete", ["name"]],

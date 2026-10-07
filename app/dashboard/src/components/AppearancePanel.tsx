@@ -24,7 +24,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { ComputerDesktopIcon, MoonIcon, SunIcon } from "@heroicons/react/24/outline";
-import { FC, ReactNode, useEffect, useState } from "react";
+import { createContext, FC, ReactNode, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ACCENT_CHOICES,
@@ -35,20 +35,31 @@ import {
   BACKGROUNDS,
   emptyTiers,
   getAppearance,
+  Preset,
+  PRESETS,
+  presetAppearance,
   Surface,
   TierColors,
 } from "utils/appearance";
 import { useNavigate } from "react-router-dom";
 import { ColorPicker } from "./ColorPicker";
 
-const Group: FC<{ title: string; children: ReactNode }> = ({ title, children }) => (
-  <Box>
-    <Text fontSize="xs" fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" color="gray.500" mb={2.5}>
-      {title}
-    </Text>
-    {children}
-  </Box>
-);
+// on the theme page every group sits on its own card
+const Wide = createContext(false);
+const Group: FC<{ title: string; children: ReactNode; full?: boolean }> = ({ title, children, full }) => {
+  const wide = useContext(Wide);
+  return (
+    <Box
+      gridColumn={full && wide ? "1 / -1" : undefined}
+      {...(wide ? { className: "alexen-page", p: 5, borderRadius: "18px", borderWidth: "1px", boxShadow: "var(--alexen-shadow)" } : {})}
+    >
+      <Text fontSize="xs" fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" color="gray.500" mb={2.5}>
+        {title}
+      </Text>
+      {children}
+    </Box>
+  );
+};
 
 const Choice: FC<{ on: boolean; onClick: () => void; children: ReactNode }> = ({ on, onClick, children }) => (
   <Box
@@ -150,8 +161,49 @@ export const AppearanceSettings: FC<{ wide?: boolean }> = ({ wide }) => {
   };
   const dark = colorMode === "dark";
 
+  const isOn = (p: Preset) =>
+    a.background === p.background && a.accent === p.accent && a.surface === p.surface && colorMode === p.mode &&
+    Math.abs((a.tierContrast || 1) - p.tierContrast) < 0.01;
   return (
-          <SimpleGrid columns={wide ? { base: 1, xl: 2 } : 1} spacing={7} pt={3} alignItems="start">
+          <Wide.Provider value={!!wide}>
+          <SimpleGrid columns={wide ? { base: 1, xl: 2 } : 1} spacing={wide ? 5 : 7} pt={3} alignItems="start">
+            <Group title={t("appearance.presets")} full>
+              <SimpleGrid columns={wide ? { base: 2, md: 4, xl: 7 } : 3} spacing={2.5}>
+                {PRESETS.map((p) => (
+                  <Box
+                    key={p.id}
+                    as="button"
+                    type="button"
+                    textAlign="left"
+                    borderRadius="16px"
+                    p={2}
+                    borderWidth="2px"
+                    borderColor={isOn(p) ? "primary.400" : "transparent"}
+                    bg="var(--tier-item)"
+                    _hover={{ transform: "translateY(-2px)" }}
+                    transition="transform .15s, border-color .15s"
+                    onClick={() => {
+                      pickMode(p.mode);
+                      update(presetAppearance(p, a));
+                    }}
+                  >
+                    <Box h="58px" borderRadius="11px" p={2} style={{ background: p.look[0] }} position="relative" overflow="hidden">
+                      <Box h="100%" borderRadius="8px" p={1.5} style={{ background: p.look[1] }} boxShadow="0 2px 8px rgba(0,0,0,.18)">
+                        <HStack spacing={1}>
+                          <Box h="10px" w="16px" borderRadius="4px" style={{ background: p.look[2] }} />
+                          <Box h="10px" w="16px" borderRadius="4px" style={{ background: ACCENTS[p.accent][500] }} />
+                          <Box h="10px" w="16px" borderRadius="4px" style={{ background: p.look[2] }} />
+                        </HStack>
+                        <Box mt={1.5} h="4px" w="70%" borderRadius="full" style={{ background: p.mode === "dark" ? "rgba(255,255,255,.35)" : "rgba(0,0,0,.25)" }} />
+                      </Box>
+                    </Box>
+                    <Text fontSize="xs" fontWeight="semibold" mt={1.5} noOfLines={1}>
+                      {t(`appearance.preset.${p.id}`)}
+                    </Text>
+                  </Box>
+                ))}
+              </SimpleGrid>
+            </Group>
             <Group title={t("appearance.mode")}>
               <SimpleGrid columns={3} spacing={2}>
                 {[
@@ -305,6 +357,7 @@ export const AppearanceSettings: FC<{ wide?: boolean }> = ({ wide }) => {
 
             <TierSettings a={a} dark={dark} update={update} />
           </SimpleGrid>
+          </Wide.Provider>
   );
 };
 

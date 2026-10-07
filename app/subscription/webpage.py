@@ -359,7 +359,11 @@ def page_data(db, s: WebPageSettings, user, sub_url: str, links: List[str], head
               preview: bool = False) -> dict:
     """everything the page template shows, with the app links already filled in"""
     from app.subscription.subpage import decode_header
-    sub_url = with_domain(sub_url, s.link_domain)
+    # an admin's own domain wins over the page's link domain
+    from app.subscription import domain as _domain
+    owner = getattr(getattr(user, "admin", None), "username", "") or ""
+    if not _domain.admin_prefix(owner):
+        sub_url = with_domain(sub_url, s.link_domain)
     title = s.title or decode_header(headers.get("profile-title", "")) or "Subscription"
     devices = devices_of(db, user) if (s.show_devices or s.lock_on_device_limit) else []
     device_limit = getattr(user, "hwid_limit", None) or 0
