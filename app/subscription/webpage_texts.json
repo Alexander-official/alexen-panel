@@ -49,7 +49,12 @@
   "vpnFile": "Download",
   "vpnApps": "Apps for these files",
   "vpnDevice": "Device {n}",
-  "vpnDevicesHelp": "One AmneziaWG file per device: each device gets its own, then they can be connected at the same time."
+  "vpnDevicesHelp": "One AmneziaWG file per device: each device gets its own, then they can be connected at the same time.",
+  "devicesTitle": "Your devices",
+  "deviceUnknown": "Device",
+  "deviceLimitTitle": "Device limit reached",
+  "deviceLimitHelp": "This subscription is already used on as many devices as it allows. Contact the admin to free a slot or raise the limit.",
+  "contactAdmin": "Contact the admin"
  },
  "ru": {
   "install": "Установка и подключение",
@@ -101,7 +106,12 @@
   "vpnFile": "Скачать",
   "vpnApps": "Приложения для этих файлов",
   "vpnDevice": "Устройство {n}",
-  "vpnDevicesHelp": "Один файл AmneziaWG на устройство: у каждого свой, тогда они работают одновременно."
+  "vpnDevicesHelp": "Один файл AmneziaWG на устройство: у каждого свой, тогда они работают одновременно.",
+  "devicesTitle": "Ваши устройства",
+  "deviceUnknown": "Устройство",
+  "deviceLimitTitle": "Достигнут лимит устройств",
+  "deviceLimitHelp": "Подписка уже используется на максимальном числе устройств. Свяжитесь с администратором, чтобы освободить место или увеличить лимит.",
+  "contactAdmin": "Связаться с администратором"
  },
  "tr": {
   "install": "Kurulum ve bağlantı",
@@ -153,7 +163,12 @@
   "vpnFile": "İndir",
   "vpnApps": "Bu dosyalar için uygulamalar",
   "vpnDevice": "Cihaz {n}",
-  "vpnDevicesHelp": "Her cihaza ayrı bir AmneziaWG dosyası: her cihaz kendi dosyasını kullanırsa aynı anda bağlanabilir."
+  "vpnDevicesHelp": "Her cihaza ayrı bir AmneziaWG dosyası: her cihaz kendi dosyasını kullanırsa aynı anda bağlanabilir.",
+  "devicesTitle": "Cihazların",
+  "deviceUnknown": "Cihaz",
+  "deviceLimitTitle": "Cihaz limiti doldu",
+  "deviceLimitHelp": "Bu abonelik izin verilen sayıda cihazda kullanılıyor. Yer açmak veya limiti artırmak için admin ile iletişime geç.",
+  "contactAdmin": "Admin ile iletişime geç"
  },
  "fa": {
   "install": "نصب و اتصال",
@@ -205,7 +220,12 @@
   "vpnFile": "دانلود",
   "vpnApps": "برنامه‌های این فایل‌ها",
   "vpnDevice": "دستگاه {n}",
-  "vpnDevicesHelp": "برای هر دستگاه یک فایل AmneziaWG جدا: هر دستگاه فایل خودش را داشته باشد تا هم‌زمان وصل شوند."
+  "vpnDevicesHelp": "برای هر دستگاه یک فایل AmneziaWG جدا: هر دستگاه فایل خودش را داشته باشد تا هم‌زمان وصل شوند.",
+  "devicesTitle": "دستگاه‌های شما",
+  "deviceUnknown": "دستگاه",
+  "deviceLimitTitle": "محدودیت دستگاه پر شده",
+  "deviceLimitHelp": "این اشتراک روی حداکثر تعداد دستگاه مجاز استفاده می‌شود. برای آزاد کردن جا یا افزایش محدودیت با ادمین تماس بگیرید.",
+  "contactAdmin": "تماس با ادمین"
  },
  "zh": {
   "install": "安装与连接",
@@ -257,6 +277,11 @@
   "vpnFile": "下载",
   "vpnApps": "适用的应用",
   "vpnDevice": "设备 {n}",
-  "vpnDevicesHelp": "每台设备使用单独的 AmneziaWG 文件，这样可以同时连接。"
+  "vpnDevicesHelp": "每台设备使用单独的 AmneziaWG 文件，这样可以同时连接。",
+  "devicesTitle": "您的设备",
+  "deviceUnknown": "设备",
+  "deviceLimitTitle": "设备数量已达上限",
+  "deviceLimitHelp": "此订阅已在允许的最大数量设备上使用。请联系管理员释放名额或提高上限。",
+  "contactAdmin": "联系管理员"
  }
 }

@@ -74,7 +74,7 @@ export const QRCodeDialog: FC = () => {
       <ModalContent mx="3" w="fit-content" maxW="3xl">
         <ModalHeader pt={6}>
           <Icon color="primary">
-            <QRIcon color="white" />
+            <QRIcon />
           </Icon>
         </ModalHeader>
         <ModalCloseButton mt={3} />

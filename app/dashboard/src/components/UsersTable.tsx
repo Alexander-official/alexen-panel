@@ -195,8 +195,10 @@ const UsageSlider: FC<UsageSliderProps> = (props) => {
         _dark={{
           color: "gray.400",
         }}
+        whiteSpace="nowrap"
+        spacing={2}
       >
-        <Text>
+        <Text isTruncated>
           {formatBytes(used)} /{" "}
           {isUnlimited ? (
             <Text as="span" fontFamily="system-ui">
@@ -654,14 +656,21 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                       <Box minW={0}>
                         <div className="flex-status">
                           <OnlineBadge lastOnline={user.online_at} />
-                          {user.username}
-                          <OnlineStatus lastOnline={user.online_at} />
-                        </div>
-                        {isSudo && user.admin?.username && (
-                          <Text as="div" fontSize="xs" color="gray.500" pl="20px">
-                            <IconText icon={UserIcon}>{user.admin.username}</IconText>
+                          <Text as="span" fontWeight="medium" isTruncated>
+                            {user.username}
                           </Text>
-                        )}
+                        </div>
+                        {/* last seen and owner on one quiet line under the name */}
+                        <HStack pl="20px" spacing={2} fontSize="xs" color="gray.500" whiteSpace="nowrap" mt="1px">
+                          <Box sx={{ "& > p": { ml: 0 } }}>
+                            <OnlineStatus lastOnline={user.online_at} />
+                          </Box>
+                          {isSudo && user.admin?.username && (
+                            <Text as="div">
+                              <IconText icon={UserIcon}>{user.admin.username}</IconText>
+                            </Text>
+                          )}
+                        </HStack>
                       </Box>
                       <VStack align="flex-end" spacing={0} minW={0}>
                         <ProviderTag username={user.username} />

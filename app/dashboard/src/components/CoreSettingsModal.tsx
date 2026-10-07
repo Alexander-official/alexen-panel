@@ -587,7 +587,7 @@ export const CoreSettingsModal: FC = () => {
         <ModalHeader pt={6}>
           <HStack gap={2}>
             <Icon color="primary">
-              <UsageIcon color="white" />
+              <UsageIcon />
             </Icon>
             <Text fontWeight="semibold" fontSize="lg">
               {t("core.title")}

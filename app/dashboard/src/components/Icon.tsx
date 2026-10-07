@@ -1,61 +1,28 @@
-import { Box, Text } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import { FC, PropsWithChildren } from "react";
 
 export type IconType = {
   color: string;
 };
 
+// the icon tile at the top of a window or page: one soft tinted square
+// (it replaced the original double-square badge)
 export const Icon: FC<PropsWithChildren<IconType>> = ({ children, color }) => {
+  const c = color === "primary" ? "primary" : color;
   return (
     <Box
-      position="relative"
-      width="36px"
-      height="36px"
+      w="40px"
+      h="40px"
+      flexShrink={0}
+      borderRadius="12px"
       display="flex"
-      justifyContent="center"
       alignItems="center"
-      _before={{
-        content: '""',
-        display: "block",
-        position: "absolute",
-        top: "0",
-        left: "0",
-        width: "calc(100%)",
-        height: "calc(100%)",
-        bg: `${color}.400`,
-        opacity: ".5",
-        borderRadius: "5px",
-        zIndex: "1",
-        _dark: {
-          bg: `${color}.400`,
-        },
-      }}
-      _after={{
-        content: '""',
-        display: "block",
-        position: "absolute",
-        top: "0",
-        left: "0",
-        width: "calc(100% + 10px)",
-        height: "calc(100% + 10px)",
-        transform: "translate(-5px, -5px)",
-        bg: `${color}.400`,
-        opacity: ".4",
-        borderRadius: "8px",
-        zIndex: "1",
-        _dark: {
-          bg: `${color}.400`,
-        },
-      }}
+      justifyContent="center"
+      color={`${c}.500`}
+      sx={{ background: `color-mix(in srgb, var(--chakra-colors-${c}-500) 13%, transparent)` }}
+      _dark={{ color: `${c}.300` }}
     >
-      <Text
-        color={`${color}.500`}
-        _dark={{ color: `${color}.900` }}
-        position="relative"
-        zIndex="2"
-      >
-        {children}
-      </Text>
+      {children}
     </Box>
   );
 };

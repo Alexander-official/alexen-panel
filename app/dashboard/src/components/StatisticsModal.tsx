@@ -40,14 +40,14 @@ type Overview = {
 };
 
 const Stat: FC<{ label: string; value: string | number }> = ({ label, value }) => (
-  <Card p={4} borderWidth="1px" _dark={{ borderColor: "gray.600" }}>
+  <Box p={4} borderRadius="14px" bg="blackAlpha.50" _dark={{ bg: "whiteAlpha.50" }}>
     <Text fontSize="xs" color="gray.500">
       {label}
     </Text>
     <Text fontSize="2xl" fontWeight="semibold">
       {value}
     </Text>
-  </Card>
+  </Box>
 );
 
 export const StatisticsModal: FC = () => {
@@ -94,7 +94,7 @@ export const StatisticsModal: FC = () => {
           </Text>
           <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={2} mb={5}>
             {transports.map((x) => (
-              <Card key={x.transport} p={3} borderWidth="1px" boxShadow="none" _dark={{ borderColor: "gray.600" }}>
+              <Box key={x.transport} p={3} borderRadius="14px" bg="blackAlpha.50" _dark={{ bg: "whiteAlpha.50" }}>
                 <HStack justifyContent="space-between" mb={1}>
                   <Text fontSize="sm" fontWeight="semibold" textTransform="uppercase">
                     {x.transport}
@@ -114,7 +114,7 @@ export const StatisticsModal: FC = () => {
                   {x.protocols.join(", ")} ·{" "}
                   {t("stats.transportMeta", { inbounds: x.inbounds, ips: x.online_ips })}
                 </Text>
-              </Card>
+              </Box>
             ))}
           </SimpleGrid>
 

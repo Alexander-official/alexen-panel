@@ -80,7 +80,7 @@ export const NodesUsage: FC<NodesUsageProps> = () => {
         <ModalHeader pt={6}>
           <HStack gap={2}>
             <Icon color="primary">
-              <UsageIcon color="white" />
+              <UsageIcon />
             </Icon>
             <Text fontWeight="semibold" fontSize="lg">
               {t("header.nodesUsage")}

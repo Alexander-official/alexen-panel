@@ -79,6 +79,9 @@ export type WebPageSettings = {
   texts: Record<string, Record<string, string>>;
   custom_css: string;
   apps: Catalog | null;
+  link_domain: string;
+  show_devices: boolean;
+  lock_on_device_limit: boolean;
 };
 export type WebPageDefaults = {
   apps: Catalog;
@@ -101,12 +104,15 @@ export const emptyWebPage: WebPageSettings = {
   happ_crypt: true,
   show_links: true,
   show_qr: true,
-  sections: ["announce", "intro", "user", "install", "vpn", "link", "configs"].map((id) => ({ id, enabled: true })),
+  sections: ["announce", "intro", "user", "devices", "install", "vpn", "link", "configs"].map((id) => ({ id, enabled: true })),
   intro: {},
   footer: {},
   texts: {},
   custom_css: "",
   apps: null,
+  link_domain: "",
+  show_devices: true,
+  lock_on_device_limit: true,
 };
 
 const LANGS: [string, string][] = [
@@ -502,9 +508,16 @@ export const SubWebPagePanel: FC<{
   );
 
   // ---- sections ----
+  // blocks added in a later version go where they belong by default, not last
   const sections = useMemo(() => {
-    const known = value.sections.map((s) => s.id);
-    return [...value.sections, ...defaults.sections.filter((s) => !known.includes(s)).map((id) => ({ id, enabled: true }))];
+    const order = value.sections.filter((x) => defaults.sections.includes(x.id));
+    defaults.sections.forEach((id, i) => {
+      if (order.some((x) => x.id === id)) return;
+      const before = defaults.sections.slice(0, i).filter((p) => order.some((x) => x.id === p));
+      const pos = before.length ? order.findIndex((x) => x.id === before[before.length - 1]) + 1 : 0;
+      order.splice(pos, 0, { id, enabled: true });
+    });
+    return order;
   }, [value.sections, defaults.sections]);
   const moveSection = (i: number, d: number) => {
     const n = [...sections];
@@ -586,6 +599,25 @@ export const SubWebPagePanel: FC<{
                 })}
               </HStack>
             </Field>
+            <Field label={t("webpage.linkDomain")} help={t("webpage.linkDomainHelp")}>
+              <Input
+                size="sm"
+                borderRadius="10px"
+                fontFamily="mono"
+                placeholder="https://sub.example.com"
+                value={value.link_domain}
+                onChange={(e) => set({ link_domain: e.target.value.trim() })}
+              />
+            </Field>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+              <Toggle label={t("webpage.devices")} help={t("webpage.devicesHelp")} on={value.show_devices} onChange={(v) => set({ show_devices: v })} />
+              <Toggle
+                label={t("webpage.lock")}
+                help={t("webpage.lockHelp")}
+                on={value.lock_on_device_limit}
+                onChange={(v) => set({ lock_on_device_limit: v })}
+              />
+            </SimpleGrid>
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
               <Toggle label={t("webpage.crypt")} help={t("webpage.cryptHelp")} on={value.happ_crypt} onChange={(v) => set({ happ_crypt: v })} />
               <Toggle label={t("webpage.qr")} on={value.show_qr} onChange={(v) => set({ show_qr: v })} />

@@ -689,7 +689,7 @@ export const NodesDialog: FC = () => {
         <ModalContent mx="3" w="fit-content" maxW="3xl">
           <ModalHeader pt={6}>
             <Icon color="primary">
-              <ModalIcon color="white" />
+              <ModalIcon />
             </Icon>
           </ModalHeader>
           <ModalCloseButton mt={3} />

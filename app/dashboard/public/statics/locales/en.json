@@ -811,5 +811,12 @@
   "chain.portHelp": "The exit server must accept this TCP port from the relay (firewall).",
   "chain.isExit": "Exit for: {{names}}",
   "chain.apply": "Apply (restarts both cores)",
-  "chain.saved": "Saved: the cores restart in a few seconds"
+  "chain.saved": "Saved: the cores restart in a few seconds",
+  "webpage.linkDomain": "Address of the links on the page",
+  "webpage.linkDomainHelp": "The copy button, QR codes, app buttons and files use this address, whatever address the page was opened on. Empty: the same as the page. The domain must point to the panel too.",
+  "webpage.devices": "Device list",
+  "webpage.devicesHelp": "The devices registered on the subscription (from Happ, v2rayNG and other apps that send a device id).",
+  "webpage.lock": "Lock the page when the device limit is full",
+  "webpage.lockHelp": "Only the devices and 'contact the admin' are shown: no link, QR, configs or files.",
+  "webpage.section.devices": "Devices"
 }

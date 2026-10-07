@@ -1,15 +1,13 @@
+// chart colors: the panel's soft palette first (calm, readable on light and dark),
+// then evenly spread muted hues if a chart has more series than that
+const SOFT = ["#5b7cfa", "#3fb68b", "#e9a23b", "#e46f9f", "#2fb3c6", "#a26cf0", "#ef7a6b", "#62708a"];
+
 export function generateDistinctColors(numColors: number) {
-  const hueStep = 360 / numColors;
-  const saturation = 90;
-  const lightness = 47;
-  const colors = [];
-
-  for (let i = 0; i < numColors; i++) {
-    const hue = ((i * hueStep) % 360) + 140;
-    const color = hslToHex(hue, saturation, lightness);
-    colors.push(color);
+  const colors = SOFT.slice(0, numColors);
+  const extra = numColors - colors.length;
+  for (let i = 0; i < extra; i++) {
+    colors.push(hslToHex((i * 360) / Math.max(extra, 1) + 20, 55, 60));
   }
-
   return colors;
 }
 

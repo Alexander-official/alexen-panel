@@ -48,7 +48,18 @@ export const theme = extendTheme({
     Tooltip: {
       baseStyle: { borderRadius: "8px", px: 2.5, py: 1.5, fontSize: "xs", fontWeight: "medium", bg: "gray.800", color: "white", boxShadow: "0 6px 20px rgba(0,0,0,.18)" },
     },
-    Badge: { baseStyle: { borderRadius: "full", px: 2, textTransform: "none", fontWeight: "semibold" } },
+    Badge: {
+      baseStyle: { borderRadius: "full", px: 2, textTransform: "none", fontWeight: "semibold" },
+      variants: {
+        // a tint of the color with readable text (the stock 100-shade is too strong
+        // with the generated accent palettes)
+        subtle: (p: any) => ({
+          bg: `color-mix(in srgb, var(--chakra-colors-${p.colorScheme}-500) 14%, transparent)`,
+          color: `${p.colorScheme}.600`,
+          _dark: { bg: `color-mix(in srgb, var(--chakra-colors-${p.colorScheme}-400) 20%, transparent)`, color: `${p.colorScheme}.200` },
+        }),
+      },
+    },
     Tabs: {
       variants: {
         "soft-rounded": {

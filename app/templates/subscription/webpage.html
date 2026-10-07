@@ -104,6 +104,19 @@ details[open] summary .chev { transform: rotate(180deg); }
 .links .name { font-size: 12px; color: var(--muted); margin: 0 0 4px 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .note { margin-top: 4px; padding: 10px 14px; border-radius: 12px; background: var(--soft); color: var(--muted); font-size: 13px; }
 .intro { white-space: pre-line; }
+.devrow { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.devrow:first-of-type { border-top: 0; }
+.devrow svg { color: var(--muted); flex-shrink: 0; }
+.devrow .dev { flex: 1; min-width: 0; }
+.devrow .t { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.devrow .s { font-size: 12px; color: var(--muted); white-space: nowrap; }
+h2 .count { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--muted); }
+h2 .count.full { color: var(--bad); }
+.card.lock { text-align: center; padding: 32px 20px; }
+.lockicon { width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 20px; display: grid; place-items: center;
+  color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.card.lock .t { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.card.lock .d { color: var(--muted); margin-bottom: 18px; }
 .vpnrow { padding: 12px 0; border-top: 1px solid var(--line); }
 .vpnrow:first-of-type { border-top: 0; padding-top: 0; }
 .vpnrow .t { font-weight: 650; margin-bottom: 8px; }
@@ -361,6 +374,37 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
       '</span></summary><div class="links">' + rows + "</div></details></section>";
   };
 
+  // the user's devices (HWID); full limit: shown in red
+  var ago = function (ts) {
+    if (!ts) return "";
+    var s = Math.max(0, Date.now() / 1000 - ts);
+    try {
+      var rtf = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
+      if (s < 3600) return rtf.format(-Math.round(s / 60), "minute");
+      if (s < 86400) return rtf.format(-Math.round(s / 3600), "hour");
+      return rtf.format(-Math.round(s / 86400), "day");
+    } catch (e) { return new Date(ts * 1000).toLocaleString(); }
+  };
+  var devicesCard = function () {
+    var list = D.devices || [];
+    if (!list.length && !D.locked) return "";
+    var limit = D.device_limit || 0, full = limit && list.length >= limit;
+    var rows = list.map(function (d) {
+      var name = [d.model, d.platform].filter(Boolean).join(" · ") || T("deviceUnknown");
+      return '<div class="devrow">' + icon(/ios|mac|iphone|ipad/i.test(d.platform) ? "ios" : /android/i.test(d.platform) ? "android" : /win/i.test(d.platform) ? "windows" : "phone", 18) +
+        '<div class="dev"><div class="t">' + esc(name) + '</div><div class="s">' + esc([d.os, d.app].filter(Boolean).join(" · ")) + "</div></div>" +
+        '<div class="s">' + esc(ago(d.last_seen)) + "</div></div>";
+    }).join("");
+    return '<section class="card"><h2>' + icon("phone") + T("devicesTitle") +
+      (limit ? '<span class="count' + (full ? " full" : "") + '">' + list.length + " / " + limit + "</span>" : "") + "</h2>" + rows + "</section>";
+  };
+  var lockedCard = function () {
+    return '<section class="card lock"><div class="lockicon">' + icon("lock", 28) + '</div><div class="t">' + T("deviceLimitTitle") +
+      '</div><div class="d">' + T("deviceLimitHelp") + "</div>" +
+      (D.support ? '<a class="btn primary big" href="' + esc(D.support) + '" target="_blank" rel="noopener">' + icon("help", 18) + T("contactAdmin") + "</a>" : "") +
+      "</section>";
+  };
+
   var render = function () {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "fa" ? "rtl" : "ltr";
@@ -368,9 +412,10 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
     var parts = {
       announce: function () { return D.announce ? '<div class="announce">' + esc(D.announce) + "</div>" : ""; },
       intro: function () { var x = local(D.intro); return x ? '<section class="card intro">' + esc(x) + "</section>" : ""; },
-      user: userCard, install: installCard, vpn: vpnCard, link: linkCard, configs: linksCard
+      user: userCard, devices: devicesCard, install: installCard, vpn: vpnCard, link: linkCard, configs: linksCard
     };
-    var body = (D.sections || []).filter(function (x) { return x.enabled && parts[x.id]; }).map(function (x) { return parts[x.id](); }).join("");
+    var body = D.locked ? lockedCard() + devicesCard()
+      : (D.sections || []).filter(function (x) { return x.enabled && parts[x.id]; }).map(function (x) { return parts[x.id](); }).join("");
     var foot = local(D.footer) || D.title;
     var logo = D.logo ? '<img src="' + esc(D.logo) + '" alt="">' : esc((D.title || "S").charAt(0).toUpperCase());
     document.getElementById("app").innerHTML =

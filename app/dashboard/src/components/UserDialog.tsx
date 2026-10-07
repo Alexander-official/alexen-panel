@@ -435,9 +435,9 @@ export const UserDialog: FC<UserDialogProps> = () => {
               <HStack gap={2}>
                 <Icon color="primary">
                   {isEditing ? (
-                    <EditUserIcon color="white" />
+                    <EditUserIcon />
                   ) : (
-                    <AddUserIcon color="white" />
+                    <AddUserIcon />
                   )}
                 </Icon>
                 <Text fontWeight="semibold" fontSize="lg">

@@ -809,5 +809,12 @@
   "chain.portHelp": "出口服务器需要放行来自中转的此 TCP 端口（防火墙）。",
   "chain.isExit": "作为出口：{{names}}",
   "chain.apply": "应用（会重启两个核心）",
-  "chain.saved": "已保存：核心将在几秒内重启"
+  "chain.saved": "已保存：核心将在几秒内重启",
+  "webpage.linkDomain": "页面链接使用的地址",
+  "webpage.linkDomainHelp": "复制按钮、二维码、应用按钮和文件都使用此地址，无论页面从哪个地址打开。留空：与页面相同。该域名也必须指向面板。",
+  "webpage.devices": "设备列表",
+  "webpage.devicesHelp": "订阅上登记的设备（来自 Happ、v2rayNG 等会发送设备 ID 的应用）。",
+  "webpage.lock": "设备数满时锁定页面",
+  "webpage.lockHelp": "只显示设备和“请联系管理员”：不显示链接、二维码、配置或文件。",
+  "webpage.section.devices": "设备"
 }

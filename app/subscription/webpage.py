@@ -140,7 +140,7 @@ DEFAULT_APPS: Dict[str, List[App]] = {
 }
 
 
-SECTIONS = ["announce", "intro", "user", "install", "vpn", "link", "configs"]
+SECTIONS = ["announce", "intro", "user", "devices", "install", "vpn", "link", "configs"]
 
 
 class Section(BaseModel):
@@ -171,6 +171,12 @@ class WebPageSettings(BaseModel):
     # page texts replaced per language: {"tr": {"s1": "..."}}
     texts: Dict[str, Dict[str, str]] = {}
     custom_css: str = Field("", max_length=20000)
+    # the address the page's links use (copy button, QR, app buttons, files);
+    # empty: the link the page was opened with. e.g. https://sub.example.com
+    link_domain: str = Field("", max_length=300)
+    show_devices: bool = True
+    # device limit full: show only the devices and "contact the admin"
+    lock_on_device_limit: bool = True
     # None: the built-in catalog (DEFAULT_APPS)
     apps: Optional[Dict[str, List[App]]] = None
 
@@ -310,11 +316,64 @@ def vpn_data(db, user, sub_url: str, show_qr: bool) -> List[dict]:
         return []
 
 
+def merge_sections(saved) -> List[dict]:
+    """the saved order, with blocks added later put where they belong by default
+    (after the block that comes before them), not at the bottom"""
+    order = [x.model_dump() if hasattr(x, "model_dump") else dict(x) for x in saved if (x.id if hasattr(x, "id") else x["id"]) in SECTIONS]
+    ids = [x["id"] for x in order]
+    for i, sid in enumerate(SECTIONS):
+        if sid in ids:
+            continue
+        before = [p for p in SECTIONS[:i] if p in ids]
+        pos = ids.index(before[-1]) + 1 if before else 0
+        order.insert(pos, {"id": sid, "enabled": True})
+        ids.insert(pos, sid)
+    return order
+
+
+def with_domain(url: str, domain: str) -> str:
+    """the same link on another address: https://a.com:8000/sub/x -> https://b.com/sub/x"""
+    from urllib.parse import urlparse
+    domain = domain.strip().rstrip("/")
+    if not domain:
+        return url
+    if "://" not in domain:
+        domain = "https://" + domain
+    p = urlparse(url)
+    return domain + p.path + (("?" + p.query) if p.query else "")
+
+
+def devices_of(db, user) -> List[dict]:
+    """the user's registered devices (HWID), newest first"""
+    from app.db.models import User, UserHWIDDevice
+    uid = getattr(user, "id", None) or db.query(User.id).filter(User.username == user.username).scalar()
+    rows = db.query(UserHWIDDevice).filter(UserHWIDDevice.user_id == uid).order_by(UserHWIDDevice.updated_at.desc()).all()
+    return [{"platform": r.platform or "", "model": r.device_model or "", "os": r.os_version or "",
+             "app": (r.user_agent or "").split(" ")[0][:40],
+             "last_seen": int((r.updated_at or r.created_at).timestamp()) if (r.updated_at or r.created_at) else 0}
+            for r in rows]
+
+
 def page_data(db, s: WebPageSettings, user, sub_url: str, links: List[str], headers: dict,
               preview: bool = False) -> dict:
     """everything the page template shows, with the app links already filled in"""
     from app.subscription.subpage import decode_header
+    sub_url = with_domain(sub_url, s.link_domain)
     title = s.title or decode_header(headers.get("profile-title", "")) or "Subscription"
+    devices = devices_of(db, user) if (s.show_devices or s.lock_on_device_limit) else []
+    device_limit = getattr(user, "hwid_limit", None) or 0
+    base_texts = default_texts()
+    langs = [lang for lang in s.languages if lang in base_texts] or ["en"]
+    texts = {lang: {**base_texts["en"], **base_texts[lang], **{k: v for k, v in s.texts.get(lang, {}).items() if v}}
+             for lang in langs}
+    look = {"title": title, "logo": s.logo_url, "support": s.support_url or headers.get("support-url", ""),
+            "accent": s.accent, "theme": s.theme, "style": s.style, "lang": s.default_lang, "texts": texts,
+            "css": s.custom_css, "footer": s.footer, "device_limit": device_limit}
+    if s.lock_on_device_limit and device_limit and len(devices) >= device_limit:
+        # nothing that lets one connect: no link, QR, configs, app buttons or files
+        return {**look, "locked": True, "devices": devices, "sections": [], "intro": {}, "announce": "",
+                "user": {"username": user.username}, "sub_url": "", "crypt": "", "qr": "", "crypt_qr": "",
+                "links": [], "platforms": {}, "vpn": [], "vpn_apps": {}, "order": []}
     announce = decode_header(headers.get("announce", ""))
     # a preview never calls Happ's service: cached links only
     crypt = happ_crypt(db, sub_url, fetch=not preview) if s.happ_crypt else None
@@ -335,29 +394,14 @@ def page_data(db, s: WebPageSettings, user, sub_url: str, links: List[str], head
             })
         if apps:
             platforms[p] = apps
-    # the built-in wording with the admin's replacements on top
-    base = default_texts()
-    langs = [lang for lang in s.languages if lang in base] or ["en"]
-    texts = {lang: {**base["en"], **base[lang], **{k: v for k, v in s.texts.get(lang, {}).items() if v}}
-             for lang in langs}
-    known = {x.id for x in s.sections}
-    sections = [x.model_dump() for x in s.sections if x.id in SECTIONS] + \
-        [{"id": x, "enabled": True} for x in SECTIONS if x not in known]
+    sections = merge_sections(s.sections)
     status = getattr(user.status, "value", str(user.status))
     return {
-        "title": title,
-        "logo": s.logo_url,
-        "support": s.support_url or headers.get("support-url", ""),
-        "accent": s.accent,
-        "theme": s.theme,
-        "style": s.style,
-        "lang": s.default_lang,
-        "texts": texts,
+        **look,
+        "locked": False,
+        "devices": devices if s.show_devices else [],
         "sections": sections,
         "intro": s.intro,
-        "footer": s.footer,
-        # applied by the page script as text (never parsed as HTML)
-        "css": s.custom_css,
         "announce": announce,
         "user": {
             "username": user.username,

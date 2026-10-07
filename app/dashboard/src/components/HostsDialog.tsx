@@ -1,3 +1,4 @@
+import { PlusSmallIcon } from "@heroicons/react/24/outline";
 import {
   Accordion,
   AccordionButton,
@@ -1312,7 +1313,7 @@ export const HostsDialog: FC = () => {
       <ModalContent mx="3" w="fit-content" maxW="3xl">
         <ModalHeader pt={6}>
           <Icon color="primary">
-            <ModalIcon color="white" />
+            <ModalIcon />
           </Icon>
         </ModalHeader>
         <ModalCloseButton mt={3} />
@@ -1323,8 +1324,8 @@ export const HostsDialog: FC = () => {
                 <Text opacity={0.8} fontSize="sm">
                   {t("hostsDialog.title")}
                 </Text>
-                <Button size="xs" colorScheme="primary" flexShrink={0} onClick={() => setAddingHost(true)}>
-                  + {t("inboundBuilder.addHostButton")}
+                <Button size="sm" colorScheme="primary" flexShrink={0} leftIcon={<PlusSmallIcon width={16} />} onClick={() => setAddingHost(true)}>
+                  {t("inboundBuilder.addHostButton")}
                 </Button>
               </HStack>
               {isLoading && t("hostsDialog.loading")}
