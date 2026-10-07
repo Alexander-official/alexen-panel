@@ -35,17 +35,31 @@ export type InboundOptions = {
   serviceName: string;
   xhttpMode: "auto" | "packet-up" | "stream-up" | "stream-one";
   tcpHttpHeader: boolean;
-  // tls
+  // tls: certificate from files, pasted in, or TLS ends in front (CDN / nginx)
+  tlsMode: "file" | "paste" | "edge";
   certFile: string;
   keyFile: string;
+  certPem: string;
+  keyPem: string;
   serverName: string;
   alpn: string;
+  tlsMinVersion: "" | "1.2" | "1.3";
+  rejectUnknownSni: boolean;
+  // the client side, written into the host (fingerprint etc.)
+  fingerprint: string;
+  hostSni: string;
+  hostAlpn: string;
+  mux: boolean;
+  // the users' real IPs behind a relay / CDN
+  proxyProtocol: boolean;
+  realIpHeader: boolean;
   // reality
   realityTarget: string;
   realityServerNames: string;
   realityPrivateKey: string;
   realityPublicKey: string;
   realityShortId: string;
+  realitySpiderX: string;
   // hysteria
   obfsPassword: string;
   // tunnel
@@ -73,15 +87,27 @@ export const defaultInboundOptions = (): InboundOptions => ({
   serviceName: "grpc",
   xhttpMode: "auto",
   tcpHttpHeader: false,
+  tlsMode: "file",
   certFile: "",
   keyFile: "",
+  certPem: "",
+  keyPem: "",
   serverName: "",
   alpn: "h2,http/1.1",
+  tlsMinVersion: "",
+  rejectUnknownSni: false,
+  fingerprint: "chrome",
+  hostSni: "",
+  hostAlpn: "",
+  mux: false,
+  proxyProtocol: false,
+  realIpHeader: false,
   realityTarget: "www.google.com:443",
   realityServerNames: "www.google.com",
   realityPrivateKey: "",
   realityPublicKey: "",
   realityShortId: "",
+  realitySpiderX: "/",
   obfsPassword: "",
   tunnelAddress: "",
   tunnelPort: "",
@@ -107,6 +133,23 @@ export const securitiesFor = (p: InboundProtocol, n: Transport): Security[] => {
   return list;
 };
 
+// TLS can only end at a CDN / nginx for HTTP based transports (not for QUIC / raw)
+export const tlsModesFor = (p: InboundProtocol, n: Transport): InboundOptions["tlsMode"][] =>
+  p === "hysteria" || n === "kcp" ? ["file", "paste"] : ["file", "paste", "edge"];
+// the real-IP options make sense for these
+export const canProxyProtocol = (p: InboundProtocol, n: Transport) =>
+  p !== "hysteria" && p !== "tunnel" && n !== "kcp";
+export const canRealIpHeader = (n: Transport) => ["ws", "xhttp", "httpupgrade"].includes(n);
+export const FINGERPRINTS = ["chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized"];
+export const HOST_ALPNS = ["", "h2", "http/1.1", "h2,http/1.1", "h3", "h3,h2", "h3,h2,http/1.1"];
+
+const pemLines = (v: string) =>
+  v
+    .trim()
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
 const split = (v: string) =>
   v
     .split(",")
@@ -124,7 +167,8 @@ export const suggestTag = (o: InboundOptions) => {
   ] || o.protocol.toUpperCase();
   const parts = [name];
   if (transportsFor(o.protocol).length) parts.push(o.network.toUpperCase());
-  if (o.security !== "none" && o.protocol !== "hysteria") parts.push(o.security.toUpperCase());
+  if (o.security !== "none" && o.protocol !== "hysteria")
+    parts.push(o.security === "tls" && o.tlsMode === "edge" && tlsModesFor(o.protocol, o.network).includes("edge") ? "CDN" : o.security.toUpperCase());
   if (o.port) parts.push(String(o.port));
   return parts.join(" ");
 };
@@ -212,13 +256,24 @@ export const buildInbound = (o: InboundOptions): any => {
   const security = securitiesFor(o.protocol, o.network).includes(o.security)
     ? o.security
     : securitiesFor(o.protocol, o.network)[0];
-  if (security === "tls") {
+  const mode = tlsModesFor(o.protocol, o.network).includes(o.tlsMode) ? o.tlsMode : "file";
+  if (security === "tls" && mode !== "edge") {
     stream.security = "tls";
     stream.tlsSettings = {
       ...(o.serverName ? { serverName: o.serverName.trim() } : {}),
       alpn: o.protocol === "hysteria" ? ["h3"] : split(o.alpn),
-      certificates: [{ certificateFile: o.certFile.trim(), keyFile: o.keyFile.trim() }],
+      ...(o.tlsMinVersion ? { minVersion: o.tlsMinVersion } : {}),
+      ...(o.rejectUnknownSni ? { rejectUnknownSni: true } : {}),
+      certificates: [
+        mode === "paste"
+          ? { certificate: pemLines(o.certPem), key: pemLines(o.keyPem) }
+          : { certificateFile: o.certFile.trim(), keyFile: o.keyFile.trim() },
+      ],
     };
+  } else if (security === "tls" && mode === "edge") {
+    // TLS is done by the CDN / nginx in front: the inbound itself is plain,
+    // the host makes the users' links TLS (see hostFor)
+    stream.security = "none";
   } else if (security === "reality") {
     stream.security = "reality";
     stream.realitySettings = {
@@ -228,8 +283,14 @@ export const buildInbound = (o: InboundOptions): any => {
       serverNames: split(o.realityServerNames),
       privateKey: o.realityPrivateKey.trim(),
       shortIds: split(o.realityShortId),
+      ...(o.realitySpiderX && o.realitySpiderX !== "/" ? { SpiderX: o.realitySpiderX } : {}),
     };
   }
+  // real IPs: PROXY protocol from a relay / nginx, or the CDN's header
+  const sockopt: any = {};
+  if (o.proxyProtocol && canProxyProtocol(o.protocol, o.network)) sockopt.acceptProxyProtocol = true;
+  if (o.realIpHeader && canRealIpHeader(o.network)) sockopt.trustedXForwardedFor = ["CF-Connecting-IP", "X-Real-IP", "X-Forwarded-For"];
+  if (Object.keys(sockopt).length) stream.sockopt = sockopt;
 
   if (Object.keys(stream).length) inbound.streamSettings = stream;
   if (o.sniffing && o.protocol !== "tunnel")
@@ -247,7 +308,10 @@ export const validateInbound = (o: InboundOptions, config: any): string[] => {
   if ((config?.inbounds || []).some((i: any) => i.tag === tag)) errors.push("tagExists");
   if (o.protocol === "tunnel" && (!o.tunnelAddress.trim() || !Number(o.tunnelPort))) errors.push("tunnelTarget");
   const sec = securitiesFor(o.protocol, o.network).includes(o.security) ? o.security : securitiesFor(o.protocol, o.network)[0];
-  if (sec === "tls" && (!o.certFile.trim() || !o.keyFile.trim())) errors.push("tlsCert");
+  const mode = tlsModesFor(o.protocol, o.network).includes(o.tlsMode) ? o.tlsMode : "file";
+  if (sec === "tls" && mode === "file" && (!o.certFile.trim() || !o.keyFile.trim())) errors.push("tlsCert");
+  if (sec === "tls" && mode === "paste" && (!/-----BEGIN [A-Z ]*CERTIFICATE-----/.test(o.certPem) || !/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(o.keyPem)))
+    errors.push("tlsPem");
   if (sec === "reality" && (!o.realityPrivateKey.trim() || !split(o.realityShortId).length || !o.realityTarget.trim()))
     errors.push("reality");
   return errors;
@@ -282,4 +346,19 @@ export const addInboundToConfig = (config: any, o: InboundOptions) => {
     next.routing.rules = [rule, ...(next.routing.rules || [])];
   }
   return { config: next, inbound };
+};
+
+// the host for a new inbound: the client-side choices (fingerprint, SNI, ALPN, mux)
+export const hostFor = (o: InboundOptions, base: any) => {
+  const sec = securitiesFor(o.protocol, o.network).includes(o.security) ? o.security : securitiesFor(o.protocol, o.network)[0];
+  const edge = sec === "tls" && tlsModesFor(o.protocol, o.network).includes(o.tlsMode) && o.tlsMode === "edge";
+  const usesTls = sec === "tls" || sec === "reality";
+  return {
+    ...base,
+    security: edge ? "tls" : base.security || "inbound_default",
+    sni: o.hostSni.trim() || (edge ? o.host.trim() : "") || base.sni || null,
+    alpn: (usesTls && o.hostAlpn) || base.alpn || "",
+    fingerprint: usesTls ? o.fingerprint || "" : base.fingerprint || "",
+    mux_enable: o.mux || base.mux_enable || null,
+  };
 };

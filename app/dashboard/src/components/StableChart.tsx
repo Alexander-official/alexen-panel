@@ -273,8 +273,8 @@ const Series: FC<Props & { kind: "area" | "bar" | "line" }> = ({ options, series
             : list.map((s, si) => {
                 const top = s.data.map((v, i) => [geo.x(i), geo.y((stacked ? base[si][i] : 0) + v)]);
                 const bottom = s.data.map((_, i) => [geo.x(i), geo.y(stacked ? base[si][i] : 0)]).reverse();
-                const line = top.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("");
-                const area = line + bottom.map(([x, y]) => `L${x.toFixed(1)},${y.toFixed(1)}`).join("") + "Z";
+                const line = smooth(top);
+                const area = line + smooth(bottom, false) + "Z";
                 return (
                   <g key={si}>
                     {kind === "area" && <path d={area} fill={`url(#${gid}-${si})`} />}
@@ -305,6 +305,41 @@ const Series: FC<Props & { kind: "area" | "bar" | "line" }> = ({ options, series
       {list.length > 1 && <Legend items={list.map((s, si) => ({ name: s.name, color: colors[si % colors.length] }))} />}
     </Box>
   );
+};
+
+// a smooth curve through the points that never overshoots them (monotone
+// cubic): soft waves without dipping under zero or above a peak
+const smooth = (pts: number[][], move = true) => {
+  const n = pts.length;
+  if (!n) return "";
+  if (n < 3) return pts.map(([x, y], i) => `${i || !move ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("");
+  const dx: number[] = [], m: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx.push(pts[i + 1][0] - pts[i][0]);
+    m.push((pts[i + 1][1] - pts[i][1]) / (dx[i] || 1));
+  }
+  const t: number[] = [m[0]];
+  for (let i = 1; i < n - 1; i++) t.push(m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2);
+  t.push(m[n - 2]);
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) {
+      t[i] = 0;
+      t[i + 1] = 0;
+      continue;
+    }
+    const a = t[i] / m[i], b = t[i + 1] / m[i], h = a * a + b * b;
+    if (h > 9) {
+      const k = 3 / Math.sqrt(h);
+      t[i] = k * a * m[i];
+      t[i + 1] = k * b * m[i];
+    }
+  }
+  let d = `${move ? "M" : "L"}${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], h = dx[i] / 3;
+    d += `C${(x0 + h).toFixed(1)},${(y0 + t[i] * h).toFixed(1)} ${(x1 - h).toFixed(1)},${(y1 - t[i + 1] * h).toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+  }
+  return d;
 };
 
 const sig = (v: any) => JSON.stringify(v, (_k, x) => (typeof x === "function" ? String(x) : x));

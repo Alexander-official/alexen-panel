@@ -19,6 +19,7 @@ import {
   SimpleGrid,
   Switch,
   Text,
+  Textarea,
   Tooltip,
   useToast,
   VStack,
@@ -41,7 +42,13 @@ import { fetch } from "service/http";
 import {
   addInboundToConfig,
   buildInbound,
+  canProxyProtocol,
+  canRealIpHeader,
   defaultInboundOptions,
+  FINGERPRINTS,
+  HOST_ALPNS,
+  hostFor,
+  tlsModesFor,
   INBOUND_PROTOCOLS,
   InboundOptions,
   knownCertificates,
@@ -93,10 +100,22 @@ type BuilderProps = {
   onChange: (v: InboundOptions) => void;
   // the core config the inbound goes into: port clashes, outbounds, known certificates
   config: any;
+  // "Add host" also asks the client side (fingerprint, SNI...) for the host it makes
+  withHost?: boolean;
 };
 
+const Seg: FC<{ value: string; options: [string, string][]; onChange: (v: string) => void }> = ({ value, options, onChange }) => (
+  <HStack spacing={1} flexWrap="wrap" rowGap={1}>
+    {options.map(([v, label]) => (
+      <Button key={v} size="xs" borderRadius="full" colorScheme="primary" variant={value === v ? "solid" : "outline"} onClick={() => onChange(v)}>
+        {label}
+      </Button>
+    ))}
+  </HStack>
+);
+
 // the form: protocol, transport, security and their settings
-export const InboundBuilderForm: FC<BuilderProps> = ({ value: o, onChange, config }) => {
+export const InboundBuilderForm: FC<BuilderProps> = ({ value: o, onChange, config, withHost }) => {
   const { t } = useTranslation();
   const toast = useToast();
   const set = (patch: Partial<InboundOptions>) => onChange({ ...o, ...patch });
@@ -109,6 +128,8 @@ export const InboundBuilderForm: FC<BuilderProps> = ({ value: o, onChange, confi
   const hasPath =
     ["ws", "xhttp", "httpupgrade"].includes(o.network) || (o.network === "tcp" && o.tcpHttpHeader && security === "none");
   const [generating, setGenerating] = useState(false);
+  const tlsModes = tlsModesFor(o.protocol, o.network);
+  const tlsMode = tlsModes.includes(o.tlsMode) ? o.tlsMode : "file";
 
   // prefill the certificate the config already uses
   useEffect(() => {
@@ -232,42 +253,78 @@ export const InboundBuilderForm: FC<BuilderProps> = ({ value: o, onChange, confi
 
       {/* security settings */}
       {security === "tls" && (
-        <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
-          {certs.length > 1 && (
-            <Box gridColumn="1 / -1">
-              <Field label={t("inboundBuilder.knownCert")}>
-                <Select
-                  size="sm"
-                  value={o.certFile}
-                  onChange={(e) => {
-                    const c = certs.find((x) => x.certFile === e.target.value);
-                    if (c) set(c);
-                  }}
-                >
-                  {certs.map((c) => (
-                    <option key={c.certFile} value={c.certFile}>
-                      {c.certFile}
-                    </option>
-                  ))}
+        <VStack align="stretch" spacing={3}>
+          <Field label={t("inboundBuilder.tlsMode")} help={t(`inboundBuilder.tlsModeHelp.${tlsMode}`)}>
+            <Seg
+              value={tlsMode}
+              options={tlsModes.map((m) => [m, t(`inboundBuilder.tlsModeName.${m}`)] as [string, string])}
+              onChange={(v) => set({ tlsMode: v as any })}
+            />
+          </Field>
+          {tlsMode === "file" && (
+            <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
+              {certs.length > 1 && (
+                <Box gridColumn="1 / -1">
+                  <Field label={t("inboundBuilder.knownCert")}>
+                    <Select
+                      size="sm"
+                      value={o.certFile}
+                      onChange={(e) => {
+                        const c = certs.find((x) => x.certFile === e.target.value);
+                        if (c) set(c);
+                      }}
+                    >
+                      {certs.map((c) => (
+                        <option key={c.certFile} value={c.certFile}>
+                          {c.certFile}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                </Box>
+              )}
+              <Field label={t("inboundBuilder.certFile")}>
+                <Input size="sm" placeholder="/var/lib/marzban/certs/fullchain.pem" value={o.certFile} onChange={(e) => set({ certFile: e.target.value })} />
+              </Field>
+              <Field label={t("inboundBuilder.keyFile")}>
+                <Input size="sm" placeholder="/var/lib/marzban/certs/key.pem" value={o.keyFile} onChange={(e) => set({ keyFile: e.target.value })} />
+              </Field>
+            </SimpleGrid>
+          )}
+          {tlsMode === "paste" && (
+            <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
+              <Field label={t("inboundBuilder.certPem")}>
+                <Textarea size="sm" rows={4} fontFamily="mono" fontSize="2xs" placeholder="-----BEGIN CERTIFICATE-----" value={o.certPem} onChange={(e) => set({ certPem: e.target.value })} />
+              </Field>
+              <Field label={t("inboundBuilder.keyPem")}>
+                <Textarea size="sm" rows={4} fontFamily="mono" fontSize="2xs" placeholder="-----BEGIN PRIVATE KEY-----" value={o.keyPem} onChange={(e) => set({ keyPem: e.target.value })} />
+              </Field>
+            </SimpleGrid>
+          )}
+          {tlsMode !== "edge" && (
+            <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
+              {o.protocol !== "hysteria" && (
+                <Field label="ALPN">
+                  <Input size="sm" value={o.alpn} onChange={(e) => set({ alpn: e.target.value })} />
+                </Field>
+              )}
+              <Field label="SNI (serverName)">
+                <Input size="sm" placeholder={t("inboundBuilder.optional")} value={o.serverName} onChange={(e) => set({ serverName: e.target.value })} />
+              </Field>
+              <Field label={t("inboundBuilder.minVersion")}>
+                <Select size="sm" value={o.tlsMinVersion} onChange={(e) => set({ tlsMinVersion: e.target.value as any })}>
+                  <option value="">{t("inboundBuilder.default")}</option>
+                  <option value="1.2">TLS 1.2</option>
+                  <option value="1.3">TLS 1.3</option>
                 </Select>
               </Field>
-            </Box>
+              <HStack alignSelf="end" pb={1}>
+                <Switch size="sm" isChecked={o.rejectUnknownSni} onChange={(e) => set({ rejectUnknownSni: e.target.checked })} />
+                <Text fontSize="sm">{t("inboundBuilder.rejectUnknownSni")}</Text>
+              </HStack>
+            </SimpleGrid>
           )}
-          <Field label={t("inboundBuilder.certFile")}>
-            <Input size="sm" placeholder="/var/lib/marzban/certs/fullchain.pem" value={o.certFile} onChange={(e) => set({ certFile: e.target.value })} />
-          </Field>
-          <Field label={t("inboundBuilder.keyFile")}>
-            <Input size="sm" placeholder="/var/lib/marzban/certs/key.pem" value={o.keyFile} onChange={(e) => set({ keyFile: e.target.value })} />
-          </Field>
-          {o.protocol !== "hysteria" && (
-            <Field label="ALPN">
-              <Input size="sm" value={o.alpn} onChange={(e) => set({ alpn: e.target.value })} />
-            </Field>
-          )}
-          <Field label="SNI (serverName)">
-            <Input size="sm" placeholder={t("inboundBuilder.optional")} value={o.serverName} onChange={(e) => set({ serverName: e.target.value })} />
-          </Field>
-        </SimpleGrid>
+        </VStack>
       )}
       {security === "reality" && (
         <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
@@ -293,6 +350,9 @@ export const InboundBuilderForm: FC<BuilderProps> = ({ value: o, onChange, confi
               </HStack>
             </Field>
           </Box>
+          <Field label="spiderX">
+            <Input size="sm" fontFamily="mono" value={o.realitySpiderX} onChange={(e) => set({ realitySpiderX: e.target.value })} />
+          </Field>
           <Field label="shortIds">
             <HStack>
               <Input size="sm" fontFamily="mono" value={o.realityShortId} onChange={(e) => set({ realityShortId: e.target.value })} />
@@ -348,6 +408,81 @@ export const InboundBuilderForm: FC<BuilderProps> = ({ value: o, onChange, confi
             <Input size="sm" value={o.authPass} onChange={(e) => set({ authPass: e.target.value })} />
           </Field>
         </SimpleGrid>
+      )}
+
+      {withHost && USER_PROTOCOLS.includes(o.protocol) && (security === "tls" || security === "reality") && (
+        <Box p={3} borderRadius="12px" bg="var(--tier-2)" borderWidth="1px" borderColor="var(--tier-line)">
+          <Text fontSize="sm" fontWeight="semibold" mb={0.5}>
+            {t("inboundBuilder.client")}
+          </Text>
+          <Text fontSize="xs" color="gray.500" mb={3}>
+            {t("inboundBuilder.clientHelp")}
+          </Text>
+          <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
+            <Field label={t("inboundBuilder.fingerprint")} help={t("inboundBuilder.fingerprintHelp")}>
+              <Select size="sm" value={o.fingerprint} onChange={(e) => set({ fingerprint: e.target.value })}>
+                <option value="">{t("inboundBuilder.none")}</option>
+                {FINGERPRINTS.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            {security === "tls" && (
+              <Field label={t("inboundBuilder.hostSni")} help={tlsMode === "edge" ? t("inboundBuilder.hostSniEdge") : undefined}>
+                <Input size="sm" placeholder={tlsMode === "edge" ? o.host || "sub.example.com" : t("inboundBuilder.optional")} value={o.hostSni} onChange={(e) => set({ hostSni: e.target.value.trim() })} />
+              </Field>
+            )}
+            {security === "tls" && o.protocol !== "hysteria" && (
+              <Field label={t("inboundBuilder.hostAlpn")}>
+                <Select size="sm" value={o.hostAlpn} onChange={(e) => set({ hostAlpn: e.target.value })}>
+                  {HOST_ALPNS.map((a) => (
+                    <option key={a || "-"} value={a}>
+                      {a || t("inboundBuilder.default")}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
+            {o.protocol !== "hysteria" && (
+              <HStack alignSelf="end" pb={1}>
+                <Switch size="sm" isChecked={o.mux} onChange={(e) => set({ mux: e.target.checked })} />
+                <Text fontSize="sm">Mux</Text>
+              </HStack>
+            )}
+          </SimpleGrid>
+        </Box>
+      )}
+
+      {canProxyProtocol(o.protocol, o.network) && (
+        <Box p={3} borderRadius="12px" bg="var(--tier-2)" borderWidth="1px" borderColor="var(--tier-line)">
+          <Text fontSize="sm" fontWeight="semibold" mb={2}>
+            {t("inboundBuilder.realIp")}
+          </Text>
+          <VStack align="stretch" spacing={2}>
+            <HStack alignItems="flex-start">
+              <Switch size="sm" mt={0.5} isChecked={o.proxyProtocol} onChange={(e) => set({ proxyProtocol: e.target.checked })} />
+              <Box>
+                <Text fontSize="sm">{t("inboundBuilder.proxyProtocol")}</Text>
+                <Text fontSize="xs" color="gray.500">
+                  {t("inboundBuilder.proxyProtocolHelp")}
+                </Text>
+              </Box>
+            </HStack>
+            {canRealIpHeader(o.network) && (
+              <HStack alignItems="flex-start">
+                <Switch size="sm" mt={0.5} isChecked={o.realIpHeader} onChange={(e) => set({ realIpHeader: e.target.checked })} />
+                <Box>
+                  <Text fontSize="sm">{t("inboundBuilder.realIpHeader")}</Text>
+                  <Text fontSize="xs" color="gray.500">
+                    {t("inboundBuilder.realIpHeaderHelp")}
+                  </Text>
+                </Box>
+              </HStack>
+            )}
+          </VStack>
+        </Box>
       )}
 
       <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
@@ -430,16 +565,16 @@ export const AddHostModal: FC<AddHostModalProps> = ({ isOpen, onClose }) => {
       const fresh = await fetchCoreConfig(coreId);
       const { config: next, inbound } = addInboundToConfig(fresh, opts);
       await saveCoreConfig(coreId, next);
-      if (isUserInbound && (remark.trim() || address.trim() || groups)) {
+      if (isUserInbound) {
         const hosts: any = await fetch("/hosts");
         const current = hosts?.[inbound.tag] || [];
-        const host = {
+        const host = hostFor(opts, {
           ...(current[0] || {}),
-          remark: remark.trim() || current[0]?.remark || "🚀 Marz ({USERNAME}) [{PROTOCOL} - {TRANSPORT}]",
+          remark: remark.trim() || current[0]?.remark || "🚀 {USERNAME} [{PROTOCOL} - {TRANSPORT}]",
           address: address.trim() || current[0]?.address || "{SERVER_IP}",
           port: coreId === MAIN_CORE ? null : inbound.port,
           group_name: groups,
-        };
+        });
         await fetch("/hosts", { method: "PUT", body: { [inbound.tag]: [host] } });
       }
       toast({ title: t("inboundBuilder.added", { tag: inbound.tag }), status: "success", position: "top", duration: 3000 });
@@ -478,7 +613,7 @@ export const AddHostModal: FC<AddHostModalProps> = ({ isOpen, onClose }) => {
                 </Select>
               </Field>
             )}
-            <InboundBuilderForm value={opts} onChange={setOpts} config={config} />
+            <InboundBuilderForm value={opts} onChange={setOpts} config={config} withHost />
             {isUserInbound && (
               <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
                 <Field label={t("inboundBuilder.hostRemark")}>
