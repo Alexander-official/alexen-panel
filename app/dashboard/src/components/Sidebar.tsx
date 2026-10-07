@@ -31,6 +31,7 @@ import {
   DocumentTextIcon,
   GlobeAltIcon,
   LinkIcon,
+  ShareIcon,
   LockClosedIcon,
   ListBulletIcon,
   MoonIcon,
@@ -165,6 +166,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
           { title: t("header.hostSettings"), path: "hosts", icon: ic(ListBulletIcon) },
           { title: t("header.groupSettings"), path: "groups", icon: ic(RectangleGroupIcon) },
           { title: t("header.adminsSettings"), path: "admins", icon: ic(ShieldCheckIcon) },
+          { title: t("preroutePage.title"), path: "preroute", icon: ic(ShareIcon) },
           {
             title: t("sidebar.nodes"),
             path: "nodes",

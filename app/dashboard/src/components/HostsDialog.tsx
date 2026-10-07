@@ -331,7 +331,7 @@ const AccordionInbound: FC<AccordionInboundType> = ({
                           {...form.register(hostKey + "." + index + ".remark")}
                           size="sm"
                           borderRadius="4px"
-                          placeholder="Remark"
+                          placeholder={t("hostsDialog.remark")}
                         />
                         <InputRightElement>
                           <Popover isLazy placement="right">
@@ -619,7 +619,7 @@ const AccordionInbound: FC<AccordionInboundType> = ({
                                 );
                               }}
                             />
-                            <Tooltip label="Delete" placement="top">
+                            <Tooltip label={t("delete")} placement="top">
                               <IconButton
                                 aria-label="Delete"
                                 size="sm"
@@ -632,9 +632,9 @@ const AccordionInbound: FC<AccordionInboundType> = ({
                             </Tooltip>
                           </Container>
                         </AccordionButton>
-                        <Tooltip label="Duplicate" placement="top">
+                        <Tooltip label={t("hostsDialog.duplicate")} placement="top">
                           <IconButton
-                            aria-label="Duplicate"
+                            aria-label={t("hostsDialog.duplicate")}
                             size="sm"
                             colorScheme="white"
                             variant="ghost"
@@ -1027,7 +1027,7 @@ const AccordionInbound: FC<AccordionInboundType> = ({
                             <Input
                               size="sm"
                               borderRadius="4px"
-                              placeholder="Fragment settings by pattern"
+                              placeholder={t("hostsDialog.fragment.placeholder")}
                               {...form.register(
                                 hostKey + "." + index + ".fragment_setting"
                               )}
@@ -1091,7 +1091,7 @@ const AccordionInbound: FC<AccordionInboundType> = ({
                             <Input
                               size="sm"
                               borderRadius="4px"
-                              placeholder="Noise settings by pattern"
+                              placeholder={t("hostsDialog.noise.placeholder")}
                               {...form.register(
                                 hostKey + "." + index + ".noise_setting"
                               )}

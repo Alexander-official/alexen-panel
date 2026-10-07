@@ -552,6 +552,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
       <Table
         orientation="vertical"
         display={{ base: "none", md: "table" }}
+        sx={{ "th, td": { px: { md: 3, xl: 5 } } }}
         {...props}
       >
         <Thead zIndex="docked" position="relative">
@@ -597,25 +598,27 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
             <Th
               position="sticky"
               top={{ base: "unset", md: top }}
-              width="170px"
-              minW="150px"
+              width="150px"
+              minW="130px"
             >
-              <HStack gap="6px">
+              <HStack gap="4px">
                 <Text>{t("usersTable.status")}</Text>
                 <Select
                   size="xs"
                   variant="unstyled"
                   w="auto"
+                  minW="68px"
+                  maxW="88px"
                   cursor="pointer"
                   value={filters.status || ""}
                   onChange={handleStatusFilter}
                 >
                   <option value="">{t("all") || "all"}</option>
-                  <option value="active">active</option>
-                  <option value="on_hold">on_hold</option>
-                  <option value="disabled">disabled</option>
-                  <option value="limited">limited</option>
-                  <option value="expired">expired</option>
+                  <option value="active">{t("status.active")}</option>
+                  <option value="on_hold">{t("status.on_hold")}</option>
+                  <option value="disabled">{t("status.disabled")}</option>
+                  <option value="limited">{t("status.limited")}</option>
+                  <option value="expired">{t("status.expired")}</option>
                 </Select>
               </HStack>
             </Th>
@@ -635,8 +638,8 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
             <Th
               position="sticky"
               top={{ base: "unset", md: top }}
-              width="200px"
-              minW="180px"
+              width="168px"
+              minW="150px"
             />
           </Tr>
         </Thead>
@@ -691,7 +694,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                       <IconText icon={SignalIcon}>{user.online_ip_count ?? 0}</IconText>
                     </Text>
                   </Td>
-                  <Td width="170px" minW="150px">
+                  <Td width="150px" minW="130px">
                     <StatusBadge
                       expiryDate={user.expire}
                       status={user.status}
@@ -706,7 +709,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                       colorScheme={statusColors[user.status].bandWidthColor}
                     />
                   </Td>
-                  <Td width="200px" minW="180px">
+                  <Td width="168px" minW="150px">
                     <ActionButtons user={user} />
                   </Td>
                 </Tr>

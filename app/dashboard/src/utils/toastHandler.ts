@@ -1,3 +1,4 @@
+import i18n from "locales/i18n";
 import { CreateToastFnReturn } from "@chakra-ui/react";
 import { UseFormReturn } from "react-hook-form";
 
@@ -26,7 +27,7 @@ export const generateErrorMessage = (
       }
   }
   return toast({
-    title: "Something went wrong!",
+    title: i18n.t("errors.generic"),
     status: "error",
     isClosable: true,
     position: "top",

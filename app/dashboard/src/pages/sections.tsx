@@ -95,6 +95,12 @@ export const SECTIONS: Section[] = [
     Component: named(() => import("components/AutoChangePage"), "AutoChangePage"),
   },
   {
+    path: "preroute",
+    title: "preroutePage.title",
+    sudo: true,
+    Component: named(() => import("components/PreroutePage"), "PreroutePage"),
+  },
+  {
     path: "vpn",
     title: "vpn.title",
     sudo: true,

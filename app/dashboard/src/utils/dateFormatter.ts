@@ -1,4 +1,7 @@
 import dayjs from "dayjs";
+import i18n from "locales/i18n";
+
+const unit = (name: string, n: number) => i18n.t(`duration.${name}`, { count: Math.abs(n) });
 
 export const relativeExpiryDate = (expiryDate: number | null | undefined) => {
   let dateInfo = { status: "", time: "" };
@@ -18,42 +21,12 @@ export const relativeExpiryDate = (expiryDate: number | null | undefined) => {
         .utc()
         .diff(dayjs())
     );
-    if (duration.years() != 0) {
-      durationSlots.push(
-        Math.abs(duration.years()) +
-          " year" +
-          (Math.abs(duration.years()) != 1 ? "s" : "")
-      );
-    }
-    if (duration.months() != 0) {
-      durationSlots.push(
-        Math.abs(duration.months()) +
-          " month" +
-          (Math.abs(duration.months()) != 1 ? "s" : "")
-      );
-    }
-    if (duration.days() != 0) {
-      durationSlots.push(
-        Math.abs(duration.days()) +
-          " day" +
-          (Math.abs(duration.days()) != 1 ? "s" : "")
-      );
-    }
+    if (duration.years() != 0) durationSlots.push(unit("year", duration.years()));
+    if (duration.months() != 0) durationSlots.push(unit("month", duration.months()));
+    if (duration.days() != 0) durationSlots.push(unit("day", duration.days()));
     if (durationSlots.length === 0) {
-      if (duration.hours() != 0) {
-        durationSlots.push(
-          Math.abs(duration.hours()) +
-            " hour" +
-            (Math.abs(duration.hours()) != 1 ? "s" : "")
-        );
-      }
-      if (duration.minutes() != 0) {
-        durationSlots.push(
-          Math.abs(duration.minutes()) +
-            " min" +
-            (Math.abs(duration.minutes()) != 1 ? "s" : "")
-        );
-      }
+      if (duration.hours() != 0) durationSlots.push(unit("hour", duration.hours()));
+      if (duration.minutes() != 0) durationSlots.push(unit("min", duration.minutes()));
     }
     dateInfo.time = durationSlots.join(", ");
   }

@@ -424,6 +424,9 @@ def remove_user(db: Session, dbuser: User) -> User:
     Returns:
         User: The removed user object.
     """
+    # its usage rows go with it: note where it is connected so it can be cut off
+    from app.xray.operations import remember_servers
+    remember_servers(dbuser.id)
     db.delete(dbuser)
     db.commit()
     return dbuser

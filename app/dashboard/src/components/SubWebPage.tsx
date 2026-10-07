@@ -48,6 +48,7 @@ import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import { FC, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetch } from "service/http";
+import { DomainSettingsPage } from "./DomainSettingsPage";
 
 export type WebApp = {
   id: string;
@@ -100,7 +101,7 @@ export const emptyWebPage: WebPageSettings = {
   theme: "auto",
   style: "soft",
   default_lang: "auto",
-  languages: ["en", "tr", "ru", "fa", "zh"],
+  languages: ["en", "tr", "tk", "ru", "fa", "zh"],
   happ_crypt: true,
   show_links: true,
   show_qr: true,
@@ -118,6 +119,7 @@ export const emptyWebPage: WebPageSettings = {
 const LANGS: [string, string][] = [
   ["en", "English"],
   ["tr", "Türkçe"],
+  ["tk", "Türkmençe"],
   ["ru", "Русский"],
   ["fa", "فارسی"],
   ["zh", "中文"],
@@ -599,6 +601,13 @@ export const SubWebPagePanel: FC<{
                 })}
               </HStack>
             </Field>
+            <DomainSettingsPage embedded />
+            <Toggle
+              label={t("webpage.showLink")}
+              help={t("webpage.showLinkHelp")}
+              on={sections.find((x) => x.id === "link")?.enabled !== false}
+              onChange={(v) => set({ sections: sections.map((x) => (x.id === "link" ? { ...x, enabled: v } : x)) })}
+            />
             <Field label={t("webpage.linkDomain")} help={t("webpage.linkDomainHelp")}>
               <Input
                 size="sm"

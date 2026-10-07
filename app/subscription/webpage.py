@@ -60,6 +60,7 @@ OUTLINE = "ssconf://{url_noscheme}/outline#{name}"
 OUTLINE_NOTE = {"en": "Works with the Shadowsocks servers of your subscription.",
                 "ru": "Работает с серверами Shadowsocks из вашей подписки.",
                 "tr": "Aboneliğindeki Shadowsocks sunucularıyla çalışır.",
+                "tk": "Abunaňyzdaky Shadowsocks serwerleri bilen işleýär.",
                 "fa": "با سرورهای Shadowsocks اشتراک شما کار می‌کند.",
                 "zh": "适用于订阅中的 Shadowsocks 服务器。"}
 OUTLINE_DESKTOP = [Button(label="getoutline.org", url="https://getoutline.org/get-started/")]
@@ -159,7 +160,7 @@ class WebPageSettings(BaseModel):
     # soft | glass | clay: the look of the cards
     style: str = Field("soft", pattern="^(soft|glass|clay)$")
     default_lang: str = Field("auto", max_length=8)
-    languages: List[str] = ["en", "tr", "ru", "fa", "zh"]
+    languages: List[str] = ["en", "tr", "tk", "ru", "fa", "zh"]
     happ_crypt: bool = True
     show_links: bool = True
     show_qr: bool = True

@@ -50,7 +50,8 @@ const Field: FC<{ label: string; help?: ReactNode; children: ReactNode }> = ({ l
   </FormControl>
 );
 
-export const DomainSettingsPage: FC = () => {
+/** embedded: inside another settings page (Sub → Web page), without the DNS notes */
+export const DomainSettingsPage: FC<{ embedded?: boolean }> = ({ embedded }) => {
   const { t } = useTranslation();
   const toast = useToast();
   const qc = useQueryClient();
@@ -113,8 +114,8 @@ export const DomainSettingsPage: FC = () => {
   ];
 
   return (
-    <VStack align="stretch" spacing={5} maxW="900px">
-      <Box {...card} p={{ base: 4, md: 6 }}>
+    <VStack align="stretch" spacing={5} maxW={embedded ? undefined : "900px"}>
+      <Box {...(embedded ? { borderRadius: "14px", bg: "blackAlpha.50", _dark: { bg: "whiteAlpha.50" } } : card)} p={{ base: 4, md: 6 }}>
         <HStack spacing={3} mb={1}>
           <Icon as={GlobeAltIcon} boxSize="20px" color="primary.500" />
           <Text fontWeight="semibold">{t("domain.linkTitle")}</Text>
@@ -212,6 +213,7 @@ export const DomainSettingsPage: FC = () => {
         </VStack>
       </Box>
 
+      {!embedded && (
       <HStack {...card} p={{ base: 4, md: 5 }} spacing={3} align="flex-start">
         <Icon as={InformationCircleIcon} boxSize="20px" color="primary.500" flexShrink={0} mt={0.5} />
         <VStack align="stretch" spacing={2} fontSize="sm">
@@ -221,6 +223,7 @@ export const DomainSettingsPage: FC = () => {
           <Text color="gray.500">{t("domain.dns3")}</Text>
         </VStack>
       </HStack>
+      )}
     </VStack>
   );
 };

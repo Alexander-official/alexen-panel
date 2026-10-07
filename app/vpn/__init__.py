@@ -644,3 +644,13 @@ def collect_usage() -> Dict[Optional[int], tuple]:
             inbound.append({"uid": str(uid), "tag": tag, "value": v})
         out[node_id] = ([{"uid": str(uid), "value": v} for uid, v in per_user.items()], inbound)
     return out
+
+
+def load_safe(key: str) -> Optional[ServerVPN]:
+    """one server's VPN settings, with its own DB session (None when it has none)"""
+    try:
+        from app.db import GetDB
+        with GetDB() as db:
+            return load(db).servers.get(key)
+    except Exception:
+        return None

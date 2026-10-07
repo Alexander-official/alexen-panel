@@ -174,7 +174,9 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
   var D = JSON.parse(document.getElementById("data").textContent);
 
   var L = D.texts;
-  var NAMES = { en: "English", ru: "Русский", tr: "Türkçe", fa: "فارسی", zh: "中文" };
+  var NAMES = { en: "English", ru: "Русский", tr: "Türkçe", tk: "Türkmençe", fa: "فارسی", zh: "中文" };
+  // Turkmen: browsers often have no Intl data for it, so dates are written here
+  var TK_MONTHS = ["ýanwar", "fewral", "mart", "aprel", "maý", "iýun", "iýul", "awgust", "sentýabr", "oktýabr", "noýabr", "dekabr"];
   var PLAT = { ios: "iOS", android: "Android", windows: "Windows", macos: "macOS", linux: "Linux", androidTV: "Android TV", appleTV: "Apple TV" };
   var ICON = {
     ios: '<path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.7zM14.1 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z" fill="currentColor" stroke="none"/>',
@@ -246,6 +248,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
     return (i ? b.toFixed(b >= 100 ? 0 : b >= 10 ? 1 : 2) : b) + " " + u[i];
   };
   var date = function (ts) {
+    if (lang === "tk") { var d = new Date(ts * 1000); return d.getDate() + " " + TK_MONTHS[d.getMonth()] + " " + d.getFullYear(); }
     try { return new Date(ts * 1000).toLocaleDateString(lang === "fa" ? "fa-IR" : lang, { year: "numeric", month: "long", day: "numeric" }); }
     catch (e) { return new Date(ts * 1000).toDateString(); }
   };
@@ -378,6 +381,12 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
   var ago = function (ts) {
     if (!ts) return "";
     var s = Math.max(0, Date.now() / 1000 - ts);
+    if (lang === "tk") {
+      if (s < 60) return "häzir";
+      if (s < 3600) return Math.round(s / 60) + " minut öň";
+      if (s < 86400) return Math.round(s / 3600) + " sagat öň";
+      return Math.round(s / 86400) + " gün öň";
+    }
     try {
       var rtf = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
       if (s < 3600) return rtf.format(-Math.round(s / 60), "minute");

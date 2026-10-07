@@ -18,7 +18,8 @@ NET = "10.89"                     # link addresses: 10.89.<id>.1 (exit) / .2 (re
 
 class Forward(BaseModel):
     proto: str = Field("both", pattern="^(tcp|udp|both)$")
-    port: int = Field(..., ge=1, le=65535)
+    port: int = Field(..., ge=1, le=65535)                 # on the relay (what users connect to)
+    to_port: Optional[int] = Field(None, ge=1, le=65535)   # on the exit; empty: the same port
 
 
 class Tunnel(BaseModel):
@@ -39,7 +40,7 @@ class Tunnel(BaseModel):
 
 
 class PrerouteSettings(BaseModel):
-    tunnels: Dict[str, Tunnel] = {}               # relay key -> its tunnel
+    tunnels: Dict[str, Tunnel] = {}               # tunnel id -> tunnel (a relay may have several exits)
 
 
 def load(db) -> PrerouteSettings:
@@ -61,6 +62,14 @@ def save(db, s: PrerouteSettings) -> PrerouteSettings:
             t.params = _random_awg_params()
     crud.set_setting(db, SETTINGS_KEY, s.model_dump())
     return s
+
+
+def relays(s: PrerouteSettings) -> set:
+    return {t.relay for t in s.tunnels.values()}
+
+
+def exits(s: PrerouteSettings) -> set:
+    return {t.exit for t in s.tunnels.values()}
 
 
 def participants(s: PrerouteSettings) -> set:
@@ -112,15 +121,15 @@ def reserved_ports(db, key: str) -> set:
 def forwards_of(db, t: Tunnel) -> List[Forward]:
     """what the relay forwards: the exit's Xray inbounds and VPN services, or the custom list"""
     if not t.all_ports:
-        wanted = list(t.forwards)
+        wanted = [Forward(proto=f.proto, port=f.port, to_port=f.to_port or f.port) for f in t.forwards]
     else:
         from app import vpn
-        wanted = [Forward(proto="both", port=p) for p in sorted(_xray_ports(t.exit))]
+        wanted = [Forward(proto="both", port=p, to_port=p) for p in sorted(_xray_ports(t.exit))]
         srv = vpn.load(db).servers.get(t.exit)
         if srv and srv.awg.enabled:
-            wanted.append(Forward(proto="udp", port=srv.awg.port))
+            wanted.append(Forward(proto="udp", port=srv.awg.port, to_port=srv.awg.port))
         if srv and srv.ovpn.enabled:
-            wanted.append(Forward(proto=srv.ovpn.proto, port=srv.ovpn.port))
+            wanted.append(Forward(proto=srv.ovpn.proto, port=srv.ovpn.port, to_port=srv.ovpn.port))
     skip = reserved_ports(db, t.relay) | {t.port}
     seen, out = set(), []
     for f in wanted:

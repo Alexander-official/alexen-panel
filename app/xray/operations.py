@@ -99,6 +99,109 @@ def remove_user(dbuser: "DBUser"):
         for node in list(xray.nodes.values()):
             if node.connected and node.started:
                 _remove_user_from_inbound(node.api, inbound_tag, email)
+    # Xray keeps sessions that are already open (Hysteria2 especially): cut them
+    kick_user(dbuser.id)
+
+
+# ---- cutting live sessions of users that were disabled / deleted / limited ----
+import threading as _threading
+
+_kick_lock = _threading.Lock()
+_kick_pending: set = set()
+_kick_timer = None
+KICK_DELAY = 2.0   # seconds: users switched off together share one restart
+
+
+def kick_user(user_id: int):
+    """drop the open connections of this user soon (batched)"""
+    global _kick_timer
+    with _kick_lock:
+        _kick_pending.add(user_id)
+        if _kick_timer is None:
+            _kick_timer = _threading.Timer(KICK_DELAY, _do_kick)
+            _kick_timer.daemon = True
+            _kick_timer.start()
+
+
+_known_servers: dict = {}   # user id -> servers, saved before a delete wipes its usage rows
+
+
+def remember_servers(user_id: int):
+    """call before deleting a user: afterwards nothing in the DB says where it was"""
+    try:
+        _known_servers[user_id] = _servers_of([user_id])
+    except Exception as exc:
+        logger.warning(f"kick: {exc}")
+
+
+def _servers_of(user_ids) -> set:
+    """names of the servers these users are connected to right now (or were, a
+    moment ago: the online list is refreshed every few seconds)"""
+    from datetime import datetime, timedelta
+    from app.xray import online
+    from app.db.models import Node, NodeUserUsage, User
+    names = set()
+    recent = []
+    for uid in user_ids:
+        names |= _known_servers.pop(uid, set())
+        for entry in online.get_user_ips(uid).values():
+            names.update(entry.get("nodes") or [])
+        recent.append(uid)
+    with GetDB() as db:
+        since = datetime.utcnow() - timedelta(minutes=3)
+        rows = dict(db.query(User.id, User.online_at).filter(User.id.in_(recent)).all())
+        # online lately, or just deleted (no row left to tell)
+        active = [uid for uid in recent if uid not in rows or (rows[uid] and rows[uid] >= since)]
+        if active:
+            node_names = dict(db.query(Node.id, Node.name).all())
+            # usage rows are hourly buckets stamped with the hour they start
+            hour = datetime.utcnow() - timedelta(hours=2)
+            for (nid,) in db.query(NodeUserUsage.node_id).filter(
+                    NodeUserUsage.user_id.in_(active), NodeUserUsage.created_at >= hour).distinct():
+                names.add(online.MASTER_NAME if nid is None else node_names.get(nid, ""))
+    names.discard("")
+    return names
+
+
+def _do_kick():
+    global _kick_timer
+    with _kick_lock:
+        users = set(_kick_pending)
+        _kick_pending.clear()
+        _kick_timer = None
+    if not users:
+        return
+    # VPN peers / clients go away at once instead of on the next sync
+    try:
+        from app import vpn
+        _threading.Thread(target=vpn.sync, daemon=True).start()
+    except Exception as exc:
+        logger.warning(f"kick: VPN sync failed: {exc}")
+    try:
+        names = _servers_of(users)
+    except Exception as exc:
+        logger.warning(f"kick: {exc}")
+        return
+    if not names:
+        return
+    from app.xray import online
+    logger.info(f"Cutting live sessions of {len(users)} user(s) on: {', '.join(sorted(names))}")
+    configs = cores.ConfigSet()
+    if online.MASTER_NAME in names:
+        try:
+            xray.core.restart(configs.get(cores.MAIN))
+        except Exception as exc:
+            logger.warning(f"kick: master core restart failed: {exc}")
+    with GetDB() as db:
+        from app.db.models import Node
+        ids = {name: nid for nid, name in db.query(Node.id, Node.name).all()}
+    for name in names:
+        nid = ids.get(name)
+        if nid is not None:
+            try:
+                restart_node(nid, configs)
+            except Exception as exc:
+                logger.warning(f"kick: node {name} restart failed: {exc}")
 
 
 def update_user(dbuser: "DBUser"):
@@ -315,6 +418,8 @@ def terminate_ip(dbuser: "DBUser", ip: str):
 __all__ = [
     "add_user",
     "remove_user",
+    "kick_user",
+    "remember_servers",
     "terminate_ip",
     "add_node",
     "remove_node",

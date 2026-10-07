@@ -1,4 +1,5 @@
 import {FC} from "react";
+import {useTranslation} from "react-i18next";
 import {Text} from "@chakra-ui/react";
 import {relativeExpiryDate} from "utils/dateFormatter";
 
@@ -16,11 +17,12 @@ const convertDateFormat = (lastOnline: string | null): number | null => {
 };
 
 export const OnlineStatus: FC<UserStatusProps> = ({lastOnline}) => {
+    const {t} = useTranslation();
     const currentTimeInSeconds = Math.floor(Date.now() / 1000);
     const unixTime = convertDateFormat(lastOnline);
 
     const timeDifferenceInSeconds = unixTime ? currentTimeInSeconds - unixTime : null;
-    const dateInfo = unixTime ? relativeExpiryDate(unixTime) : {status: "", time: "Not Connected Yet"};
+    const dateInfo = unixTime ? relativeExpiryDate(unixTime) : {status: "", time: t("lastOnline.never")};
 
     return (
         <Text
@@ -34,9 +36,9 @@ export const OnlineStatus: FC<UserStatusProps> = ({lastOnline}) => {
             }}
         >
             {timeDifferenceInSeconds && timeDifferenceInSeconds <= 60
-                ? "Online"
+                ? t("lastOnline.now")
                 : timeDifferenceInSeconds
-                    ? `${dateInfo.time} ago`
+                    ? t("lastOnline.ago", {time: dateInfo.time})
                     : dateInfo.time}
         </Text>
     );

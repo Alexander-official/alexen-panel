@@ -67,7 +67,6 @@ import {
 } from "utils/toastHandler";
 import { useDashboard, useDashboardPick } from "../contexts/DashboardContext";
 import { applyNodeVpn, NodeVpnToggles } from "./VpnPage";
-import { NodePreroute } from "./NodePreroute";
 import { FetchCoresQueryKey, useCoreSettings, useCoresQuery } from "contexts/CoreSettingsContext";
 import { DeleteNodeModal } from "./DeleteNodeModal";
 import { DeleteIcon } from "./DeleteUserModal";
@@ -310,14 +309,7 @@ const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
           mutate={mutate}
           isLoading={isLoading}
           submitBtnText={t("nodes.editNode")}
-          vpnSlot={
-            node.id ? (
-              <>
-                <NodePreroute nodeKey={String(node.id)} />
-                <NodeVpnToggles nodeKey={String(node.id)} />
-              </>
-            ) : null
-          }
+          vpnSlot={node.id ? <NodeVpnToggles nodeKey={String(node.id)} /> : null}
           btnLeftAdornment={
             <Tooltip label={t("delete")} placement="top">
               <IconButton
