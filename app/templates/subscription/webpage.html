@@ -163,6 +163,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
   .card { padding: 16px; border-radius: 18px; } .btn.big { width: 100%; }
   header { gap: 8px; } .iconbtn .label { display: none; } select.iconbtn { max-width: 96px; }
 }
+  .tab .here { width: 7px; height: 7px; border-radius: 50%; background: #3fb68b; display: inline-block; margin-left: 6px; box-shadow: 0 0 0 3px rgba(63,182,139,.18); }
 </style>
 </head>
 <body>
@@ -213,15 +214,18 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
     for (var i = 0; i < nav.length; i++) { var c = String(nav[i]).slice(0, 2).toLowerCase(); if (L[c]) return c; }
     return L.en ? "en" : Object.keys(L)[0];
   };
+  // which device opened the page: client hints first (Chrome, Edge...), then the user agent
   var detect = function () {
     var ua = navigator.userAgent || "";
+    var hint = ((navigator.userAgentData && navigator.userAgentData.platform) || "").toLowerCase();
     if (/AppleTV|tvOS/i.test(ua)) return "appleTV";
-    if (/Android/i.test(ua) && /TV|AFT|BRAVIA|SMART-TV|SmartTV/i.test(ua)) return "androidTV";
+    if (/Android/i.test(ua) && /\bTV\b|AFT[A-Z]|BRAVIA|SMART-TV|SmartTV|GoogleTV|Chromecast|MiTV|Large Screen/i.test(ua)) return "androidTV";
     if (/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
-    if (/Android/i.test(ua)) return "android";
-    if (/Windows/i.test(ua)) return "windows";
-    if (/Macintosh|Mac OS X/i.test(ua)) return "macos";
-    if (/Linux|X11/i.test(ua)) return "linux";
+    if (hint === "android" || /Android|HarmonyOS|OpenHarmony/i.test(ua)) return "android";
+    if (hint === "windows" || /Windows/i.test(ua)) return "windows";
+    if (hint === "macos" || /Macintosh|Mac OS X/i.test(ua)) return "macos";
+    if (hint === "chrome os" || hint === "chromeos" || /CrOS/i.test(ua)) return "android";
+    if (hint === "linux" || /Linux|X11/i.test(ua)) return "linux";
     return "android";
   };
 
@@ -231,9 +235,14 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
   if (D.css) { var st = document.createElement("style"); st.textContent = D.css; document.head.appendChild(st); }
   var lang = pickLang();
   var platforms = (D.order || Object.keys(D.platforms)).filter(function (p) { return D.platforms[p]; });
-  var plat = store("sub-plat");
-  if (!plat || !D.platforms[plat]) plat = detect();
-  if (!D.platforms[plat]) plat = platforms[0];
+  // the device decides; a tab picked by hand is remembered only for this kind of device
+  var detected = detect();
+  var plat = detected;
+  try {
+    var picked = JSON.parse(store("sub-plat2") || "null");
+    if (picked && picked.on === detected && D.platforms[picked.plat]) plat = picked.plat;
+  } catch (e) {}
+  if (!D.platforms[plat]) plat = D.platforms[detected] ? detected : platforms[0];
   var appId = {};
 
   var T = function (k, o) {
@@ -297,7 +306,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
     var apps = D.platforms[plat] || [];
     var cur = apps.filter(function (a) { return a.id === appId[plat]; })[0] || apps.filter(function (a) { return a.featured; })[0] || apps[0];
     var tabs = platforms.map(function (p) {
-      return '<button class="tab' + (p === plat ? " on" : "") + '" data-plat="' + p + '">' + icon(p, 16) + esc(PLAT[p] || p) + "</button>";
+      return '<button class="tab' + (p === plat ? " on" : "") + '" data-plat="' + p + '"' + (p === detected ? ' title="' + esc(T("thisDevice")) + '"' : "") + ">" +
+        icon(p, 16) + esc(PLAT[p] || p) + (p === detected ? '<span class="here" aria-label="' + esc(T("thisDevice")) + '"></span>' : "") + "</button>";
     }).join("");
     var chips = apps.map(function (a) {
       return '<button class="app' + (cur && a.id === cur.id ? " on" : "") + '" data-app="' + esc(a.id) + '">' + esc(a.name) +
@@ -450,7 +460,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
   document.addEventListener("click", function (e) {
     var t = e.target.closest("[data-plat],[data-app],[data-copy],[data-copy-i],[data-qr],#theme");
     if (!t) return;
-    if (t.dataset.plat) { plat = t.dataset.plat; store("sub-plat", plat); render(); }
+    if (t.dataset.plat) { plat = t.dataset.plat; store("sub-plat2", JSON.stringify({ plat: plat, on: detected })); render(); }
     else if (t.dataset.app) { appId[plat] = t.dataset.app; render(); }
     else if (t.dataset.copy) copy(t.dataset.copy === "crypt" ? D.crypt : D.sub_url);
     else if (t.dataset.copyI) copy(D.links[+t.dataset.copyI]);

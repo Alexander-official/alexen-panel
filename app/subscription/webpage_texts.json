@@ -54,7 +54,8 @@
     "deviceUnknown": "Device",
     "deviceLimitTitle": "Device limit reached",
     "deviceLimitHelp": "This subscription is already used on as many devices as it allows. Contact the admin to free a slot or raise the limit.",
-    "contactAdmin": "Contact the admin"
+    "contactAdmin": "Contact the admin",
+    "thisDevice": "This device"
   },
   "ru": {
     "install": "Установка и подключение",
@@ -111,7 +112,8 @@
     "deviceUnknown": "Устройство",
     "deviceLimitTitle": "Достигнут лимит устройств",
     "deviceLimitHelp": "Подписка уже используется на максимальном числе устройств. Свяжитесь с администратором, чтобы освободить место или увеличить лимит.",
-    "contactAdmin": "Связаться с администратором"
+    "contactAdmin": "Связаться с администратором",
+    "thisDevice": "Это устройство"
   },
   "tr": {
     "install": "Kurulum ve bağlantı",
@@ -168,7 +170,8 @@
     "deviceUnknown": "Cihaz",
     "deviceLimitTitle": "Cihaz limiti doldu",
     "deviceLimitHelp": "Bu abonelik izin verilen sayıda cihazda kullanılıyor. Yer açmak veya limiti artırmak için admin ile iletişime geç.",
-    "contactAdmin": "Admin ile iletişime geç"
+    "contactAdmin": "Admin ile iletişime geç",
+    "thisDevice": "Bu cihaz"
   },
   "tk": {
     "install": "Gurmak we birikmek",
@@ -225,7 +228,8 @@
     "deviceUnknown": "Enjam",
     "deviceLimitTitle": "Enjam çägi doldy",
     "deviceLimitHelp": "Bu abuna rugsat berlen sanda enjamda ulanylýar. Ýer boşatmak ýa-da çägi artdyrmak üçin administrator bilen habarlaşyň.",
-    "contactAdmin": "Administrator bilen habarlaşyň"
+    "contactAdmin": "Administrator bilen habarlaşyň",
+    "thisDevice": "Bu enjam"
   },
   "fa": {
     "install": "نصب و اتصال",
@@ -282,7 +286,8 @@
     "deviceUnknown": "دستگاه",
     "deviceLimitTitle": "محدودیت دستگاه پر شده",
     "deviceLimitHelp": "این اشتراک روی حداکثر تعداد دستگاه مجاز استفاده می‌شود. برای آزاد کردن جا یا افزایش محدودیت با ادمین تماس بگیرید.",
-    "contactAdmin": "تماس با ادمین"
+    "contactAdmin": "تماس با ادمین",
+    "thisDevice": "این دستگاه"
   },
   "zh": {
     "install": "安装与连接",
@@ -339,6 +344,7 @@
     "deviceUnknown": "设备",
     "deviceLimitTitle": "设备数量已达上限",
     "deviceLimitHelp": "此订阅已在允许的最大数量设备上使用。请联系管理员释放名额或提高上限。",
-    "contactAdmin": "联系管理员"
+    "contactAdmin": "联系管理员",
+    "thisDevice": "本设备"
   }
 }
