@@ -45,6 +45,8 @@ import {
   Squares2X2Icon,
   ClockIcon,
   SwatchIcon,
+  BellAlertIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import { BRAND_NAME } from "constants/Project";
 import { useDashboard } from "contexts/DashboardContext";
@@ -57,6 +59,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { updateThemeColor } from "utils/themeColor";
 import { create } from "zustand";
 import { Language } from "./Language";
+import { useNotifyCounts } from "./NotificationsPage";
 
 export const SIDEBAR_WIDTH = "256px";
 export const SIDEBAR_WIDTH_ICON = "56px";
@@ -94,7 +97,7 @@ export const useSidebarWidth = () =>
 
 const ic = (Icon: any) => chakra(Icon, { baseStyle: { w: 4, h: 4, flexShrink: 0 } });
 
-type NavLeaf = { title: string; path?: string; icon: any; action?: () => void; danger?: boolean };
+type NavLeaf = { title: string; path?: string; icon: any; action?: () => void; danger?: boolean; badge?: number };
 type NavNode = NavLeaf & { items?: NavLeaf[] };
 
 const activeBg = "color-mix(in srgb, var(--chakra-colors-primary-500) 14%, transparent)";
@@ -107,8 +110,9 @@ const Row: FC<{
   collapsed?: boolean;
   sub?: boolean;
   right?: ReactNode;
+  badge?: number;
   onClick: () => void;
-}> = ({ icon: Icon, label, active, danger, collapsed, sub, right, onClick }) => {
+}> = ({ icon: Icon, label, active, danger, collapsed, sub, right, badge, onClick }) => {
   const row = (
     <HStack
       as="button"
@@ -127,12 +131,20 @@ const Row: FC<{
       _hover={{ bg: active ? activeBg : "blackAlpha.50", _dark: { bg: active ? activeBg : "whiteAlpha.100" } }}
       onClick={onClick}
     >
-      <Icon />
+      <Box position="relative" display="flex">
+        <Icon />
+        {collapsed && badge ? <Box position="absolute" top="-3px" right="-4px" w="8px" h="8px" borderRadius="full" bg="red.400" /> : null}
+      </Box>
       {!collapsed && (
         <Text as="span" flex={1} isTruncated>
           {label}
         </Text>
       )}
+      {!collapsed && badge ? (
+        <Box as="span" minW="18px" h="18px" px={1} borderRadius="full" bg="red.400" color="white" fontSize="10px" fontWeight="bold" display="flex" alignItems="center" justifyContent="center">
+          {badge > 99 ? "99+" : badge}
+        </Box>
+      ) : null}
       {!collapsed && right}
     </HStack>
   );
@@ -172,11 +184,14 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
     staleTime: 60000,
   });
 
+  const { data: counts } = useNotifyCounts(getUserIsSuccess);
   const nav: NavNode[] = [
     { title: t("overview.title"), path: "overview", icon: ic(Squares2X2Icon) },
     { title: t("users"), path: "", icon: ic(UsersIcon) },
     { title: t("stats.title"), path: "statistics", icon: ic(ChartPieIcon) },
     ...(!isSudo && ownExternal ? [{ title: t("external.title"), path: "external", icon: ic(GlobeAltIcon) }] : []),
+    { title: t("alerts.title"), path: "alerts", icon: ic(BellAlertIcon), badge: (counts?.alerts || 0) + (counts?.warnings || 0) },
+    { title: t("messages.title"), path: "messages", icon: ic(ChatBubbleLeftRightIcon), badge: counts?.messages || 0 },
     { title: t("activity.title"), path: "activity", icon: ic(ClockIcon) },
     { title: t("appearance.title"), path: "theme", icon: ic(SwatchIcon) },
     ...(isSudo
@@ -309,6 +324,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
                   icon={n.icon}
                   label={n.title}
                   collapsed={collapsed}
+                  badge={n.badge}
                   active={here === n.path}
                   onClick={() => go(n.path!)}
                 />

@@ -789,7 +789,7 @@ export const NodesDialog: FC = () => {
   return (
     <>
       <Modal isOpen={isEditingNodes} onClose={onClose}>
-        <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+        <ModalOverlay bg="blackAlpha.300" />
         <ModalContent mx="3" w="fit-content" maxW="3xl">
           <ModalHeader pt={6}>
             <Icon color="primary">

@@ -195,7 +195,7 @@ export const AdminsModal: FC = () => {
       onClose={() => onManagingAdmins(false)}
       size="2xl"
     >
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+      <ModalOverlay bg="blackAlpha.300" />
       <ModalContent mx="3">
         <ModalHeader pt={6}>
           <HStack justifyContent="space-between" pr={8}>

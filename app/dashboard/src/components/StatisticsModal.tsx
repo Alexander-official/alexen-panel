@@ -72,7 +72,7 @@ export const StatisticsModal: FC = () => {
 
   return (
     <Modal isOpen={isShowingStats} onClose={() => onShowingStats(false)} size="2xl">
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+      <ModalOverlay bg="blackAlpha.300" />
       <ModalContent mx="3">
         <ModalHeader pt={6}>
           <Text fontWeight="semibold" fontSize="lg">

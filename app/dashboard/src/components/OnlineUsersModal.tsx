@@ -61,7 +61,7 @@ export const OnlineUsersModal: FC<OnlineUsersModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+      <ModalOverlay bg="blackAlpha.300" />
       <ModalContent mx="3">
         <ModalHeader pt={6}>
           <HStack justifyContent="space-between" pr={8}>

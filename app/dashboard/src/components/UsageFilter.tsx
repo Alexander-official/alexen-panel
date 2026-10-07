@@ -354,6 +354,7 @@ export function createUsageConfig(
         },
       },
       tooltip: {
+        y: { formatter: (v: number) => String(formatBytes(v, 1)) },
         custom: ({ series, seriesIndex, dataPointIndex, w }) => {
           const readable = formatBytes(series[seriesIndex], 1);
           const total = Math.max(

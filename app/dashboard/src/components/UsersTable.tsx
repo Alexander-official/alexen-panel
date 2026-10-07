@@ -39,7 +39,7 @@ import classNames from "classnames";
 import { resetStrategy, statusColors } from "constants/UserSettings";
 import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { t } from "i18next";
-import { FC, Fragment, useEffect, useState } from "react";
+import { FC, Fragment, useEffect, useState, memo } from "react";
 import CopyToClipboard from "react-copy-to-clipboard";
 import { useTranslation } from "react-i18next";
 import { User } from "types/User";
@@ -57,6 +57,7 @@ import { Pagination } from "./Pagination";
 import { StatusBadge } from "./StatusBadge";
 import useGetUser from "hooks/useGetUser";
 import { useQuery } from "react-query";
+import { WarningMark } from "./UserWarning";
 import { fetch as apiFetch } from "service/http";
 
 type OnlineProviders = {
@@ -397,11 +398,13 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                         minW="100px"
                         pl={4}
                         pr={4}
+                        py={2.5}
                         maxW="calc(100vw - 50px - 32px - 100px - 48px)"
                       >
                         <div className="flex-status">
                           <OnlineBadge lastOnline={user.online_at} />
                           <Text isTruncated>{user.username}</Text>
+                          <WarningMark text={user.warning} />
                         </div>
                         <HStack pl="20px" spacing={2} mt="1px" flexWrap="wrap" rowGap={0}>
                           {isSudo && user.admin?.username && (
@@ -422,7 +425,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                           <UserLiveTag username={user.username} />
                         </HStack>
                       </Td>
-                      <Td borderBottom={0} minW="50px" pl={0} pr={0}>
+                      <Td borderBottom={0} minW="50px" pl={0} pr={0} py={2.5}>
                         <StatusBadge
                           compact
                           showDetail={false}
@@ -430,7 +433,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                           status={user.status}
                         />
                       </Td>
-                      <Td borderBottom={0} minW="100px" pr={0}>
+                      <Td borderBottom={0} minW="100px" pr={0} py={2.5}>
                         <UsageSliderCompact
                           totalUsedTraffic={user.lifetime_used_traffic}
                           dataLimitResetStrategy={
@@ -645,12 +648,37 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
         </Thead>
         <Tbody>
           {useTable &&
-            users?.map((user, i) => {
-              return (
-                <Tr
+            users?.map((user, i) => (
+              <UserRow key={user.username} user={user} isLast={i === users.length - 1} isSudo={isSudo} onEdit={onEditingUser} />
+            ))}
+          {users.length == 0 && (
+            <Tr>
+              <Td colSpan={6}>
+                <EmptySection isFiltered={isFiltered} />
+              </Td>
+            </Tr>
+          )}
+        </Tbody>
+      </Table>
+      <Pagination />
+    </Box>
+  );
+};
+
+
+// one row; drawn again only when what it shows changed (the list is refetched
+// every few seconds and every user object is new each time)
+const ROW_KEYS = ["username", "status", "used_traffic", "lifetime_used_traffic", "data_limit", "data_limit_reset_strategy",
+  "expire", "online_at", "hwid_count", "hwid_limit", "online_ip_count", "subscription_url"] as const;
+const rowSig = (u: any) => ROW_KEYS.map((k) => u?.[k]).join("|") + "|" + (u?.admin?.username || "") + "|" + (u?.links?.length || 0) + "|" + (u?.warning || "");
+const UserRow: FC<{ user: User; isLast: boolean; isSudo: boolean; onEdit: (u: User) => void }> = memo(
+  ({ user, isLast, isSudo, onEdit }) => {
+    const onEditingUser = onEdit;
+    return (
+      <Tr
                   key={user.username}
                   className={classNames("interactive", {
-                    "last-row": i === users.length - 1,
+                    "last-row": isLast,
                   })}
                   onClick={() => onEditingUser(user)}
                 >
@@ -662,6 +690,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                           <Text as="span" fontWeight="medium" isTruncated>
                             {user.username}
                           </Text>
+                          <WarningMark text={user.warning} />
                         </div>
                         {/* last seen and owner on one quiet line under the name */}
                         <HStack pl="20px" spacing={2} fontSize="xs" color="gray.500" whiteSpace="nowrap" mt="1px">
@@ -713,21 +742,10 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                     <ActionButtons user={user} />
                   </Td>
                 </Tr>
-              );
-            })}
-          {users.length == 0 && (
-            <Tr>
-              <Td colSpan={6}>
-                <EmptySection isFiltered={isFiltered} />
-              </Td>
-            </Tr>
-          )}
-        </Tbody>
-      </Table>
-      <Pagination />
-    </Box>
-  );
-};
+    );
+  },
+  (a, b) => a.isLast === b.isLast && a.isSudo === b.isSudo && rowSig(a.user) === rowSig(b.user)
+);
 
 type ActionButtonsProps = {
   user: User;

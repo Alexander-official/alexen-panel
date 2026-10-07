@@ -101,6 +101,10 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     note = Column(String(500), nullable=True, default=None)
     online_at = Column(DateTime, nullable=True, default=None)
+
+    # a warning the sudo admin puts on a user, shown to its admin
+    warning = Column(String(500), nullable=True)
+    warning_at = Column(DateTime, nullable=True)
     on_hold_expire_duration = Column(BigInteger, nullable=True, default=None)
     on_hold_timeout = Column(DateTime, nullable=True, default=None)
 
@@ -425,6 +429,33 @@ class ActivityLog(Base):
     ip = Column(String(64), nullable=True)
     user_agent = Column(String(400), nullable=True)
     detail = Column(String(4000), nullable=True)     # the request body, secrets removed
+
+
+class Alert(Base):
+    """important notifications: suspicious traffic (app/antitheft.py) and the like"""
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True)
+    created_at = Column(DateTime, nullable=False, index=True, default=datetime.utcnow)
+    kind = Column(String(32), nullable=False)          # theft, ...
+    username = Column(String(64), nullable=True, index=True)
+    admin = Column(String(64), nullable=True, index=True)   # owner of the user
+    title = Column(String(255), nullable=False)
+    detail = Column(String(2000), nullable=True)       # JSON
+    read = Column(Boolean, nullable=False, default=False)
+
+
+class AdminMessage(Base):
+    """messages between the sudo admins and one admin (the thread is the admin)"""
+    __tablename__ = "admin_messages"
+
+    id = Column(Integer, primary_key=True)
+    created_at = Column(DateTime, nullable=False, index=True, default=datetime.utcnow)
+    thread = Column(String(64), nullable=False, index=True)   # the (non-sudo) admin
+    sender = Column(String(64), nullable=False)
+    from_sudo = Column(Boolean, nullable=False, default=False)
+    text = Column(String(4000), nullable=False)
+    read = Column(Boolean, nullable=False, default=False)     # by the other side
 
 
 class NotificationReminder(Base):

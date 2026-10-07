@@ -1,8 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
 .bg-blue-animate {
-  animation: blur-animate 200ms ease-in;
-  backdrop-filter: blur(10px);
+  background-color: rgba(10, 12, 18, 0.35);
 }
 
 @keyframes blur-animate {
@@ -397,8 +396,8 @@ body.chakra-ui-dark {
   .chakra-menu__menu-list,
   .chakra-popover__content,
   .alexen-sidebar {
-    backdrop-filter: blur(18px) saturate(160%);
-    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
   }
   .chakra-modal__content { overflow: hidden; }
   /* cards sit on the page, a tint is enough and costs nothing */
@@ -435,14 +434,8 @@ body.chakra-ui-dark {
     background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 46%) !important;
   }
 }
-@media (min-width: 48em) and (hover: hover) {
-  .theme-glass .alexen-page,
-  .theme-glass #users-table,
-  .theme-glass .chakra-card {
-    -webkit-backdrop-filter: blur(16px) saturate(165%);
-    backdrop-filter: blur(16px) saturate(165%);
-  }
-}
+/* cards are not blurred: a blur behind every card made each re-render repaint
+   the page under it (the tint and the sheen keep the glass look) */
 .theme-glass #users-table {
   border-radius: 16px;
   background-color: color-mix(in srgb, var(--app-surface) 50%, transparent);
@@ -633,3 +626,37 @@ html:not(.theme-clay) {
   .alexen-chip:not([data-checked]):hover { background-color: var(--tier-item-hover); }
   .chakra-menu__menuitem:hover, .chakra-menu__menuitem:focus { background-color: var(--tier-item) !important; }
 }
+
+/* no scroll jumps when the look changes */
+html, body { overflow-anchor: none; }
+
+/* liquid glass keeps the chosen layer colors, see-through */
+.theme-glass {
+  .chakra-card, .alexen-page, .chakra-modal__content, .chakra-menu__menu-list, .chakra-popover__content, .alexen-sidebar {
+    background-color: color-mix(in srgb, var(--tier-1) 58%, transparent) !important;
+  }
+  #users-table td { background-color: color-mix(in srgb, var(--tier-1) 50%, transparent); }
+  #users-table th { background-color: color-mix(in srgb, var(--tier-2) 60%, transparent) !important; }
+}
+.theme-glass body.chakra-ui-dark {
+  .chakra-card, .alexen-page, .chakra-modal__content, .chakra-menu__menu-list, .chakra-popover__content, .alexen-sidebar {
+    background-color: color-mix(in srgb, var(--tier-1) 62%, transparent) !important;
+  }
+}
+
+/* glass, lighter to draw: no sheen gradient on every card, smaller shadows
+   (big blurred shadows and gradients under see-through cards are repainted on
+   every change) */
+.theme-glass {
+  .chakra-card, .alexen-page {
+    background-image: none !important;
+    box-shadow: 0 2px 10px rgba(31, 38, 135, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  }
+}
+.theme-glass body.chakra-ui-dark {
+  .chakra-card, .alexen-page {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  }
+}
+/* the slow background glow doesn't move while a page is being used */
+.has-bg.theme-animated body::before { animation-duration: 60s; }

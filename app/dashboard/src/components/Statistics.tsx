@@ -75,14 +75,14 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
     <Card
       onClick={onClick}
       cursor={onClick ? "pointer" : undefined}
-      p={{ base: 3, md: 5 }}
+      p={{ base: 2.5, md: 5 }}
       borderWidth="1px"
       borderColor="blackAlpha.50"
       bg="var(--app-surface)"
       _dark={{ borderColor: "var(--alexen-line)", bg: "gray.750" }}
       borderStyle="solid"
       boxShadow="var(--alexen-shadow)"
-      borderRadius="18px"
+      borderRadius={{ base: "14px", md: "18px" }}
       width="full"
       display="flex"
       justifyContent="space-between"
@@ -91,12 +91,12 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
       gap={{ base: 1, md: 3 }}
       minW={0}
     >
-      <HStack alignItems="center" columnGap={{ base: 3, md: 4 }} minW={0}>
+      <HStack alignItems="center" columnGap={{ base: 2, md: 4 }} minW={0}>
         <Box
-          p="2"
+          p={{ base: 1.5, md: 2 }}
           position="relative"
           // the original double-square badge, replaced by one soft tinted tile
-          borderRadius="14px"
+          borderRadius={{ base: "10px", md: "14px" }}
           color="primary.500"
           bg="color-mix(in srgb, var(--chakra-colors-primary-500) 13%, transparent)"
           _dark={{ color: "primary.300", bg: "color-mix(in srgb, var(--chakra-colors-primary-400) 18%, transparent)" }}
@@ -116,7 +116,7 @@ const StatisticCard: FC<PropsWithChildren<StatisticCardProps>> = ({
           {title}
         </Text>
       </HStack>
-      <Box fontSize={{ base: "xl", md: "2xl", xl: "3xl" }} fontWeight="semibold" lineHeight="short" whiteSpace="nowrap">
+      <Box fontSize={{ base: "lg", md: "2xl", xl: "3xl" }} fontWeight="semibold" lineHeight="short" whiteSpace="nowrap">
         {content}
       </Box>
     </Card>

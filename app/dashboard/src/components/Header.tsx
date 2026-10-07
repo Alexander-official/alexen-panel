@@ -33,13 +33,15 @@ import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC, ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppearancePanel } from "./AppearancePanel";
+import { useNotifyCounts } from "./NotificationsPage";
+import { BellIcon as BellIconOutline } from "@heroicons/react/24/outline";
 import { updateThemeColor } from "utils/themeColor";
 import { applyAppearance, getAppearance } from "utils/appearance";
 import { Language } from "./Language";
 import useGetUser from "hooks/useGetUser";
 import { useSidebar } from "./Sidebar";
 import { sectionByPath } from "pages/sections";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type HeaderProps = {
   actions?: ReactNode;
@@ -129,6 +131,8 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
         </Text>
       </HStack>
 
+      <HStack spacing={2}>
+      <NotifyBell />
       <Tooltip label={t("appearance.title")} hasArrow>
         <IconButton
           size="sm"
@@ -139,7 +143,37 @@ export const Header: FC<HeaderProps> = ({ actions }) => {
           onClick={() => setAppearanceOpen(true)}
         />
       </Tooltip>
+      </HStack>
       <AppearancePanel isOpen={appearanceOpen} onClose={() => setAppearanceOpen(false)} />
     </HStack>
+  );
+};
+
+
+// unread alerts, messages and warnings; opens the page that has the news
+const BellIcon = chakra(BellIconOutline, { baseStyle: { w: 4, h: 4 } });
+const NotifyBell: FC = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { data } = useNotifyCounts();
+  const total = (data?.alerts || 0) + (data?.messages || 0) + (data?.warnings || 0);
+  return (
+    <Tooltip label={t("alerts.bell", { alerts: (data?.alerts || 0) + (data?.warnings || 0), messages: data?.messages || 0 })} hasArrow>
+      <Box position="relative">
+        <IconButton
+          size="sm"
+          variant="outline"
+          borderRadius="full"
+          aria-label={t("alerts.title")}
+          icon={<BellIcon />}
+          onClick={() => navigate(data?.messages && !data?.alerts && !data?.warnings ? "/messages" : "/alerts")}
+        />
+        {total > 0 && (
+          <Box position="absolute" top="-4px" right="-4px" minW="18px" h="18px" px={1} borderRadius="full" bg="red.400" color="white" fontSize="10px" fontWeight="bold" display="flex" alignItems="center" justifyContent="center" pointerEvents="none">
+            {total > 99 ? "99+" : total}
+          </Box>
+        )}
+      </Box>
+    </Tooltip>
   );
 };

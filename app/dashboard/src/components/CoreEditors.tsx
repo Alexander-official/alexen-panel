@@ -228,7 +228,7 @@ export const InboundsEditor: FC<EditorProps> = ({ config, onChange }) => {
       </Button>
 
       <Modal isOpen={adding} onClose={() => setAdding(false)} size="2xl" scrollBehavior="inside">
-        <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+        <ModalOverlay bg="blackAlpha.300" />
         <ModalContent mx="3">
           <ModalHeader fontSize="lg">{t("coreEditors.addInbound")}</ModalHeader>
           <ModalCloseButton />

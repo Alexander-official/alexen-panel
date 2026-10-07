@@ -23,6 +23,7 @@ class JsonSubSettings(BaseModel):
     include_external: bool = True
     # one more config that picks the fastest server by itself
     balancer: bool = False
+    balancer_external: bool = True   # the auto config also tries the external configs
     balancer_name: str = Field("⚡ Auto (fastest)", max_length=100)
     balancer_strategy: str = "leastPing"
     balancer_position: str = "top"
@@ -146,6 +147,7 @@ def finish(conf, *, active: bool, host_groups, variables, reverse: bool, admin: 
     from app.subscription.v2ray import UUIDEncoder
     s = load()
     configs = list(conf.config)
+    own = list(configs)
     if s.include_external:
         try:
             top, bottom = _external_configs(conf, s, active=active, host_groups=host_groups, variables=variables,
@@ -154,7 +156,7 @@ def finish(conf, *, active: bool, host_groups, variables, reverse: bool, admin: 
         except Exception:
             pass
     if s.balancer:
-        auto = _balancer_config(conf, configs, s)
+        auto = _balancer_config(conf, configs if s.balancer_external else own, s)
         if auto:
             configs = [auto] + configs if s.balancer_position == "top" else configs + [auto]
     rules = _rules(s)

@@ -215,7 +215,7 @@ export const InstallProgress: FC = () => {
   }, [state?.lines.length]);
   return (
     <Modal isOpen={!!job} onClose={() => state?.done && close()} size="2xl" closeOnOverlayClick={!!state?.done}>
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+      <ModalOverlay bg="blackAlpha.300" />
       <ModalContent mx={3}>
         <ModalHeader>
           <HStack spacing={2}>

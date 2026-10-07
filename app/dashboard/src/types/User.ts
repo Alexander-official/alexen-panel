@@ -45,6 +45,8 @@ export type UserInbounds = {
   [key: string]: string[];
 };
 export type User = {
+  warning?: string | null;
+  warning_at?: string | null;
   proxies: ProxyType;
   expire: number | null;
   data_limit: number | null;

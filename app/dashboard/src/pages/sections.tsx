@@ -29,6 +29,18 @@ export type Section = {
 
 export const SECTIONS: Section[] = [
   {
+    path: "alerts",
+    title: "alerts.title",
+    sudo: false,
+    Component: named(() => import("components/NotificationsPage"), "NotificationsPage"),
+  },
+  {
+    path: "messages",
+    title: "messages.title",
+    sudo: false,
+    Component: named(() => import("components/MessagesPage"), "MessagesPage"),
+  },
+  {
     path: "theme",
     title: "appearance.title",
     sudo: false,

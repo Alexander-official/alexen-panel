@@ -123,7 +123,7 @@ export const SubSettingsModal: FC = () => {
       size="2xl"
       scrollBehavior="inside"
     >
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+      <ModalOverlay bg="blackAlpha.300" />
       <ModalContent mx="3">
         <ModalHeader pt={6}>
           <Text fontWeight="semibold" fontSize="lg">

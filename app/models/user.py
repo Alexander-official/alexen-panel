@@ -300,6 +300,9 @@ class UserResponse(User):
     excluded_inbounds: Dict[ProxyTypes, List[str]] = {}
 
     admin: Optional[Admin] = None
+    # put by the sudo admin, shown to the user's admin
+    warning: Optional[str] = None
+    warning_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
     @model_validator(mode="after")

@@ -46,6 +46,7 @@ import { FC, useEffect, useState } from "react";
 import { lazy, Suspense } from "react";
 // charts are only drawn when the usage panel is opened
 import { StableChart } from "./StableChart";
+import { UserWarningBox } from "./UserWarning";
 import ReactDatePicker from "react-datepicker";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -427,7 +428,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+      <ModalOverlay bg="blackAlpha.300" />
       <FormProvider {...form}>
         <ModalContent mx="3">
           <form onSubmit={form.handleSubmit(submit)}>
@@ -449,6 +450,11 @@ export const UserDialog: FC<UserDialogProps> = () => {
             </ModalHeader>
             <ModalCloseButton mt={3} disabled={disabled} />
             <ModalBody>
+              {isEditing && editingUser && (
+                <Box mb={4}>
+                  <UserWarningBox username={editingUser.username} warning={editingUser.warning} editable={!!userData?.is_sudo} />
+                </Box>
+              )}
               <Grid
                 templateColumns={{
                   base: "repeat(1, 1fr)",

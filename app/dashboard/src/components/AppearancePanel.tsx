@@ -135,10 +135,20 @@ export const AppearanceSettings: FC<{ wide?: boolean }> = ({ wide }) => {
       return colorMode;
     }
   });
+  // a new look re-lays the page out: keep the scroll where it was
+  const keepScroll = () => {
+    const y = window.scrollY;
+    const back = () => window.scrollTo({ top: y });
+    requestAnimationFrame(() => requestAnimationFrame(back));
+    [60, 200, 450].forEach((ms) => setTimeout(back, ms));
+  };
   const update = (patch: Partial<Appearance>) => {
-    const next = { ...a, ...patch };
-    applyAppearance(next);
-    setA(next);
+    keepScroll();
+    setA((cur) => {
+      const next = { ...cur, ...patch };
+      applyAppearance(next);
+      return next;
+    });
   };
   // "system" follows the device and keeps following it
   useEffect(() => {
@@ -153,6 +163,7 @@ export const AppearanceSettings: FC<{ wide?: boolean }> = ({ wide }) => {
     applyAppearance(getAppearance());
   }, [colorMode]);
   const pickMode = (m: string) => {
+    keepScroll();
     setMode(m);
     try {
       localStorage.setItem("alexen-mode", m);
@@ -184,7 +195,7 @@ export const AppearanceSettings: FC<{ wide?: boolean }> = ({ wide }) => {
                     transition="transform .15s, border-color .15s"
                     onClick={() => {
                       pickMode(p.mode);
-                      update(presetAppearance(p, a));
+                      update(presetAppearance(p, getAppearance()));
                     }}
                   >
                     <Box h="58px" borderRadius="11px" p={2} style={{ background: p.look[0] }} position="relative" overflow="hidden">

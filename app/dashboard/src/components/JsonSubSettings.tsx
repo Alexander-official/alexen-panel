@@ -22,6 +22,7 @@ export type JsonSubSettings = {
   block_ads: boolean;
   include_external: boolean;
   balancer: boolean;
+  balancer_external: boolean;
   balancer_name: string;
   balancer_strategy: string;
   balancer_position: string;
@@ -36,6 +37,7 @@ export const emptyJsonSub: JsonSubSettings = {
   block_ads: false,
   include_external: true,
   balancer: false,
+  balancer_external: true,
   balancer_name: "⚡ Auto (fastest)",
   balancer_strategy: "leastPing",
   balancer_position: "top",
@@ -213,6 +215,14 @@ export const JsonSubSettingsPanel: FC<{ value: JsonSubSettings; onChange: (v: Js
           value={value.balancer}
           onChange={(v) => set({ balancer: v })}
         />
+        {value.balancer && value.include_external && (
+          <Toggle
+            label={t("jsonSub.balancerExternal")}
+            help={t("jsonSub.balancerExternalHelp")}
+            value={value.balancer_external !== false}
+            onChange={(v) => set({ balancer_external: v })}
+          />
+        )}
         {value.balancer && (
           <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
             <Box>

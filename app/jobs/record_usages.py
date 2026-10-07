@@ -207,6 +207,8 @@ def record_user_usages():
     users_usage = list({"uid": uid, "value": value} for uid, value in users_usage.items())
     if not users_usage:
         return
+    from app import antitheft
+    antitheft.feed(users_usage)
 
     with GetDB() as db:
         user_admin_map = dict(db.query(User.id, User.admin_id).all())

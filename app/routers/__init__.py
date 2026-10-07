@@ -18,6 +18,7 @@ from . import (
     preroute,
     overview,
     activity,
+    notify,
 )
 
 api_router = APIRouter()
@@ -42,6 +43,7 @@ routers = [
     preroute.router,
     overview.router,
     activity.router,
+    notify.router,
 ]
 
 for router in routers:

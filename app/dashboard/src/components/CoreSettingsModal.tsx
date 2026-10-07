@@ -582,7 +582,7 @@ export const CoreSettingsModal: FC = () => {
 
   return (
     <Modal isOpen={isEditingCore} onClose={onClose} size="3xl">
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+      <ModalOverlay bg="blackAlpha.300" />
       <ModalContent mx="3" w="full">
         <ModalHeader pt={6}>
           <HStack gap={2}>

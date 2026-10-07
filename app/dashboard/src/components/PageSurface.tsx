@@ -48,7 +48,7 @@ export const ModalContent: FC<BoxProps & { children?: ReactNode }> = ({ children
       borderColor="blackAlpha.50"
       bg="var(--app-surface)"
       boxShadow="var(--alexen-shadow)"
-      borderRadius="20px"
+      borderRadius={{ base: "16px", md: "20px" }}
       _dark={{ borderColor: "var(--alexen-line)", bg: "gray.750" }}
       {...rest}
     >
@@ -59,7 +59,7 @@ export const ModalContent: FC<BoxProps & { children?: ReactNode }> = ({ children
 
 export const ModalHeader: FC<BoxProps> = (props) =>
   usePageMode() ? (
-    <Box px={{ base: 4, md: 6 }} pt={{ base: 4, md: 5 }} pb={2} fontWeight="semibold" {...props} />
+    <Box fontWeight="semibold" pb={2} {...props} px={{ base: 3.5, md: 6 }} pt={{ base: 3.5, md: 5 }} />
   ) : (
     <ChakraModalHeader {...props} />
   );
@@ -68,18 +68,18 @@ export const ModalBody: FC<BoxProps> = (props) => {
   if (!usePageMode()) return <ChakraModalBody {...props} />;
   // fixed dialog widths (e.g. w="440px") would squeeze a page into a column
   const { w, width, minW, maxW, ...rest } = props as any;
-  return <Box px={{ base: 4, md: 6 }} py={3} w="full" {...rest} />;
+  return <Box py={3} w="full" {...rest} px={{ base: 3, md: 6 }} />;
 };
 
 export const ModalFooter: FC<BoxProps> = (props) =>
   usePageMode() ? (
     <HStack
-      px={{ base: 4, md: 6 }}
       py={4}
       justifyContent="flex-end"
       flexWrap="wrap"
       gap={2}
       {...(props as any)}
+      px={{ base: 3, md: 6 }}
     />
   ) : (
     <ChakraModalFooter {...props} />

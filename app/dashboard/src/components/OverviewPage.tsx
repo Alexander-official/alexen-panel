@@ -215,8 +215,9 @@ const PeriodPicker: FC<{ value: Range; onChange: (r: Range) => void; size?: stri
     if (s && e && e > s) onChange({ period: "custom", start: s, end: Math.min(e, dayjs().unix()) });
   };
   return (
-    <HStack spacing={2} flexWrap="wrap" rowGap={2} justifyContent="flex-end">
-      <ButtonGroup size={size} isAttached variant="outline">
+    <HStack spacing={2} flexWrap="wrap" rowGap={2} justifyContent="flex-end" maxW="100%">
+      <Box maxW="100%" overflowX="auto" sx={{ scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" } }}>
+      <ButtonGroup size={size === "sm" ? { base: "xs", md: "sm" } as any : size} isAttached variant="outline">
         {[...PERIODS, "custom"].map((p) => (
           <Button
             key={p}
@@ -228,6 +229,7 @@ const PeriodPicker: FC<{ value: Range; onChange: (r: Range) => void; size?: stri
           </Button>
         ))}
       </ButtonGroup>
+      </Box>
       {value.period === "custom" && (
         <HStack spacing={1.5}>
           <Input size={size} type="date" w="150px" borderRadius="10px" value={from} max={to} onChange={(e) => { setFrom(e.target.value); apply(e.target.value, to); }} />

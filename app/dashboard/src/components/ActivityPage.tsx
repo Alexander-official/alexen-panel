@@ -48,6 +48,10 @@ type Page = { items: Item[]; admins: string[]; more: boolean };
 
 // what a request did: [method, path, i18n key, names of the path parts]
 const RULES: [string, RegExp, string, string[]][] = [
+  ["PUT", /^\/api\/user\/([^/]+)\/warning$/, "userWarning", ["name"]],
+  ["POST", /^\/api\/messages\/([^/]+)$/, "message", ["name"]],
+  ["PUT", /^\/api\/anti-theft$/, "antiTheft", []],
+  ["POST", /^\/api\/alerts\/read$/, "alertsRead", []],
   ["POST", /^\/api\/user$/, "userCreate", []],
   ["PUT", /^\/api\/user\/([^/]+)$/, "userEdit", ["name"]],
   ["DELETE", /^\/api\/user\/([^/]+)$/, "userDelete", ["name"]],

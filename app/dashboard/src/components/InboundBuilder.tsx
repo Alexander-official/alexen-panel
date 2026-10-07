@@ -461,7 +461,7 @@ export const AddHostModal: FC<AddHostModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside">
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+      <ModalOverlay bg="blackAlpha.300" />
       <ModalContent mx="3">
         <ModalHeader fontSize="lg">{t("inboundBuilder.addHostTitle")}</ModalHeader>
         <ModalCloseButton />
