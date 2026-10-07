@@ -145,8 +145,14 @@ def _outbound(address: str, link: Link) -> dict:
 
 
 def apply(key: str, config):
-    """the config a server should run, with its chain links added (a copy; the
-    stored config is left alone). Any failure leaves the config as it was."""
+    """the config a server should run: chain links and preroute tunnel inbounds
+    added (a copy; the stored config is left alone)"""
+    from app.vpn import preroute
+    return preroute.xray_apply(key, _apply_chain(key, config))
+
+
+def _apply_chain(key: str, config):
+    """chain links added. Any failure leaves the config as it was."""
     try:
         from app.db import GetDB
         with GetDB() as db:

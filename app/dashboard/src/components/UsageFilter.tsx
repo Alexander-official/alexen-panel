@@ -42,6 +42,7 @@ const FilterItem: FC<UseRadioProps & { border?: boolean } & any> = ({
       <input {...getInputProps()} />
       <Box
         {...getRadioProps()}
+        className="alexen-chip"
         minW="48px"
         w="full"
         h="full"

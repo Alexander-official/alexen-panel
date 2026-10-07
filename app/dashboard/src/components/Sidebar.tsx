@@ -42,12 +42,15 @@ import {
   SunIcon,
   UsersIcon,
   ArrowsRightLeftIcon,
+  Squares2X2Icon,
 } from "@heroicons/react/24/outline";
 import { BRAND_NAME } from "constants/Project";
 import { useDashboard } from "contexts/DashboardContext";
 import useGetUser from "hooks/useGetUser";
 import { FC, ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "react-query";
+import { fetch } from "service/http";
 import { useLocation, useNavigate } from "react-router-dom";
 import { updateThemeColor } from "utils/themeColor";
 import { create } from "zustand";
@@ -158,9 +161,20 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
     window.scrollTo({ top: 0 });
   };
 
+  // an admin the sudo admin lets edit its own external configs gets that page
+  const { data: ownExternal } = useQuery({
+    queryKey: "own-external",
+    queryFn: () => fetch("/external-configs/mine"),
+    enabled: getUserIsSuccess && !userData.is_sudo,
+    retry: false,
+    staleTime: 60000,
+  });
+
   const nav: NavNode[] = [
+    { title: t("overview.title"), path: "overview", icon: ic(Squares2X2Icon) },
     { title: t("users"), path: "", icon: ic(UsersIcon) },
     { title: t("stats.title"), path: "statistics", icon: ic(ChartPieIcon) },
+    ...(!isSudo && ownExternal ? [{ title: t("external.title"), path: "external", icon: ic(GlobeAltIcon) }] : []),
     ...(isSudo
       ? [
           { title: t("header.hostSettings"), path: "hosts", icon: ic(ListBulletIcon) },

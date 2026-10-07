@@ -241,6 +241,14 @@ def record_user_usages():
 
     record_user_inbound_stats([{"uid": uid, "tag": tag, "value": value}
                                for (uid, tag), value in inbounds_usage.items() if uid in existing_uids])
+    try:
+        from app import stats_history
+        per_inbound = defaultdict(int)
+        for (_, tag), value in inbounds_usage.items():
+            per_inbound[tag] += value
+        stats_history.record_inbounds(per_inbound)
+    except Exception as e:
+        logger.warning(f"stat history: {e}")
 
     if DISABLE_RECORDING_NODE_USAGE:
         return

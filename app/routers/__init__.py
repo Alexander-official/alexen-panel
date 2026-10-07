@@ -16,6 +16,7 @@ from . import (
     vpn,
     chain,
     preroute,
+    overview,
 )
 
 api_router = APIRouter()
@@ -38,6 +39,7 @@ routers = [
     vpn.files_router,
     chain.router,
     preroute.router,
+    overview.router,
 ]
 
 for router in routers:

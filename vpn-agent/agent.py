@@ -21,7 +21,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 PORT = int(os.environ.get("AGENT_PORT", "62060"))
 PANEL_CERT = os.environ.get("PANEL_CERT", "/etc/alexen-vpn/panel.pem")
 STATE = os.environ.get("STATE_DIR", "/var/lib/alexen-vpn")
@@ -421,8 +421,30 @@ def _tun_link(t: dict):
     run(["ip", "link", "set", iface, "mtu", str(int(t.get("mtu") or 1420)), "up"])
 
 
+T_POST = "ALEXEN-PREROUTE-POST"
+T_FWD = "ALEXEN-PREROUTE-FILTER"
+
+
+def _nat_apply(t: dict):
+    """iptables mode: DNAT the relay's ports to another IP:port and masquerade
+    (the target answers to the relay, so it sees the relay's IP)"""
+    for f in t.get("forwards", []):
+        for proto in (["tcp", "udp"] if f["proto"] == "both" else [f["proto"]]):
+            port, ip, to = str(f["port"]), f["to_addr"], str(f.get("to_port") or f["port"])
+            _ipt("nat", "-A", T_CHAIN, "-p", proto, "--dport", port,
+                 "-j", "DNAT", "--to-destination", f"{ip}:{to}", check=True)
+            _ipt("nat", "-A", T_POST, "-p", proto, "-d", ip, "--dport", to, "-j", "MASQUERADE", check=True)
+            _ipt("filter", "-A", T_FWD, "-p", proto, "-d", ip, "--dport", to, "-j", "ACCEPT", check=True)
+
+
 def tunnels_apply(tunnels):
     tunnels = tunnels or []
+    nat = [t for t in tunnels if t.get("role") == "nat"]
+    tunnels = [t for t in tunnels if t.get("role") != "nat"]
+    _chain("nat", T_POST, "POSTROUTING")
+    _chain("filter", T_FWD, "FORWARD")
+    if nat:
+        _ipt("filter", "-A", T_FWD, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT", check=True)
     want = {t["iface"] for t in tunnels}
     for iface in _tun_ifaces():
         if iface not in want:
@@ -437,9 +459,12 @@ def tunnels_apply(tunnels):
         pref = line.split(":")[0].strip()
         if pref.isdigit() and T_PREF <= int(pref) < T_PREF + 1000:
             run(["ip", "rule", "del", "pref", pref], check=False)
-    if tunnels:
+    if tunnels or nat:
         _sysctl("net.ipv4.ip_forward", "1")
+    if tunnels:
         _sysctl("net.ipv4.conf.all.rp_filter", "2")
+    for t in nat:
+        _nat_apply(t)
     for t in tunnels:
         _tun_link(t)
         iface, tid = t["iface"], int(t["id"])
@@ -470,12 +495,15 @@ def tunnels_apply(tunnels):
             _ipt("mangle", "-A", T_OUT, "-m", "connmark", "--mark", mark, "-j", "MARK", "--set-mark", mark, check=True)
             run(["ip", "route", "replace", "default", "dev", iface, "table", table])
             run(["ip", "rule", "add", "pref", pref, "fwmark", mark, "table", table])
-    applied["tunnels"] = tunnels or None
+    applied["tunnels"] = (tunnels + nat) or None
 
 
 def tunnels_stats():
     out = []
     for t in applied.get("tunnels") or []:
+        if t.get("role") == "nat":
+            out.append({"id": t["id"], "role": "nat", "handshake": 0, "rx": 0, "tx": 0, "up": True})
+            continue
         tool = "wg" if t["kind"] == "wg" else "awg"
         r = run([tool, "show", t["iface"], "dump"], check=False).stdout.strip().splitlines()
         hs = rx = tx = 0
@@ -486,6 +514,51 @@ def tunnels_stats():
         out.append({"id": t["id"], "role": t["role"], "handshake": hs, "rx": rx, "tx": tx,
                     "up": run(["ip", "link", "show", t["iface"]], check=False).returncode == 0})
     return out
+
+
+# ---------------- the server's own state (CPU, memory, disk, network) ----------------
+_cpu_prev = None
+
+
+def _cpu_percent() -> float:
+    global _cpu_prev
+    with open("/proc/stat") as f:
+        v = [int(x) for x in f.readline().split()[1:]]
+    idle, total = v[3] + (v[4] if len(v) > 4 else 0), sum(v)
+    prev, _cpu_prev = _cpu_prev, (idle, total)
+    if not prev:
+        time.sleep(0.3)
+        return _cpu_percent()
+    d_total, d_idle = total - prev[1], idle - prev[0]
+    return round(100.0 * (d_total - d_idle) / d_total, 1) if d_total > 0 else 0.0
+
+
+def sysinfo():
+    mem = {}
+    with open("/proc/meminfo") as f:
+        for line in f:
+            k, v = line.split(":", 1)
+            mem[k] = int(v.split()[0]) * 1024
+    st = os.statvfs("/")
+    with open("/proc/uptime") as f:
+        uptime = float(f.read().split()[0])
+    with open("/proc/loadavg") as f:
+        load = [float(x) for x in f.read().split()[:3]]
+    rx = tx = 0
+    with open("/proc/net/dev") as f:
+        for line in f.readlines()[2:]:
+            name, data = line.split(":", 1)
+            name = name.strip()
+            if name == "lo" or name.startswith(("docker", "veth", "br-", "alxt", "awg", "tun")):
+                continue
+            parts = data.split()
+            rx += int(parts[0]); tx += int(parts[8])
+    return {
+        "cpu": _cpu_percent(), "cores": os.cpu_count() or 1, "load": load,
+        "mem_total": mem.get("MemTotal", 0), "mem_used": mem.get("MemTotal", 0) - mem.get("MemAvailable", 0),
+        "disk_total": st.f_blocks * st.f_frsize, "disk_used": (st.f_blocks - st.f_bfree) * st.f_frsize,
+        "uptime": int(uptime), "net_rx": rx, "net_tx": tx, "time": time.time(),
+    }
 
 
 # ---------------- state across restarts ----------------
@@ -546,6 +619,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/status":
             with lock:
                 return self._send(200, status())
+        if self.path == "/sys":
+            return self._send(200, sysinfo())
         if self.path == "/stats":
             with lock:
                 ovpn_poll()

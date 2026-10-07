@@ -377,6 +377,13 @@ def _connect_host(host: str) -> str:
         return host
 
 
+def _version(v) -> tuple:
+    try:
+        return tuple(int(x) for x in str(v or "0").split(".")[:3])
+    except ValueError:
+        return (0,)
+
+
 def _unreachable(host: str, port: int, e: Exception) -> str:
     text = str(e).lower()
     errno = getattr(e, "errno", None)
@@ -588,6 +595,10 @@ def sync():
                 have_tun = (status.get("tunnels") or {}).get("hash", "")
                 if body["tunnels"] and "tunnels" not in status:
                     raise AgentError("This server's agent is too old for preroute: run the install command again to update it")
+                if any(t.get("role") == "nat" for t in body["tunnels"]) and \
+                        _version(status.get("version")) < (1, 3, 0):
+                    raise AgentError("This server's agent is too old for iptables forwarding: "
+                                     "run the install command again to update it")
                 errors = {}
                 if status["awg"]["hash"] != want_awg or status["ovpn"]["hash"] != want_ovpn or have_tun != want_tun:
                     status = call(db, key, srv, "POST", "/apply", body, timeout=30)

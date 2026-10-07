@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Dict, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends
 from pydantic import BaseModel
@@ -25,6 +25,19 @@ class SubscriptionSettings(BaseModel):
     near_expire_days: int = 1
     # hours between automatic updates in the apps; None: SUB_UPDATE_INTERVAL from .env
     update_interval: Optional[int] = None
+    # admin username -> its own templates for its users; an empty one falls back to the ones above
+    admins: Dict[str, "AdminSubTemplates"] = {}
+
+
+class AdminSubTemplates(BaseModel):
+    default_template: Optional[str] = ""
+    expired_template: Optional[str] = ""
+    disabled_template: Optional[str] = ""
+    limited_template: Optional[str] = ""
+    near_expire_template: Optional[str] = ""
+
+
+SubscriptionSettings.model_rebuild()
 
 
 def get_subscription_settings(db: Session) -> SubscriptionSettings:
@@ -69,7 +82,7 @@ def _check_external(settings: "_external.ExternalSettings"):
         raise HTTPException(400, "unknown generated_sort")
     if settings.external_sort not in _external.EXTERNAL_SORTS:
         raise HTTPException(400, "unknown external_sort")
-    for c in settings.configs:
+    for c in settings.all_configs():
         if c.position not in ("top", "bottom"):
             raise HTTPException(400, f"{c.name}: position must be top or bottom")
         if c.kind not in ("links", "subscription"):
@@ -100,7 +113,7 @@ def update_external_configs(settings: _external.ExternalSettings,
     _check_external(settings)
     saved = _external.save(db, settings)
     from app.subscription import external_sources
-    external_sources.forget([c.id for c in saved.configs])
+    external_sources.forget([c.id for c in saved.all_configs()])
     return saved
 
 
@@ -123,11 +136,56 @@ def preview_external_configs(settings: _external.ExternalSettings,
     links = generate_v2ray_links(user.proxies, user.inbounds, user.__dict__, False, host_groups)
     status = getattr(user.status, "value", user.status)
     pairs = _external.apply(links, active=status in ("active", "on_hold"), host_groups=host_groups,
-                            variables=setup_format_variables(user.__dict__), settings=settings, tagged=True)
+                            variables=setup_format_variables(user.__dict__), settings=settings, tagged=True,
+                            admin=dbuser.admin.username if dbuser.admin else "")
     return ExternalPreview(
         username=user.username,
         items=[ExternalPreviewItem(remark=_external._remark(l), link=l, source=src) for l, src in pairs],
     )
+
+
+def _visible_configs(admin: Admin):
+    """what this admin may look at: everything for sudo, else its own list (if allowed)"""
+    s = _external.load()
+    if admin.is_sudo:
+        return s.all_configs()
+    mine = s.admins.get(admin.username)
+    return list(mine.configs) if mine and mine.self_edit else []
+
+
+def _own_external(admin: Admin) -> "_external.AdminExternal":
+    mine = _external.load().admins.get(admin.username)
+    if admin.is_sudo or not mine or not mine.self_edit:
+        raise HTTPException(403, "You can't edit external configs")
+    return mine
+
+
+class OwnExternal(BaseModel):
+    label: str = ""
+    enabled: bool = True
+    configs: _List[_external.ExternalConfig] = []
+
+
+@router.get("/external-configs/mine", response_model=OwnExternal)
+def read_own_external(admin: Admin = Depends(Admin.get_current)):
+    """an admin's own external configs (when the sudo admin lets it edit them)"""
+    mine = _own_external(admin)
+    return OwnExternal(label=mine.label, enabled=mine.enabled, configs=mine.configs)
+
+
+@router.put("/external-configs/mine", response_model=OwnExternal)
+def update_own_external(body: OwnExternal, db: Session = Depends(get_db),
+                        admin: Admin = Depends(Admin.get_current)):
+    mine = _own_external(admin)
+    settings = _external.load(db)
+    # the admin edits only its list; the label and on/off stay with the sudo admin
+    entry = settings.admins[admin.username].model_copy(update={"configs": body.configs})
+    settings.admins[admin.username] = entry
+    _check_external(settings)
+    saved = _external.save(db, settings)
+    from app.subscription import external_sources
+    external_sources.forget([c.id for c in saved.all_configs()])
+    return OwnExternal(label=entry.label, enabled=entry.enabled, configs=entry.configs)
 
 
 class SourceStatus(BaseModel):
@@ -140,11 +198,11 @@ class SourceStatus(BaseModel):
 
 
 @router.get("/external-configs/sources", response_model=_List[SourceStatus])
-def external_sources_status(admin: Admin = Depends(Admin.check_sudo_admin)):
+def external_sources_status(admin: Admin = Depends(Admin.get_current)):
     """Last fetch/test result of every subscription source"""
     from app.subscription import external_sources as es
     out = []
-    for c in _external.load().configs:
+    for c in _visible_configs(admin):
         if c.kind != "subscription":
             continue
         e = es.get_cache().get(c.id) or {}
@@ -156,10 +214,10 @@ def external_sources_status(admin: Admin = Depends(Admin.check_sudo_admin)):
 
 @router.post("/external-configs/sources/{source_id}/refresh")
 def refresh_external_source(source_id: str, bg: BackgroundTasks,
-                            admin: Admin = Depends(Admin.check_sudo_admin)):
+                            admin: Admin = Depends(Admin.get_current)):
     """Fetch, test and rename one source now (runs in the background)"""
     from app.subscription import external_sources as es
-    if not any(c.id == source_id and c.kind == "subscription" for c in _external.load().configs):
+    if not any(c.id == source_id and c.kind == "subscription" for c in _visible_configs(admin)):
         raise HTTPException(404, "Source not found (save it first)")
     es._running.add(source_id)
     bg.add_task(es.refresh_due, [source_id])

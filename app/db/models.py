@@ -397,6 +397,20 @@ class NodeUsage(Base):
     downlink = Column(BigInteger, default=0)
 
 
+class StatHistory(Base):
+    """hourly history for the overview / statistics charts (app/stats_history.py)"""
+    __tablename__ = "stat_history"
+    __table_args__ = (
+        UniqueConstraint('created_at', 'kind', 'key'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    created_at = Column(DateTime, nullable=False, index=True)  # start of the hour
+    kind = Column(String(16), nullable=False)    # inbound | online | online_ips | users
+    key = Column(String(128), nullable=False, default="")
+    value = Column(BigInteger, nullable=False, default=0)
+
+
 class NotificationReminder(Base):
     __tablename__ = "notification_reminders"
 

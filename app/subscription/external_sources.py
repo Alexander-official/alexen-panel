@@ -526,7 +526,7 @@ def refresh_due(force_ids: Optional[List[str]] = None):
         settings = external.load()
         cache = get_cache()
         now = time.time()
-        for src in settings.configs:
+        for src in settings.all_configs():
             if src.kind != "subscription" or not src.url:
                 continue
             forced = force_ids is not None and src.id in force_ids

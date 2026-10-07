@@ -29,6 +29,12 @@ export type Section = {
 
 export const SECTIONS: Section[] = [
   {
+    path: "overview",
+    title: "overview.title",
+    sudo: false,
+    Component: named(() => import("components/OverviewPage"), "OverviewPage"),
+  },
+  {
     path: "statistics",
     title: "stats.title",
     sudo: false,
@@ -85,7 +91,7 @@ export const SECTIONS: Section[] = [
   {
     path: "external",
     title: "external.title",
-    sudo: true,
+    sudo: false, // admins allowed by the sudo admin edit their own list
     Component: named(() => import("components/ExternalConfigsPage"), "ExternalConfigsPage"),
   },
   {

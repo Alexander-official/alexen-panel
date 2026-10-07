@@ -18,6 +18,7 @@ import {
 } from "./PageSurface";
 import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC } from "react";
+import { StatsHistory } from "./OverviewPage";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import { fetch } from "service/http";
@@ -88,6 +89,10 @@ export const StatisticsModal: FC = () => {
               value={data ? (formatBytes(data.total_traffic) as string) : "—"}
             />
           </SimpleGrid>
+
+          <Box mb={6}>
+            <StatsHistory />
+          </Box>
 
           <Text fontSize="sm" fontWeight="medium" mb={2}>
             {t("stats.byTransport")}

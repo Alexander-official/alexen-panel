@@ -1,8 +1,12 @@
-"""Preroute: a relay server forwards ports to an exit server through a
-WireGuard (or AmneziaWG) link, without SNAT, so the exit sees the users' real
-IPs for every protocol (TCP and UDP). Users connect to the relay with the
-exit's normal configs; nothing about users runs on the relay. Both servers
-need the Alexen agent (vpn-agent/), which does the forwarding and routing.
+"""Preroute: a relay server forwards ports to another server. Four ways:
+  wg / awg  through a WireGuard (or AmneziaWG) link, without SNAT, so the exit
+            sees the users' real IPs for every protocol (TCP and UDP). Both
+            servers need the Alexen agent (vpn-agent/).
+  iptables  plain DNAT + masquerade on the relay to any IP:port (the target
+            sees the relay's IP). Only the relay needs the agent.
+  xray      a dokodemo-door ("tunnel") inbound in the relay's own Xray, like
+            3x-ui's tunnel, to any IP:port. No agent needed.
+Users connect to the relay with the exit's normal configs.
 
 Settings live in the settings table under "preroute"."""
 import socket
@@ -13,6 +17,7 @@ from pydantic import BaseModel, Field
 from app.vpn import pki
 
 SETTINGS_KEY = "preroute"
+LINK_KINDS = ("wg", "awg")             # the ones with a tunnel between the servers
 NET = "10.89"                     # link addresses: 10.89.<id>.1 (exit) / .2 (relay)
 
 
@@ -20,13 +25,14 @@ class Forward(BaseModel):
     proto: str = Field("both", pattern="^(tcp|udp|both)$")
     port: int = Field(..., ge=1, le=65535)                 # on the relay (what users connect to)
     to_port: Optional[int] = Field(None, ge=1, le=65535)   # on the exit; empty: the same port
+    to_addr: str = Field("", max_length=255)               # iptables / xray: another target; empty: the exit
 
 
 class Tunnel(BaseModel):
     id: int
     relay: str                                    # server key: "master" or a node id
-    exit: str
-    kind: str = Field("wg", pattern="^(wg|awg)$")  # WireGuard (fast) / AmneziaWG (hidden)
+    exit: str = ""                                # a panel server; empty (iptables / xray): targets per port
+    kind: str = Field("wg", pattern="^(wg|awg|iptables|xray)$")
     port: int = Field(51900, ge=1, le=65535)      # the exit's UDP port for the link
     mtu: int = Field(1420, ge=1200, le=1500)
     all_ports: bool = True                        # every inbound port of the exit
@@ -52,6 +58,8 @@ def save(db, s: PrerouteSettings) -> PrerouteSettings:
     from app.db import crud
     from app.vpn import _random_awg_params
     for t in s.tunnels.values():
+        if t.kind not in LINK_KINDS:
+            continue
         if not t.relay_private:
             t.relay_private, t.relay_public = pki.wg_keypair()
         if not t.exit_private:
@@ -69,11 +77,24 @@ def relays(s: PrerouteSettings) -> set:
 
 
 def exits(s: PrerouteSettings) -> set:
-    return {t.exit for t in s.tunnels.values()}
+    return {t.exit for t in s.tunnels.values() if t.exit}
 
 
 def participants(s: PrerouteSettings) -> set:
-    return {k for t in s.tunnels.values() for k in (t.relay, t.exit)}
+    """servers whose agent runs something for preroute"""
+    out = set()
+    for t in s.tunnels.values():
+        if t.kind in LINK_KINDS:
+            out |= {t.relay, t.exit}
+        elif t.kind == "iptables":
+            out.add(t.relay)
+    return out
+
+
+def target_of(db, t: Tunnel, f: Forward) -> str:
+    """the IPv4 a forward goes to (iptables / xray)"""
+    host = f.to_addr or (address_of(db, t.exit) if t.exit else "")
+    return ipv4(host) if host else ""
 
 
 def address_of(db, key: str) -> str:
@@ -120,8 +141,9 @@ def reserved_ports(db, key: str) -> set:
 
 def forwards_of(db, t: Tunnel) -> List[Forward]:
     """what the relay forwards: the exit's Xray inbounds and VPN services, or the custom list"""
-    if not t.all_ports:
-        wanted = [Forward(proto=f.proto, port=f.port, to_port=f.to_port or f.port) for f in t.forwards]
+    if not t.all_ports or not t.exit:
+        wanted = [Forward(proto=f.proto, port=f.port, to_port=f.to_port or f.port, to_addr=f.to_addr)
+                  for f in t.forwards]
     else:
         from app import vpn
         wanted = [Forward(proto="both", port=p, to_port=p) for p in sorted(_xray_ports(t.exit))]
@@ -130,7 +152,7 @@ def forwards_of(db, t: Tunnel) -> List[Forward]:
             wanted.append(Forward(proto="udp", port=srv.awg.port, to_port=srv.awg.port))
         if srv and srv.ovpn.enabled:
             wanted.append(Forward(proto=srv.ovpn.proto, port=srv.ovpn.port, to_port=srv.ovpn.port))
-    skip = reserved_ports(db, t.relay) | {t.port}
+    skip = reserved_ports(db, t.relay) | ({t.port} if t.kind in LINK_KINDS else set())
     seen, out = set(), []
     for f in wanted:
         if f.port in skip or (f.proto, f.port) in seen:
@@ -145,6 +167,17 @@ def agent_tunnels(db, key: str, s: Optional[PrerouteSettings] = None) -> List[di
     s = s or load(db)
     out = []
     for t in s.tunnels.values():
+        if t.kind == "iptables":
+            if t.relay == key:
+                forwards = []
+                for f in forwards_of(db, t):
+                    ip = target_of(db, t, f)
+                    if ip:
+                        forwards.append({"proto": f.proto, "port": f.port, "to_addr": ip, "to_port": f.to_port or f.port})
+                out.append({"id": t.id, "kind": "iptables", "role": "nat", "forwards": forwards})
+            continue
+        if t.kind not in LINK_KINDS:
+            continue
         common = {"id": t.id, "kind": t.kind, "iface": f"alxt{t.id}", "psk": t.psk, "mtu": t.mtu,
                   "params": t.params if t.kind == "awg" else {}}
         if t.exit == key:
@@ -159,3 +192,53 @@ def agent_tunnels(db, key: str, s: Optional[PrerouteSettings] = None) -> List[di
                         "endpoint": f"{exit_ip}:{t.port}", "exit_ip": exit_ip,
                         "forwards": [f.model_dump() for f in forwards_of(db, t)]})
     return sorted(out, key=lambda x: (x["id"], x["role"]))
+
+
+# ---- xray mode: tunnel inbounds added to the relay's config when it is sent ----
+TUNNEL_PREFIX = "preroute-"
+DIRECT_TAG = "preroute-direct"
+
+
+def xray_apply(key: str, config):
+    """the relay's config with its "xray" rules as dokodemo-door inbounds (a copy)"""
+    try:
+        from app.db import GetDB
+        with GetDB() as db:
+            s = load(db)
+            mine = [t for t in s.tunnels.values() if t.kind == "xray" and t.relay == key]
+            if not mine:
+                return config
+            import copy
+            config = copy.deepcopy(config)
+            inbounds = config.setdefault("inbounds", [])
+            used = {i.get("port") for i in inbounds}
+            tags = []
+            for t in mine:
+                for f in forwards_of(db, t):
+                    ip = target_of(db, t, f)
+                    if not ip or f.port in used:
+                        continue
+                    tag = f"{TUNNEL_PREFIX}{t.id}-{f.port}"
+                    inbounds.append({
+                        "tag": tag, "listen": "0.0.0.0", "port": f.port, "protocol": "dokodemo-door",
+                        "settings": {"address": ip, "port": f.to_port or f.port,
+                                     "network": {"both": "tcp,udp"}.get(f.proto, f.proto)},
+                    })
+                    used.add(f.port)
+                    tags.append(tag)
+            if tags:
+                outbounds = config.setdefault("outbounds", [])
+                if not any(o.get("tag") == DIRECT_TAG for o in outbounds):
+                    outbounds.append({"tag": DIRECT_TAG, "protocol": "freedom"})
+                routing = config.setdefault("routing", {})
+                routing["rules"] = [{"type": "field", "inboundTag": tags, "outboundTag": DIRECT_TAG}] + \
+                    list(routing.get("rules", []))
+            return config
+    except Exception as e:
+        from app import logger
+        logger.warning(f"preroute: tunnel inbounds not added to {key}: {e}")
+        return config
+
+
+def xray_relays(s: PrerouteSettings) -> set:
+    return {t.relay for t in s.tunnels.values() if t.kind == "xray"}

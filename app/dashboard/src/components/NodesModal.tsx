@@ -73,8 +73,25 @@ import { DeleteIcon } from "./DeleteUserModal";
 import { ReloadIcon } from "./Filters";
 import { Icon } from "./Icon";
 import { NodeModalStatusBadge } from "./NodeModalStatusBadge";
+import {
+  emptySSH,
+  FlagSelect,
+  InstallBox,
+  InstallProgress,
+  saveNodeExtra,
+  SSHFields,
+  sshFilled,
+  startInstall,
+  useInstall,
+  useNodesExtras,
+  useNodesSystem,
+  VpsCompact,
+  VpsStatus,
+} from "./NodeExtras";
+import { flagEmoji } from "utils/flags";
 
 import { fetch } from "service/http";
+import { serverMessage } from "utils/serverMessage";
 import { Input } from "./Input";
 
 const CustomInput = chakra(Input, {
@@ -126,7 +143,7 @@ const CoreSelect: FC<{ form: UseFormReturn<NodeType> }> = ({ form }) => {
         setName("");
       })
       .catch((e: any) =>
-        toast({ title: e?.response?._data?.detail || "Error", status: "error", position: "top", duration: 4000 })
+        toast({ title: serverMessage(t, e?.response?._data?.detail) || t("errors.generic"), status: "error", position: "top", duration: 4000 })
       )
       .finally(() => setBusy(false));
   };
@@ -219,6 +236,13 @@ const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
     }
   );
 
+  const { data: extras } = useNodesExtras();
+  const { data: system } = useNodesSystem();
+  const extra = node.id ? extras?.[String(node.id)] : undefined;
+  const sys = node.id ? system?.[String(node.id)] : undefined;
+  const setFlag = (flag: string) =>
+    node.id && saveNodeExtra(node.id, { flag }).then(() => queryClient.invalidateQueries("nodes-extras"));
+
   const nodeStatus: Status = isReconnecting
     ? "connecting"
     : node.status
@@ -252,9 +276,11 @@ const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
             color="gray.700"
             _dark={{ color: "gray.300" }}
           >
+            {extra?.flag ? `${flagEmoji(extra.flag)} ` : ""}
             {node.name}
           </Text>
           <HStack>
+            <VpsCompact sys={sys} />
             {node.xray_version && (
               <Badge
                 colorScheme="primary"
@@ -309,7 +335,16 @@ const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
           mutate={mutate}
           isLoading={isLoading}
           submitBtnText={t("nodes.editNode")}
-          vpnSlot={node.id ? <NodeVpnToggles nodeKey={String(node.id)} /> : null}
+          vpnSlot={
+            node.id ? (
+              <VStack w="full" align="stretch" spacing={3}>
+                <FlagSelect value={extra?.flag || ""} onChange={setFlag} />
+                <NodeVpnToggles nodeKey={String(node.id)} />
+                <VpsStatus sys={sys} />
+                <InstallBox nodeId={node.id} name={node.name} address={node.address} saved={extra?.ssh} />
+              </VStack>
+            ) : null
+          }
           btnLeftAdornment={
             <Tooltip label={t("delete")} placement="top">
               <IconButton
@@ -350,8 +385,29 @@ const AddNodeForm: FC<AddNodeFormType> = ({
     },
   });
   const [vpnChoice, setVpnChoice] = useState({ awg: false, ovpn: false });
+  const [flag, setFlag] = useState("");
+  const [ssh, setSsh] = useState(emptySSH());
+  const [install, setInstall] = useState({ on: false, node: true, agent: true, save: true });
+  const openJob = useInstall((s) => s.open);
   const { isLoading, mutate } = useMutation(addNode, {
     onSuccess: (created: any) => {
+      if (created?.id) {
+        const name = form.getValues("name");
+        const withLogin = install.on && sshFilled(ssh);
+        // the flag (and the login, if it should be kept), then the install over SSH
+        saveNodeExtra(created.id, { flag, ...(withLogin && install.save ? { ssh } : {}) })
+          .catch(() => {})
+          .finally(() => {
+            queryClient.invalidateQueries("nodes-extras");
+            if (withLogin)
+              startInstall(created.id, { ssh, save: install.save, node: install.node, agent: install.agent })
+                .then((job) => openJob(job, name))
+                .catch((e: any) => toast({ status: "error", title: serverMessage(t, e?.response?._data?.detail) || t("errors.generic"), position: "top" }));
+          });
+        setFlag("");
+        setSsh(emptySSH());
+        setInstall({ on: false, node: true, agent: true, save: true });
+      }
       // the VPN choice needs the node's id: apply it once the node exists
       if (created?.id && (vpnChoice.awg || vpnChoice.ovpn)) {
         applyNodeVpn(String(created.id), vpnChoice).catch(() => {});
@@ -409,7 +465,39 @@ const AddNodeForm: FC<AddNodeFormType> = ({
           submitBtnText={t("nodes.addNode")}
           btnProps={{ variant: "solid" }}
           addAsHost
-          vpnSlot={<NodeVpnToggles value={vpnChoice} onChange={setVpnChoice} />}
+          vpnSlot={
+            <VStack w="full" align="stretch" spacing={3}>
+              <FlagSelect value={flag} onChange={setFlag} />
+              <NodeVpnToggles value={vpnChoice} onChange={setVpnChoice} />
+              <Box p={3} borderRadius="lg" borderWidth="1px" borderColor="light-border" _dark={{ borderColor: "gray.600" }}>
+                <HStack justifyContent="space-between">
+                  <Box>
+                    <Text fontSize="sm" fontWeight="medium">
+                      {t("nodeExtra.installOnAdd")}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500">
+                      {t("nodeExtra.installOnAddHelp")}
+                    </Text>
+                  </Box>
+                  <Switch colorScheme="primary" isChecked={install.on} onChange={(e) => setInstall({ ...install, on: e.target.checked })} />
+                </HStack>
+                <Collapse in={install.on} animateOpacity>
+                  <VStack align="stretch" spacing={2} pt={3}>
+                    <SSHFields value={ssh} onChange={setSsh} addressHint={form.watch("address")} />
+                    <Checkbox size="sm" isChecked={install.node} onChange={(e) => setInstall({ ...install, node: e.target.checked })}>
+                      <Text fontSize="sm">{t("nodeExtra.installNode")}</Text>
+                    </Checkbox>
+                    <Checkbox size="sm" isChecked={install.agent} onChange={(e) => setInstall({ ...install, agent: e.target.checked })}>
+                      <Text fontSize="sm">{t("nodeExtra.installAgent")}</Text>
+                    </Checkbox>
+                    <Checkbox size="sm" isChecked={install.save} onChange={(e) => setInstall({ ...install, save: e.target.checked })}>
+                      <Text fontSize="sm">{t("nodeExtra.saveLogin")}</Text>
+                    </Checkbox>
+                  </VStack>
+                </Collapse>
+              </Box>
+            </VStack>
+          }
         />
       </AccordionPanel>
     </AccordionItem>
@@ -719,6 +807,7 @@ export const NodesDialog: FC = () => {
         </ModalContent>
       </Modal>
       <DeleteNodeModal deleteCallback={() => setOpenAccordions({})} />
+      <InstallProgress />
     </>
   );
 };

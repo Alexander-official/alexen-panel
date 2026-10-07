@@ -15,8 +15,13 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 modprobe tun 2>/dev/null || true
 mkdir -p "$DIR/build" /var/lib/alexen-vpn
-echo "==> downloading the agent from $PANEL"
-curl -fsSL "$PANEL/vpn-agent/agent.tar.gz" | tar -xz -C "$DIR/build"
+if [ -n "${AGENT_TARBALL:-}" ]; then
+  echo "==> unpacking the agent"           # uploaded by the panel over SSH
+  tar -xzf "$AGENT_TARBALL" -C "$DIR/build"
+else
+  echo "==> downloading the agent from $PANEL"
+  curl -fsSL "$PANEL/vpn-agent/agent.tar.gz" | tar -xz -C "$DIR/build"
+fi
 echo "$CERT_B64" | base64 -d > "$DIR/panel.pem"
 echo "==> building (compiles AmneziaWG, takes a few minutes the first time)"
 docker build -q -t alexen-vpn-agent:latest "$DIR/build"

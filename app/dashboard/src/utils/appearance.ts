@@ -323,14 +323,16 @@ export const applyAppearance = (a: Appearance) => {
   root.style.removeProperty("--chakra-colors-light-border");
   root.style.removeProperty("--app-surface");
   root.style.removeProperty("--app-surface-2");
+  ["gray-600", "gray-700", "gray-750", "gray-800", "gray-900"].forEach((v) => root.style.removeProperty(`--chakra-colors-${v}`));
   const tint = bg.tint ? (dark ? bg.tint.dark : bg.tint.light) : {};
   Object.entries(tint).forEach(([k, v]) => {
     if (k === "border") root.style.setProperty("--chakra-colors-light-border", v);
     else if (k === "surface" || k === "surface-2") root.style.setProperty(`--app-${k}`, v);
     else root.style.setProperty(`--chakra-colors-${k}`, v);
   });
+  applyTiers(root, dark, tint);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta && dark) meta.setAttribute("content", tint["gray-800"] || "#1A202C");
+  if (meta && dark) meta.setAttribute("content", root.style.getPropertyValue("--tier-0") || "#1A202C");
 
   root.classList.toggle("theme-glass", a.surface === "glass");
   root.classList.toggle("theme-clay", a.surface === "clay");
@@ -341,5 +343,41 @@ export const applyAppearance = (a: Appearance) => {
     localStorage.setItem(KEY, JSON.stringify(a));
   } catch {}
 };
+
+/** Three clearly separate tiers, derived from the background's base color:
+ *    tier 0  the page behind everything
+ *    tier 1  layers on it: cards, panels, modals, menus, the sidebar, tables
+ *    tier 2  sections inside a layer (and table heads)
+ *    item    things you click or type in: fields, chips, outline buttons, rows on hover
+ *  Dark mode rebuilds Chakra's gray scale from these, so every component follows. */
+function applyTiers(root: HTMLElement, dark: boolean, tint: Record<string, string>) {
+  const set = (k: string, v: string) => root.style.setProperty(k, v);
+  if (dark) {
+    const base = tint["gray-800"] || "#151a25";
+    const t0 = mix(base, "#000000", 0.3);
+    const t1 = mix(base, "#ffffff", 0.05);
+    const t2 = mix(base, "#ffffff", 0.095);
+    const item = mix(base, "#ffffff", 0.14);
+    const itemHover = mix(base, "#ffffff", 0.2);
+    const line = mix(base, "#ffffff", 0.16);
+    set("--tier-0", t0); set("--tier-1", t1); set("--tier-2", t2);
+    set("--tier-item", item); set("--tier-item-hover", itemHover); set("--tier-line", line);
+    // Chakra's grays: 900/800 the page, 750 layers, 700 inner parts, 600 lines
+    set("--chakra-colors-gray-900", mix(base, "#000000", 0.42));
+    set("--chakra-colors-gray-800", t0);
+    set("--chakra-colors-gray-750", t1);
+    set("--chakra-colors-gray-700", t2);
+    set("--chakra-colors-gray-600", mix(base, "#ffffff", 0.24));
+  } else {
+    const t1 = tint.surface || "#ffffff";
+    const t0 = mix(tint["gray-200"] || "#e1e4ec", "#ffffff", 0.3);
+    const t2 = mix(t0, t1, 0.55);
+    set("--tier-0", t0); set("--tier-1", t1); set("--tier-2", t2);
+    set("--tier-item", mix(t0, t1, 0.3)); set("--tier-item-hover", mix(t0, "#000000", 0.03));
+    set("--tier-line", mix(t0, "#000000", 0.07));
+    set("--app-surface", t1);
+    set("--app-surface-2", t2);
+  }
+}
 
 export const initAppearance = () => applyAppearance(getAppearance());

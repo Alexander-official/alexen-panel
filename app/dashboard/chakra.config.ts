@@ -37,10 +37,16 @@ export const theme = extendTheme({
             : p.colorScheme === "gray"
             ? { bg: "blackAlpha.50", _hover: { bg: "blackAlpha.100" }, _dark: { bg: "whiteAlpha.100", _hover: { bg: "whiteAlpha.200" } } }
             : {},
-        outline: () => ({
-          borderColor: "blackAlpha.200",
-          _hover: { bg: "blackAlpha.50" },
-          _dark: { borderColor: "whiteAlpha.200", _hover: { bg: "whiteAlpha.100" } },
+        // items sit a tier above the layer they are on (see utils/appearance.ts)
+        outline: (p: any) => ({
+          bg: "var(--tier-item)",
+          borderColor: p.colorScheme === "primary" ? "color-mix(in srgb, var(--chakra-colors-primary-500) 45%, var(--tier-line))" : "var(--tier-line)",
+          _hover: { bg: "var(--tier-item-hover)" },
+          _dark: {
+            bg: "var(--tier-item)",
+            borderColor: p.colorScheme === "primary" ? "color-mix(in srgb, var(--chakra-colors-primary-400) 45%, var(--tier-line))" : "var(--tier-line)",
+            _hover: { bg: "var(--tier-item-hover)" },
+          },
         }),
         ghost: () => ({ _hover: { bg: "blackAlpha.50" }, _dark: { _hover: { bg: "whiteAlpha.100" } } }),
       },
@@ -66,6 +72,8 @@ export const theme = extendTheme({
           tab: {
             borderRadius: "10px",
             fontWeight: "medium",
+            bg: "var(--tier-item)",
+            _hover: { bg: "var(--tier-item-hover)" },
             _selected: {
               bg: "color-mix(in srgb, var(--chakra-colors-primary-500) 14%, transparent)",
               color: "primary.600",

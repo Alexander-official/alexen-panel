@@ -584,3 +584,52 @@ html:not(.has-bg):not(.theme-glass) body:not(.chakra-ui-dark) #users-table {
     radial-gradient(42rem 28rem at 50% -8rem, color-mix(in srgb, var(--chakra-colors-primary-500) 22%, transparent), transparent 70%),
     radial-gradient(30rem 22rem at 100% 100%, color-mix(in srgb, var(--chakra-colors-primary-300) 14%, transparent), transparent 70%);
 }
+
+/* ============ three tiers: page · layers · items (values: utils/appearance.ts) ============ */
+:root {
+  --tier-0: #eceff4;
+  --tier-1: #ffffff;
+  --tier-2: #f5f6f9;
+  --tier-item: #f1f3f7;
+  --tier-item-hover: #e6e9ef;
+  --tier-line: #dde1e8;
+  --alexen-field: var(--tier-item);
+  --alexen-field-border: var(--tier-line);
+}
+.chakra-ui-dark {
+  --alexen-field: var(--tier-item);
+  --alexen-field-border: var(--tier-line);
+  --alexen-line: color-mix(in srgb, var(--tier-line) 70%, transparent);
+}
+/* tier 0: the page */
+html:not(.has-bg):not(.theme-glass):not(.theme-clay) body { background-color: var(--tier-0) !important; }
+/* tier 1: layers */
+html:not(.theme-glass):not(.theme-clay) {
+  .chakra-card,
+  .alexen-page,
+  .chakra-modal__content,
+  .chakra-menu__menu-list,
+  .chakra-popover__content,
+  .alexen-sidebar {
+    background-color: var(--tier-1) !important;
+  }
+  .alexen-sidebar { border-color: var(--tier-line) !important; }
+  .chakra-card, .alexen-page { border-color: var(--tier-line); }
+  #users-table td { background-color: var(--tier-1); }
+  #users-table th { background-color: var(--tier-2) !important; }
+}
+/* tier 2: sections inside a layer (accordion items, nested panels) */
+html:not(.theme-clay) {
+  .chakra-card .chakra-accordion__item,
+  .alexen-page .chakra-accordion__item,
+  .chakra-modal__content .chakra-accordion__item {
+    background-color: var(--tier-2) !important;
+    border-color: var(--tier-line) !important;
+  }
+}
+/* items: fields, outline buttons, tab and radio chips */
+html:not(.theme-clay) {
+  .alexen-chip:not([data-checked]) { background-color: var(--tier-item); }
+  .alexen-chip:not([data-checked]):hover { background-color: var(--tier-item-hover); }
+  .chakra-menu__menuitem:hover, .chakra-menu__menuitem:focus { background-color: var(--tier-item) !important; }
+}

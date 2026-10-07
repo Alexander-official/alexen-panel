@@ -37,6 +37,7 @@ import { FC, ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import { fetch } from "service/http";
+import { serverMessage } from "utils/serverMessage";
 
 type AWG = { enabled: boolean; address: string; port: number; subnet: string; mtu: number; dns: string[]; keepalive: number; params: Record<string, number> };
 type OVPN = { enabled: boolean; address: string; port: number; proto: string; subnet: string; dns: string[] };
@@ -188,7 +189,7 @@ const ServerCard: FC<{ s: Server; onSaved: () => void }> = ({ s, onSaved }) => {
   const setOvpn = (p: Partial<OVPN>) => set({ ovpn: { ...form.ovpn, ...p } });
   const st = s.state || {};
   const fail = (e: any) =>
-    toast({ title: e?.response?._data?.detail || e?.message || "Error", status: "error", position: "top", duration: 4500 });
+    toast({ title: serverMessage(t, e?.response?._data?.detail) || e?.message || t("errors.generic"), status: "error", position: "top", duration: 4500 });
   const save = () => {
     setSaving(true);
     fetch(`/vpn/servers/${s.key}`, { method: "PUT", body: form })
@@ -245,7 +246,7 @@ const ServerCard: FC<{ s: Server; onSaved: () => void }> = ({ s, onSaved }) => {
       {st.error && (
         <HStack {...soft} p={3} mb={4} spacing={2} align="flex-start" color="orange.400">
           <Icon as={ExclamationTriangleIcon} boxSize="16px" mt={0.5} flexShrink={0} />
-          <Text fontSize="xs">{st.error}</Text>
+          <Text fontSize="xs">{serverMessage(t, st.error)}</Text>
         </HStack>
       )}
       {s.warnings.map((w) => (
@@ -495,7 +496,7 @@ const Devices: FC<{ value: number; max: number; onSaved: () => void }> = ({ valu
         onSaved();
         toast({ title: t("vpn.saved"), status: "success", position: "top", duration: 2000 });
       })
-      .catch((e: any) => toast({ title: e?.response?._data?.detail || "Error", status: "error", position: "top" }));
+      .catch((e: any) => toast({ title: serverMessage(t, e?.response?._data?.detail) || t("errors.generic"), status: "error", position: "top" }));
   return (
     <HStack {...card} p={4} spacing={4} flexWrap="wrap" rowGap={3}>
       <Box flex="1" minW="240px">
@@ -561,7 +562,7 @@ export const NodeVpnToggles: FC<{
     setBusy(kind);
     applyNodeVpn(nodeKey, { ...on, [kind]: v }, s)
       .then(() => refetch())
-      .catch((e: any) => toast({ title: e?.response?._data?.detail || "Error", status: "error", position: "top" }))
+      .catch((e: any) => toast({ title: serverMessage(t, e?.response?._data?.detail) || t("errors.generic"), status: "error", position: "top" }))
       .finally(() => setBusy(""));
   };
   return (

@@ -89,6 +89,7 @@ def generate_outline_subscription(
 
 def generate_v2ray_json_subscription(
         proxies: dict, inbounds: dict, extra_data: dict, reverse: bool, host_groups: list = None,
+        admin_name: str = "",
 ) -> str:
     conf = V2rayJsonConfig()
 
@@ -101,7 +102,7 @@ def generate_v2ray_json_subscription(
     status = extra_data.get("status")
     status = getattr(status, "value", status)
     return json_sub.finish(conf, active=status in ("active", "on_hold"), host_groups=host_groups,
-                           variables=format_variables, reverse=reverse)
+                           variables=format_variables, reverse=reverse, admin=admin_name)
 
 
 def generate_subscription(
@@ -130,6 +131,7 @@ def generate_subscription(
             active=status in ("active", "on_hold"),
             host_groups=kwargs["host_groups"],
             variables=setup_format_variables(user.__dict__),
+            admin=admin.username if admin else "",
         )
         if prefix_lines:
             links = list(prefix_lines) + links
@@ -143,7 +145,7 @@ def generate_subscription(
     elif config_format == "outline":
         config = generate_outline_subscription(**kwargs)
     elif config_format == "v2ray-json":
-        config = generate_v2ray_json_subscription(**kwargs)
+        config = generate_v2ray_json_subscription(**kwargs, admin_name=admin.username if admin else "")
     else:
         raise ValueError(f'Unsupported format "{config_format}"')
 

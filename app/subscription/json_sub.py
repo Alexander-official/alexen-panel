@@ -80,11 +80,11 @@ def _with_routing(config: dict, rules: List[dict]) -> dict:
     return config
 
 
-def _external_configs(conf, s: JsonSubSettings, *, active: bool, host_groups, variables):
+def _external_configs(conf, s: JsonSubSettings, *, active: bool, host_groups, variables, admin: str = ""):
     """(top, bottom) JSON configs for the external links the user would get"""
     from app.subscription import external, external_sources
     marker = "panel://marker"
-    ordered = external.apply([marker], active=active, host_groups=host_groups, variables=variables)
+    ordered = external.apply([marker], active=active, host_groups=host_groups, variables=variables, admin=admin)
     if marker not in ordered:
         return [], []
     cut = ordered.index(marker)
@@ -141,14 +141,15 @@ def _balancer_config(conf, configs: List[dict], s: JsonSubSettings) -> Optional[
     return template
 
 
-def finish(conf, *, active: bool, host_groups, variables, reverse: bool) -> str:
+def finish(conf, *, active: bool, host_groups, variables, reverse: bool, admin: str = "") -> str:
     """Turn the panel's JSON configs (already in conf.config) into the final subscription"""
     from app.subscription.v2ray import UUIDEncoder
     s = load()
     configs = list(conf.config)
     if s.include_external:
         try:
-            top, bottom = _external_configs(conf, s, active=active, host_groups=host_groups, variables=variables)
+            top, bottom = _external_configs(conf, s, active=active, host_groups=host_groups, variables=variables,
+                                            admin=admin)
             configs = top + configs + bottom
         except Exception:
             pass

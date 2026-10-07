@@ -40,8 +40,13 @@ client_config = {
 router = APIRouter(tags=['Subscription'], prefix=f'/{XRAY_SUBSCRIPTION_PATH}')
 
 
-def _pick_template(cfg, user) -> str:
+def _pick_template(cfg, user, admin_name: str = "") -> str:
     import time as _t
+    own = cfg.admins.get(admin_name) if admin_name else None
+    if own:
+        # the admin's own text per state, else the general one for that state
+        merged = cfg.model_copy(update={k: getattr(own, k) or getattr(cfg, k) for k in type(own).model_fields})
+        return _pick_template(merged.model_copy(update={"admins": {}}), user)
     status = getattr(user, "status", None)
     status = status.value if hasattr(status, "value") else status
     now = _t.time()
@@ -66,7 +71,12 @@ def build_sub_page(db: Session, user: UserResponse):
     the user's current state."""
     from app.subscription.subpage import render
     cfg = get_subscription_settings(db)
-    template = _pick_template(cfg, user)
+    admin_name = ""
+    if cfg.admins:
+        from app.db import crud as _crud
+        dbuser = _crud.get_user(db, user.username)
+        admin_name = dbuser.admin.username if dbuser and dbuser.admin else ""
+    template = _pick_template(cfg, user, admin_name)
     prefix_lines, directives = render(template, user.__dict__)
     headers = {}
     if directives.get("profile-title"):

@@ -1,5 +1,6 @@
 import {
   Button,
+  HStack,
   Code,
   Divider,
   FormControl,
@@ -39,7 +40,9 @@ type SubSettings = {
   near_expire_template: string;
   near_expire_days: number;
   update_interval: number | null;
+  admins: Record<string, Partial<Record<TemplateKey, string>>>;
 };
+type TemplateKey = "default_template" | "expired_template" | "disabled_template" | "limited_template" | "near_expire_template";
 
 const PLACEHOLDER =
   "#profile-title: base64: Alexander LLC\n#announce: base64: Hos geldin {username}\n#support-url: https://t.me/alexvpns";
@@ -52,6 +55,7 @@ const empty: SubSettings = {
   near_expire_template: "",
   near_expire_days: 1,
   update_interval: null,
+  admins: {},
 };
 
 export const SubSettingsModal: FC = () => {
@@ -75,6 +79,25 @@ export const SubSettingsModal: FC = () => {
 
   const set = (k: keyof SubSettings, v: string | number | null) =>
     setForm((f) => ({ ...f, [k]: v }));
+  // whose texts are edited: "" = everyone, else one admin's own (empty = the general text)
+  const [scope, setScope] = useState("");
+  const [adminNames, setAdminNames] = useState<string[]>([]);
+  useEffect(() => {
+    if (isEditingSubSettings)
+      fetch("/admins").then((list: any[]) => setAdminNames(list.map((a) => a.username))).catch(() => {});
+  }, [isEditingSubSettings]);
+  const tpl = (k: TemplateKey) => (scope ? form.admins?.[scope]?.[k] ?? "" : form[k]);
+  const setTpl = (k: TemplateKey, v: string) =>
+    scope
+      ? setForm((f) => {
+          const mine = { ...(f.admins?.[scope] || {}), [k]: v };
+          const admins = { ...(f.admins || {}) };
+          if (Object.values(mine).some(Boolean)) admins[scope] = mine;
+          else delete admins[scope];
+          return { ...f, admins };
+        })
+      : set(k, v);
+  const ph = (k: TemplateKey) => (scope ? form[k] || t("sub.inheritsGeneral") : PLACEHOLDER);
 
   const save = () => {
     setLoading(true);
@@ -141,6 +164,28 @@ export const SubSettingsModal: FC = () => {
             <TabPanel p={0}>
           <VStack align="stretch" spacing={4}>
             <FormControl>
+              <FormLabel fontSize="sm" mb={1}>{t("sub.scope")}</FormLabel>
+              <HStack spacing={1.5} flexWrap="wrap" rowGap={1.5}>
+                {["", ...adminNames].map((name) => (
+                  <Button
+                    key={name || "-"}
+                    size="xs"
+                    borderRadius="full"
+                    colorScheme="primary"
+                    variant={scope === name ? "solid" : "outline"}
+                    onClick={() => setScope(name)}
+                  >
+                    {name || t("sub.scopeAll")}
+                    {name && form.admins?.[name] ? " •" : ""}
+                  </Button>
+                ))}
+              </HStack>
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                {scope ? t("sub.scopeAdminHelp", { name: scope }) : t("sub.scopeAllHelp")}
+              </Text>
+            </FormControl>
+            {!scope && (
+            <FormControl>
               <FormLabel fontSize="sm" mb={1}>{t("sub.updateInterval")}</FormLabel>
               <Input
                 size="sm"
@@ -152,13 +197,14 @@ export const SubSettingsModal: FC = () => {
               />
               <Text fontSize="xs" color="gray.500" mt={1}>{t("sub.updateIntervalHelp")}</Text>
             </FormControl>
+            )}
             <FormControl>
               <FormLabel fontSize="sm" mb={1}>{t("sub.default")}</FormLabel>
               <Textarea
                 size="sm" rows={5} fontFamily="mono" fontSize="xs"
-                value={form.default_template}
-                onChange={(e) => set("default_template", e.target.value)}
-                placeholder={PLACEHOLDER}
+                value={tpl("default_template")}
+                onChange={(e) => setTpl("default_template", e.target.value)}
+                placeholder={ph("default_template")}
               />
             </FormControl>
             <Divider />
@@ -166,31 +212,31 @@ export const SubSettingsModal: FC = () => {
               <FormLabel fontSize="sm" mb={1}>{t("sub.expired")}</FormLabel>
               <Textarea
                 size="sm" rows={5} fontFamily="mono" fontSize="xs"
-                value={form.expired_template}
-                onChange={(e) => set("expired_template", e.target.value)}
-                placeholder={PLACEHOLDER}
+                value={tpl("expired_template")}
+                onChange={(e) => setTpl("expired_template", e.target.value)}
+                placeholder={ph("expired_template")}
               />
             </FormControl>
             <FormControl>
               <FormLabel fontSize="sm" mb={1}>{t("sub.disabled")}</FormLabel>
               <Textarea
                 size="sm" rows={5} fontFamily="mono" fontSize="xs"
-                value={form.disabled_template}
-                onChange={(e) => set("disabled_template", e.target.value)}
-                placeholder={PLACEHOLDER}
+                value={tpl("disabled_template")}
+                onChange={(e) => setTpl("disabled_template", e.target.value)}
+                placeholder={ph("disabled_template")}
               />
             </FormControl>
             <FormControl>
               <FormLabel fontSize="sm" mb={1}>{t("sub.limited")}</FormLabel>
               <Textarea
                 size="sm" rows={5} fontFamily="mono" fontSize="xs"
-                value={form.limited_template}
-                onChange={(e) => set("limited_template", e.target.value)}
-                placeholder={PLACEHOLDER}
+                value={tpl("limited_template")}
+                onChange={(e) => setTpl("limited_template", e.target.value)}
+                placeholder={ph("limited_template")}
               />
             </FormControl>
             <Divider />
-            <FormControl>
+            <FormControl isDisabled={!!scope}>
               <FormLabel fontSize="sm" mb={1}>
                 {t("sub.nearExpireDays")}
               </FormLabel>
@@ -208,9 +254,9 @@ export const SubSettingsModal: FC = () => {
               <FormLabel fontSize="sm" mb={1}>{t("sub.nearExpire")}</FormLabel>
               <Textarea
                 size="sm" rows={5} fontFamily="mono" fontSize="xs"
-                value={form.near_expire_template}
-                onChange={(e) => set("near_expire_template", e.target.value)}
-                placeholder={PLACEHOLDER}
+                value={tpl("near_expire_template")}
+                onChange={(e) => setTpl("near_expire_template", e.target.value)}
+                placeholder={ph("near_expire_template")}
               />
             </FormControl>
           </VStack>

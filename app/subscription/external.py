@@ -8,7 +8,7 @@ Stored in the settings table; cached here and refreshed when saved.
 import re
 import threading
 import urllib.parse
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -86,8 +86,18 @@ class ExternalConfig(BaseModel):
         return [ln.strip() for ln in (self.links or "").splitlines() if _LINK_RE.match(ln.strip())]
 
 
+class AdminExternal(BaseModel):
+    """an admin's own external configs: its users get them below the general ones"""
+    enabled: bool = True
+    # put before each config's name ("" = nothing); the page fills in the admin's name
+    label: str = Field("", max_length=64)
+    self_edit: bool = False      # the admin may edit this list itself
+    configs: List[ExternalConfig] = []
+
+
 class ExternalSettings(BaseModel):
     configs: List[ExternalConfig] = []
+    admins: Dict[str, AdminExternal] = {}
     generated_sort: str = "default"
     external_sort: str = "manual"
     # used by both "by protocol" sorts
@@ -98,6 +108,10 @@ class ExternalSettings(BaseModel):
     @classmethod
     def _normalize(cls, v):
         return normalize_order(v)
+
+    def all_configs(self) -> List[ExternalConfig]:
+        """the general configs and every admin's (subscription sources are refreshed for all)"""
+        return list(self.configs) + [c for a in self.admins.values() for c in a.configs]
 
 
 _cache: Optional[ExternalSettings] = None
@@ -183,8 +197,17 @@ def _fill(link: str, variables: dict) -> str:
     return f"{base}#{urllib.parse.quote(text)}"
 
 
+def _labeled(link: str, label: str) -> str:
+    if not label:
+        return link
+    if _scheme(link) == "vmess" or "#" not in link:
+        return link
+    base, remark = link.split("#", 1)
+    return f"{base}#{urllib.parse.quote(label + ' · ' + urllib.parse.unquote(remark))}"
+
+
 def apply(links: List[str], *, active: bool, host_groups: Optional[list], variables: dict,
-          settings: Optional[ExternalSettings] = None, tagged: bool = False):
+          settings: Optional[ExternalSettings] = None, tagged: bool = False, admin: str = ""):
     """Order the panel's links and put the external ones around them.
     With tagged=True returns (link, source) pairs, for the preview."""
     s = settings or load()
@@ -206,6 +229,13 @@ def apply(links: List[str], *, active: bool, host_groups: Optional[list], variab
         key = lambda pair: rank(pair[0])
         top.sort(key=key)  # stable: keeps each protocol's own order
         bottom.sort(key=key)
+
+    # the admin's own configs come after all of the general ones
+    mine = s.admins.get(admin) if admin else None
+    if mine and mine.enabled:
+        for c in mine.configs:
+            if _visible(c, active, None):
+                bottom.extend((_labeled(_fill(l, variables), mine.label), "admin") for l in c.link_list())
 
     result = top + own + bottom
     return result if tagged else [l for l, _ in result]

@@ -1,8 +1,8 @@
-"""Preroute (app/vpn/preroute.py): rules "relay VPS port -> exit VPS port",
-each rule a WireGuard / AmneziaWG link between the two servers."""
+"""Preroute (app/vpn/preroute.py): rules "relay VPS port -> exit port", each
+over a WireGuard / AmneziaWG link, plain iptables or an Xray tunnel inbound."""
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -17,8 +17,8 @@ router = APIRouter(tags=["Preroute"], prefix="/api/preroute", responses={401: re
 
 class TunnelIn(BaseModel):
     relay: str
-    exit: str
-    kind: str = Field("wg", pattern="^(wg|awg)$")
+    exit: str = ""
+    kind: str = Field("wg", pattern="^(wg|awg|iptables|xray)$")
     port: Optional[int] = Field(None, ge=1, le=65535)
     mtu: int = Field(1420, ge=1200, le=1500)
     all_ports: bool = True
@@ -73,34 +73,63 @@ def _state(db: Session) -> dict:
     return {"servers": servers, "tunnels": tunnels}
 
 
+def _expand(fs):
+    return {(p, f.port) for f in fs for p in (("tcp", "udp") if f.proto == "both" else (f.proto,))}
+
+
 def _check(db: Session, s: preroute.PrerouteSettings, t: preroute.Tunnel, names: dict):
-    if t.relay not in names or t.exit not in names:
+    link = t.kind in preroute.LINK_KINDS
+    if t.relay not in names or (t.exit and t.exit not in names):
         raise HTTPException(400, "Server not found")
+    if link and not t.exit:
+        raise HTTPException(400, "Pick the exit server for a WireGuard / AmneziaWG link")
     if t.relay == t.exit:
         raise HTTPException(400, "A server can't forward to itself")
     others = [x for x in s.tunnels.values() if x.id != t.id]
-    if any(x.exit == t.relay for x in others):
-        raise HTTPException(400, f"{names[t.relay]} is an exit for another rule; a server is either a relay or an exit")
-    if any(x.relay == t.exit for x in others):
-        raise HTTPException(400, f"{names[t.exit]} is a relay in another rule; pick the server users finally exit from")
-    if not preroute.ipv4(preroute.address_of(db, t.exit)):
+    if link:
+        if any(x.exit == t.relay and x.kind in preroute.LINK_KINDS for x in others):
+            raise HTTPException(400, f"{names[t.relay]} is an exit for another rule; a server is either a relay or an exit")
+        if any(x.relay == t.exit and x.kind in preroute.LINK_KINDS for x in others):
+            raise HTTPException(400, f"{names[t.exit]} is a relay in another rule; pick the server users finally exit from")
+    if t.exit and not preroute.ipv4(preroute.address_of(db, t.exit)):
         raise HTTPException(400, f"Can't find an IPv4 address for {names[t.exit]}")
-    if not t.all_ports and not t.forwards:
+    if (not t.all_ports or not t.exit) and not t.forwards:
         raise HTTPException(400, "Add at least one port")
+    if not link:
+        for f in t.forwards:
+            if not t.exit and not f.to_addr:
+                raise HTTPException(400, f"Port {f.port}: enter the target IP or domain")
+            if f.to_addr and not preroute.ipv4(f.to_addr):
+                raise HTTPException(400, f"Can't find an IPv4 address for {f.to_addr}")
+        if t.kind == "xray":
+            own = preroute._xray_ports(t.relay) & {f.port for f in preroute.forwards_of(db, t)}
+            if own:
+                raise HTTPException(400, f"Port {', '.join(map(str, sorted(own)))} is used by an inbound of "
+                                         f"{names[t.relay]}'s Xray; pick another relay port")
     # one relay port can lead to one place only
-    mine = {(p, f.port) for f in preroute.forwards_of(db, t) for p in (("tcp", "udp") if f.proto == "both" else (f.proto,))}
+    mine = _expand(preroute.forwards_of(db, t))
     for x in others:
         if x.relay != t.relay:
             continue
-        theirs = {(p, f.port) for f in preroute.forwards_of(db, x) for p in (("tcp", "udp") if f.proto == "both" else (f.proto,))}
-        clash = sorted({port for _, port in mine & theirs})
+        clash = sorted({port for _, port in mine & _expand(preroute.forwards_of(db, x))})
         if clash:
+            where = names.get(x.exit, x.exit) if x.exit else "another target"
             raise HTTPException(400, f"Port {', '.join(map(str, clash))} of {names[t.relay]} already goes to "
-                                     f"{names.get(x.exit, x.exit)} (another rule)")
+                                     f"{where} (another rule)")
     reserved = preroute.reserved_ports(db, t.relay) & {f.port for f in t.forwards}
-    if reserved and not t.all_ports:
+    if reserved and (not t.all_ports or not t.exit):
         raise HTTPException(400, f"Port {', '.join(map(str, sorted(reserved)))} is needed by {names[t.relay]} itself "
                                  "(SSH, panel, node or agent)")
+
+
+def _after_change(bg: BackgroundTasks, *rules: Optional[preroute.Tunnel]):
+    """xray rules live in the relay's config: restart that core; the rest reach the agents"""
+    from app import vpn
+    from app.xray import chain
+    bg.add_task(vpn.sync)
+    relays = sorted({r.relay for r in rules if r is not None and r.kind == "xray"})
+    if relays:
+        bg.add_task(chain.restart_servers, relays)
 
 
 @router.get("")
@@ -109,7 +138,7 @@ def get_preroute(db: Session = Depends(get_db), admin: Admin = Depends(Admin.che
 
 
 @router.put("/tunnels/{tid}")
-def put_tunnel(tid: str, body: TunnelIn, db: Session = Depends(get_db),
+def put_tunnel(tid: str, body: TunnelIn, bg: BackgroundTasks, db: Session = Depends(get_db),
                admin: Admin = Depends(Admin.check_sudo_admin)):
     """tid "new" adds a rule"""
     names = vpn.server_keys(db)
@@ -120,12 +149,14 @@ def put_tunnel(tid: str, body: TunnelIn, db: Session = Depends(get_db),
     new_id = old.id if old else (max((t.id for t in s.tunnels.values()), default=0) + 1)
     if new_id > 250:
         raise HTTPException(400, "Too many rules")
-    used = {t.port for t in s.tunnels.values() if t.exit == body.exit and t.id != new_id} | preroute._xray_ports(body.exit)
-    port = body.port or (old.port if old and old.exit == body.exit else None)
-    if port is None:
-        port = next(p for p in range(51900, 52900) if p not in used)
-    elif port in used:
-        raise HTTPException(400, f"UDP port {port} is already used on {names.get(body.exit, body.exit)}")
+    port = body.port or 51900
+    if body.kind in preroute.LINK_KINDS:
+        used = {t.port for t in s.tunnels.values() if t.exit == body.exit and t.id != new_id} | preroute._xray_ports(body.exit)
+        port = body.port or (old.port if old and old.exit == body.exit else None)
+        if port is None:
+            port = next(p for p in range(51900, 52900) if p not in used)
+        elif port in used:
+            raise HTTPException(400, f"UDP port {port} is already used on {names.get(body.exit, body.exit)}")
     keep = old.model_dump() if old and old.relay == body.relay and old.exit == body.exit and old.kind == body.kind else {}
     t = preroute.Tunnel(**{**keep, "id": new_id, "relay": body.relay, "exit": body.exit, "kind": body.kind,
                            "port": port, "mtu": body.mtu, "all_ports": body.all_ports,
@@ -133,15 +164,19 @@ def put_tunnel(tid: str, body: TunnelIn, db: Session = Depends(get_db),
     _check(db, s, t, names)
     s.tunnels[str(new_id)] = t
     preroute.save(db, s)
+    _after_change(bg, old, t)
     return _state(db)
 
 
 @router.delete("/tunnels/{tid}")
-def delete_tunnel(tid: str, db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)):
+def delete_tunnel(tid: str, bg: BackgroundTasks, db: Session = Depends(get_db),
+                  admin: Admin = Depends(Admin.check_sudo_admin)):
     s = preroute.load(db)
-    if s.tunnels.pop(tid, None) is None:
+    gone = s.tunnels.pop(tid, None)
+    if gone is None:
         raise HTTPException(404, "Rule not found")
     preroute.save(db, s)
+    _after_change(bg, gone)
     return _state(db)
 
 
@@ -155,9 +190,11 @@ def make_hosts(tid: str, db: Session = Depends(get_db), admin: Admin = Depends(A
     t = s.tunnels.get(tid)
     if not t:
         raise HTTPException(404, "Rule not found")
+    if not t.exit:
+        raise HTTPException(400, "This rule has custom targets: add its hosts on the Hosts page")
     names = vpn.server_keys(db)
     address = preroute.address_of(db, t.relay)
-    relay_port = {f.to_port or f.port: f.port for f in preroute.forwards_of(db, t)}
+    relay_port = {f.to_port or f.port: f.port for f in preroute.forwards_of(db, t) if not f.to_addr}
     tags = set(xray.config.inbounds_by_tag)
     core = cores.MAIN if t.exit == vpn.MASTER else cores.core_of(int(t.exit))
     made = 0

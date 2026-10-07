@@ -36,6 +36,7 @@ import dayjs from "dayjs";
 import { FC, ReactNode, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
+import useGetUser from "hooks/useGetUser";
 import { fetch } from "service/http";
 
 type ExternalConfig = {
@@ -58,8 +59,10 @@ type ExternalConfig = {
   only_active: boolean;
   groups: string[];
 };
+type AdminExternal = { enabled: boolean; label: string; self_edit: boolean; configs: ExternalConfig[] };
 type ExternalSettings = {
   configs: ExternalConfig[];
+  admins: Record<string, AdminExternal>;
   generated_sort: string;
   external_sort: string;
   protocol_order: string[];
@@ -83,7 +86,7 @@ type SourceStatus = {
 };
 type Preview = {
   username: string;
-  items: { remark: string; link: string; source: "generated" | "external" }[];
+  items: { remark: string; link: string; source: "generated" | "external" | "admin" }[];
 };
 
 const LINK_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\s#]+(#.*)?$/;
@@ -218,7 +221,7 @@ const GroupPicker: FC<{ all: string[]; value: string[]; onChange: (v: string[]) 
   );
 };
 
-const ConfigForm: FC<{ value: ExternalConfig; groups: string[]; onChange: (v: ExternalConfig) => void }> = ({
+const ConfigForm: FC<{ value: ExternalConfig; groups: string[] | null; onChange: (v: ExternalConfig) => void }> = ({
   value,
   groups,
   onChange,
@@ -318,7 +321,7 @@ const ConfigForm: FC<{ value: ExternalConfig; groups: string[]; onChange: (v: Ex
 
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
         <Toggle label={t("external.onlyActive")} help={t("external.onlyActiveHelp")} value={value.only_active} onChange={(v) => set({ only_active: v })} />
-        <Box>
+        {groups && <Box>
           <Text fontSize="sm" mb={1}>
             {t("external.groups")}
           </Text>
@@ -326,7 +329,7 @@ const ConfigForm: FC<{ value: ExternalConfig; groups: string[]; onChange: (v: Ex
           <Text fontSize="xs" color="gray.500" mt={1}>
             {t("external.groupsHelp")}
           </Text>
-        </Box>
+        </Box>}
       </SimpleGrid>
 
       {isSub && (
@@ -500,9 +503,111 @@ const SourceResult: FC<{ status?: SourceStatus; saved: boolean; onRefresh: () =>
   );
 };
 
+
+const ConfigList: FC<{
+  configs: ExternalConfig[];
+  onChange: (v: ExternalConfig[]) => void;
+  groups: string[] | null;
+  statusOf: (id: string) => SourceStatus | undefined;
+  savedIds: Set<string>;
+  onRefresh: (id: string) => void;
+}> = ({ configs, onChange, groups, statusOf, savedIds, onRefresh }) => {
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState<string | null>(null);
+  const setOne = (id: string, c: ExternalConfig) => onChange(configs.map((x) => (x.id === id ? c : x)));
+  const move = (i: number, dir: -1 | 1) => {
+    const list = [...configs];
+    const j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    onChange(list);
+  };
+  const refreshSource = onRefresh;
+  return (
+          <VStack align="stretch" spacing={2}>
+      {configs.length === 0 && (
+        <Text fontSize="sm" color="gray.500">
+          {t("external.empty")}
+        </Text>
+      )}
+      {configs.map((c, i) => (
+        <Box key={c.id} p={3} borderWidth="1px" borderColor="light-border" borderRadius="12px" bg="var(--app-surface-2)" _dark={{ borderColor: "gray.600", bg: "gray.800" }} opacity={c.enabled ? 1 : 0.6}>
+          {editing === c.id ? (
+            <>
+              <ConfigForm value={c} groups={groups} onChange={(v) => setOne(c.id, v)} />
+              <HStack justifyContent="flex-end" mt={3}>
+                <Button size="sm" onClick={() => setEditing(null)}>
+                  {t("external.done")}
+                </Button>
+              </HStack>
+            </>
+          ) : (
+            <>
+              <HStack spacing={2} alignItems="center">
+                <VStack spacing={0}>
+                  <IconButton size="xs" variant="ghost" aria-label="up" icon={<ArrowUpIcon {...icon} />} isDisabled={i === 0} onClick={() => move(i, -1)} />
+                  <IconButton size="xs" variant="ghost" aria-label="down" icon={<ArrowDownIcon {...icon} />} isDisabled={i === configs.length - 1} onClick={() => move(i, 1)} />
+                </VStack>
+                <Box flex={1} minW={0}>
+                  <HStack spacing={1.5}>
+                    {c.kind === "subscription" ? <CloudArrowDownIcon width={16} height={16} /> : <LinkIcon width={16} height={16} />}
+                    <Text fontWeight="medium" fontSize="sm" isTruncated>
+                      {c.name || (c.kind === "subscription" ? c.url : t("external.unnamed"))}
+                    </Text>
+                  </HStack>
+                  <HStack spacing={1.5} mt={1.5} flexWrap="wrap" rowGap={1}>
+                    <Badge colorScheme={c.position === "top" ? "purple" : "primary"}>{c.position === "top" ? t("external.top") : t("external.bottom")}</Badge>
+                    {c.kind === "subscription" ? (
+                      <>
+                        <Badge variant="outline">{c.range_end ? `${c.range_start}–${c.range_end}` : `${c.range_start}–∞`}</Badge>
+                        {c.test && <Badge variant="outline" colorScheme="green">{t("external.testBadge")}</Badge>}
+                        {c.rename !== "none" && <Badge variant="outline">{c.rename === "country" ? t("external.renameCountry") : t("external.renameCity")}</Badge>}
+                      </>
+                    ) : (
+                      <Badge variant="outline">{t("external.linkCount", { count: linkCount(c.links) })}</Badge>
+                    )}
+                    {c.only_active && <Badge variant="subtle">{t("external.activeOnlyBadge")}</Badge>}
+                    {c.groups.map((g) => (
+                      <Badge key={g} variant="outline" colorScheme="orange">
+                        {g}
+                      </Badge>
+                    ))}
+                  </HStack>
+                </Box>
+                <Tooltip label={c.enabled ? t("external.enabled") : t("external.disabled")}>
+                  <Box>
+                    <Switch size="sm" colorScheme="primary" isChecked={c.enabled} onChange={(e) => setOne(c.id, { ...c, enabled: e.target.checked })} />
+                  </Box>
+                </Tooltip>
+                <IconButton size="sm" variant="ghost" borderRadius="full" aria-label="edit" icon={<PencilSquareIcon {...icon} />} onClick={() => setEditing(c.id)} />
+                <IconButton size="sm" variant="ghost" borderRadius="full" colorScheme="red" aria-label="delete" icon={<TrashIcon {...icon} />} onClick={() => onChange(configs.filter((x) => x.id !== c.id))} />
+              </HStack>
+              {c.kind === "subscription" && <SourceResult status={statusOf(c.id)} saved={savedIds.has(c.id)} onRefresh={() => refreshSource(c.id)} />}
+            </>
+          )}
+        </Box>
+      ))}
+    </VStack>
+  );
+};
+
 export const ExternalConfigsPage: FC = () => {
+  const { userData, getUserIsSuccess } = useGetUser();
+  if (!getUserIsSuccess) return null;
+  return userData.is_sudo ? <SudoExternalPage /> : <OwnExternalPage />;
+};
+
+const emptyAdmin = (): AdminExternal => ({ enabled: true, label: "", self_edit: false, configs: [] });
+
+const SudoExternalPage: FC = () => {
   const { t } = useTranslation();
   const toast = useToast();
+  // "" = the general list, else one admin's own list
+  const [scope, setScope] = useState("");
+  const { data: adminNames } = useQuery<string[]>({
+    queryKey: "admin-names",
+    queryFn: () => fetch("/admins").then((list: any[]) => list.filter((a) => !a.is_sudo).map((a) => a.username)),
+  });
   const { data: saved, refetch } = useQuery<ExternalSettings>({
     queryKey: "external-configs",
     queryFn: () => fetch("/external-configs"),
@@ -524,14 +629,16 @@ export const ExternalConfigsPage: FC = () => {
     if (saved) setDraft(saved);
   }, [saved]);
   const [adding, setAdding] = useState<ExternalConfig>(empty());
-  const [editing, setEditing] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewUser, setPreviewUser] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [previewError, setPreviewError] = useState("");
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved]);
-  const savedIds = new Set((saved?.configs || []).map((c) => c.id));
+  const savedIds = new Set([
+    ...(saved?.configs || []),
+    ...Object.values(saved?.admins || {}).flatMap((a) => a.configs),
+  ].map((c) => c.id));
   const anyRunning = sources?.some((s) => s.running);
 
   useEffect(() => {
@@ -551,14 +658,11 @@ export const ExternalConfigsPage: FC = () => {
   if (!draft) return null;
 
   const update = (patch: Partial<ExternalSettings>) => setDraft({ ...draft, ...patch });
-  const setConfig = (id: string, c: ExternalConfig) => update({ configs: draft.configs.map((x) => (x.id === id ? c : x)) });
-  const move = (i: number, dir: -1 | 1) => {
-    const list = [...draft.configs];
-    const j = i + dir;
-    if (j < 0 || j >= list.length) return;
-    [list[i], list[j]] = [list[j], list[i]];
-    update({ configs: list });
-  };
+  const mine: AdminExternal = (scope && draft.admins?.[scope]) || emptyAdmin();
+  const setMine = (patch: Partial<AdminExternal>) =>
+    update({ admins: { ...(draft.admins || {}), [scope]: { ...mine, ...patch } } });
+  const list = scope ? mine.configs : draft.configs;
+  const setList = (configs: ExternalConfig[]) => (scope ? setMine({ configs }) : update({ configs }));
   const moveProtocol = (i: number, dir: -1 | 1) => {
     const list = [...draft.protocol_order];
     const j = i + dir;
@@ -567,7 +671,7 @@ export const ExternalConfigsPage: FC = () => {
     update({ protocol_order: list });
   };
   const add = () => {
-    update({ configs: [...draft.configs, adding] });
+    setList([...list, adding]);
     setAdding(empty(adding.kind));
   };
   const save = () => {
@@ -604,6 +708,44 @@ export const ExternalConfigsPage: FC = () => {
         </HStack>
       )}
 
+      <HStack spacing={1.5} flexWrap="wrap" rowGap={1.5}>
+        {["", ...(adminNames || [])].map((name) => (
+          <Button
+            key={name || "-"}
+            size="sm"
+            borderRadius="full"
+            colorScheme="primary"
+            variant={scope === name ? "solid" : "outline"}
+            onClick={() => setScope(name)}
+          >
+            {name || t("external.scopeMine")}
+            {name && draft.admins?.[name]?.configs?.length ? ` · ${draft.admins[name].configs.length}` : ""}
+          </Button>
+        ))}
+      </HStack>
+
+      {scope && (
+        <Panel title={t("external.adminTitle", { name: scope })} help={t("external.adminHelp")}>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <Toggle label={t("external.adminEnabled")} value={mine.enabled} onChange={(v) => setMine({ enabled: v })} />
+            <Toggle label={t("external.selfEdit")} help={t("external.selfEditHelp")} value={mine.self_edit} onChange={(v) => setMine({ self_edit: v })} />
+            <FormControl>
+              <FormLabel>{t("external.label")}</FormLabel>
+              <HStack>
+                <Input size="sm" maxLength={64} value={mine.label} onChange={(e) => setMine({ label: e.target.value })} placeholder={t("external.labelPlaceholder")} />
+                <Button size="sm" variant="outline" onClick={() => setMine({ label: scope })}>
+                  {t("external.useAdminName")}
+                </Button>
+              </HStack>
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                {t("external.labelHelp")}
+              </Text>
+            </FormControl>
+          </SimpleGrid>
+        </Panel>
+      )}
+
+      {!scope && (
       <Panel title={t("external.sorting")} help={t("external.sortingHelp")}>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
           <VStack align="stretch" spacing={3}>
@@ -655,9 +797,10 @@ export const ExternalConfigsPage: FC = () => {
           </Box>
         </SimpleGrid>
       </Panel>
+      )}
 
-      <Panel title={t("external.add")} help={t("external.help")}>
-        <ConfigForm value={adding} groups={groups} onChange={setAdding} />
+      <Panel title={t("external.add")} help={scope ? t("external.adminAddHelp", { name: scope }) : t("external.help")}>
+        <ConfigForm value={adding} groups={scope ? null : groups} onChange={setAdding} />
         <HStack justifyContent="flex-end" mt={4}>
           <Button colorScheme="primary" leftIcon={<PlusIcon {...icon} />} isDisabled={!canAdd(adding)} onClick={add}>
             {t("external.addButton")}
@@ -671,70 +814,14 @@ export const ExternalConfigsPage: FC = () => {
           help={draft.external_sort === "manual" ? t("external.listHelp") : t("external.listSortedHelp")}
           right={anyRunning ? <Spinner size="sm" color="primary.500" /> : undefined}
         >
-          <VStack align="stretch" spacing={2}>
-            {draft.configs.length === 0 && (
-              <Text fontSize="sm" color="gray.500">
-                {t("external.empty")}
-              </Text>
-            )}
-            {draft.configs.map((c, i) => (
-              <Box key={c.id} p={3} borderWidth="1px" borderColor="light-border" borderRadius="12px" bg="var(--app-surface-2)" _dark={{ borderColor: "gray.600", bg: "gray.800" }} opacity={c.enabled ? 1 : 0.6}>
-                {editing === c.id ? (
-                  <>
-                    <ConfigForm value={c} groups={groups} onChange={(v) => setConfig(c.id, v)} />
-                    <HStack justifyContent="flex-end" mt={3}>
-                      <Button size="sm" onClick={() => setEditing(null)}>
-                        {t("external.done")}
-                      </Button>
-                    </HStack>
-                  </>
-                ) : (
-                  <>
-                    <HStack spacing={2} alignItems="center">
-                      <VStack spacing={0}>
-                        <IconButton size="xs" variant="ghost" aria-label="up" icon={<ArrowUpIcon {...icon} />} isDisabled={i === 0} onClick={() => move(i, -1)} />
-                        <IconButton size="xs" variant="ghost" aria-label="down" icon={<ArrowDownIcon {...icon} />} isDisabled={i === draft.configs.length - 1} onClick={() => move(i, 1)} />
-                      </VStack>
-                      <Box flex={1} minW={0}>
-                        <HStack spacing={1.5}>
-                          {c.kind === "subscription" ? <CloudArrowDownIcon width={16} height={16} /> : <LinkIcon width={16} height={16} />}
-                          <Text fontWeight="medium" fontSize="sm" isTruncated>
-                            {c.name || (c.kind === "subscription" ? c.url : t("external.unnamed"))}
-                          </Text>
-                        </HStack>
-                        <HStack spacing={1.5} mt={1.5} flexWrap="wrap" rowGap={1}>
-                          <Badge colorScheme={c.position === "top" ? "purple" : "primary"}>{c.position === "top" ? t("external.top") : t("external.bottom")}</Badge>
-                          {c.kind === "subscription" ? (
-                            <>
-                              <Badge variant="outline">{c.range_end ? `${c.range_start}–${c.range_end}` : `${c.range_start}–∞`}</Badge>
-                              {c.test && <Badge variant="outline" colorScheme="green">{t("external.testBadge")}</Badge>}
-                              {c.rename !== "none" && <Badge variant="outline">{c.rename === "country" ? t("external.renameCountry") : t("external.renameCity")}</Badge>}
-                            </>
-                          ) : (
-                            <Badge variant="outline">{t("external.linkCount", { count: linkCount(c.links) })}</Badge>
-                          )}
-                          {c.only_active && <Badge variant="subtle">{t("external.activeOnlyBadge")}</Badge>}
-                          {c.groups.map((g) => (
-                            <Badge key={g} variant="outline" colorScheme="orange">
-                              {g}
-                            </Badge>
-                          ))}
-                        </HStack>
-                      </Box>
-                      <Tooltip label={c.enabled ? t("external.enabled") : t("external.disabled")}>
-                        <Box>
-                          <Switch size="sm" colorScheme="primary" isChecked={c.enabled} onChange={(e) => setConfig(c.id, { ...c, enabled: e.target.checked })} />
-                        </Box>
-                      </Tooltip>
-                      <IconButton size="sm" variant="ghost" borderRadius="full" aria-label="edit" icon={<PencilSquareIcon {...icon} />} onClick={() => setEditing(c.id)} />
-                      <IconButton size="sm" variant="ghost" borderRadius="full" colorScheme="red" aria-label="delete" icon={<TrashIcon {...icon} />} onClick={() => update({ configs: draft.configs.filter((x) => x.id !== c.id) })} />
-                    </HStack>
-                    {c.kind === "subscription" && <SourceResult status={statusOf(c.id)} saved={savedIds.has(c.id)} onRefresh={() => refreshSource(c.id)} />}
-                  </>
-                )}
-              </Box>
-            ))}
-          </VStack>
+          <ConfigList
+            configs={list}
+            onChange={setList}
+            groups={scope ? null : groups}
+            statusOf={statusOf}
+            savedIds={savedIds}
+            onRefresh={refreshSource}
+          />
         </Panel>
 
         <Panel title={t("external.preview")} help={t("external.previewHelp")}>
@@ -754,8 +841,8 @@ export const ExternalConfigsPage: FC = () => {
                   <Text color="gray.500" w="26px" textAlign="right" flexShrink={0}>
                     {i + 1}.
                   </Text>
-                  <Badge colorScheme={it.source === "external" ? "orange" : "primary"} flexShrink={0}>
-                    {it.source === "external" ? t("external.ext") : t("external.own")}
+                  <Badge colorScheme={it.source === "admin" ? "purple" : it.source === "external" ? "orange" : "primary"} flexShrink={0}>
+                    {it.source === "admin" ? t("external.adminBadge") : it.source === "external" ? t("external.ext") : t("external.own")}
                   </Badge>
                   <Text isTruncated title={it.link}>
                     {it.remark}
@@ -774,6 +861,96 @@ export const ExternalConfigsPage: FC = () => {
           </Text>
         </Panel>
       </SimpleGrid>
+    </VStack>
+  );
+};
+
+type OwnExternal = { label: string; enabled: boolean; configs: ExternalConfig[] };
+
+// an admin's own list (when the sudo admin allows it): its users get these below the general ones
+const OwnExternalPage: FC = () => {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const { data: saved, refetch, isError } = useQuery<OwnExternal>({
+    queryKey: "own-external",
+    queryFn: () => fetch("/external-configs/mine"),
+    retry: false,
+  });
+  const { data: sources, refetch: refetchSources } = useQuery<SourceStatus[]>({
+    queryKey: "external-sources",
+    queryFn: () => fetch("/external-configs/sources"),
+    refetchInterval: (d) => (d?.some((x) => x.running) ? 2500 : 30000),
+  });
+  const [draft, setDraft] = useState<ExternalConfig[] | null>(null);
+  const [adding, setAdding] = useState<ExternalConfig>(empty());
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (saved) setDraft(saved.configs);
+  }, [saved]);
+  if (isError)
+    return (
+      <Text fontSize="sm" color="gray.500">
+        {t("external.notAllowed")}
+      </Text>
+    );
+  if (!draft || !saved) return null;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved.configs);
+  const save = () => {
+    setSaving(true);
+    fetch("/external-configs/mine", { method: "PUT", body: { ...saved, configs: draft } })
+      .then(() => {
+        toast({ status: "success", title: t("external.saved"), duration: 1500 });
+        refetch();
+        refetchSources();
+      })
+      .catch((e: any) => toast({ status: "error", title: t("external.saveError"), description: e?.data?.detail, duration: 4000 }))
+      .finally(() => setSaving(false));
+  };
+  const refreshSource = (id: string) =>
+    fetch(`/external-configs/sources/${id}/refresh`, { method: "POST" })
+      .then(() => setTimeout(() => refetchSources(), 300))
+      .catch((e: any) => toast({ status: "error", title: e?.data?.detail || t("external.saveError"), duration: 3000 }));
+  return (
+    <VStack align="stretch" spacing={4}>
+      {!saved.enabled && (
+        <Text fontSize="sm" color="orange.400">
+          {t("external.ownOff")}
+        </Text>
+      )}
+      <Panel title={t("external.add")} help={t("external.ownHelp")}>
+        <ConfigForm value={adding} groups={null} onChange={setAdding} />
+        <HStack justifyContent="flex-end" mt={4}>
+          <Button
+            colorScheme="primary"
+            leftIcon={<PlusIcon {...icon} />}
+            isDisabled={!canAdd(adding)}
+            onClick={() => {
+              setDraft([...draft, adding]);
+              setAdding(empty(adding.kind));
+            }}
+          >
+            {t("external.addButton")}
+          </Button>
+        </HStack>
+      </Panel>
+      <Panel
+        title={t("external.list")}
+        help={t("external.listHelp")}
+        right={
+          <Button size="sm" colorScheme="primary" isDisabled={!dirty} isLoading={saving} onClick={save}>
+            {t("external.save")}
+          </Button>
+        }
+      >
+        <ConfigList
+          configs={draft}
+          onChange={setDraft}
+          groups={null}
+          statusOf={(id) => sources?.find((x) => x.id === id)}
+          savedIds={new Set(saved.configs.map((c) => c.id))}
+          onRefresh={refreshSource}
+        />
+      </Panel>
     </VStack>
   );
 };
