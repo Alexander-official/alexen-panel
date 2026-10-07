@@ -9,7 +9,7 @@ RUN git clone --depth 1 https://github.com/amnezia-vpn/amneziawg-tools /src/awg-
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      python3 openvpn openssl iptables iproute2 ca-certificates procps \
+      python3 openvpn openssl iptables iproute2 ca-certificates procps wireguard-tools \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/amneziawg-go /out/awg /usr/local/bin/
 COPY agent.py /app/agent.py

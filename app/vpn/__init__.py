@@ -417,8 +417,9 @@ def call(db, key: str, srv: ServerVPN, method: str, path: str, body=None, timeou
             raise AgentError(_unreachable(host, srv.agent_port, e))
         with _lock:
             s = load(db)
-            if key in s.servers and not s.servers[key].agent_cert:
-                s.servers[key].agent_cert = pin
+            entry = s.servers.setdefault(key, ServerVPN())
+            if not entry.agent_cert:
+                entry.agent_cert = pin
                 save(db, s)
         srv.agent_cert = pin
     session = requests.Session()
@@ -551,8 +552,12 @@ def sync():
         _server_names.update(names)
         for gone in [k for k in sessions if k not in names]:
             sessions.pop(gone, None)
-        active = [k for k, srv in s.servers.items() if k in names and (srv.awg.enabled or srv.ovpn.enabled
-                                                                         or state.get(k, {}).get("running"))]
+        from app.vpn import preroute
+        pr = preroute.load(db)
+        tunnel_keys = preroute.participants(pr)
+        active = [k for k in names if k in tunnel_keys or state.get(k, {}).get("tunnels")
+                  or (k in s.servers and (s.servers[k].awg.enabled or s.servers[k].ovpn.enabled))
+                  or state.get(k, {}).get("running")]
         if not active:
             sessions.clear()
             return
@@ -566,17 +571,25 @@ def sync():
         by_pub = {_device_pub(i, slot): i.user_id for i in idents.values() for slot in range(s.awg_devices)}
         by_cn = {i.ovpn_cn: i.user_id for i in idents.values()}
         for key in active:
-            srv = s.servers[key]
+            srv = s.servers.get(key) or ServerVPN()
             st = state.setdefault(key, {})
             try:
                 if (srv.awg.enabled or srv.ovpn.enabled) and ensure_secrets(s, key):
                     save(db, s)
-                body = desired(db, s, key, users, idents, perms)
+                if key in s.servers:
+                    body = desired(db, s, key, users, idents, perms)
+                else:
+                    body = {"awg": {"enabled": False}, "ovpn": {"enabled": False}}
+                body["tunnels"] = preroute.agent_tunnels(db, key, pr)
                 status = call(db, key, srv, "GET", "/status", timeout=8)
                 want_awg = digest(body["awg"]) if body["awg"].get("enabled") else ""
                 want_ovpn = digest(body["ovpn"]) if body["ovpn"].get("enabled") else ""
+                want_tun = digest(body["tunnels"]) if body["tunnels"] else ""
+                have_tun = (status.get("tunnels") or {}).get("hash", "")
+                if body["tunnels"] and "tunnels" not in status:
+                    raise AgentError("This server's agent is too old for preroute: run the install command again to update it")
                 errors = {}
-                if status["awg"]["hash"] != want_awg or status["ovpn"]["hash"] != want_ovpn:
+                if status["awg"]["hash"] != want_awg or status["ovpn"]["hash"] != want_ovpn or have_tun != want_tun:
                     status = call(db, key, srv, "POST", "/apply", body, timeout=30)
                     errors = status.get("errors") or {}
                 stats = call(db, key, srv, "GET", "/stats", timeout=8)
@@ -605,6 +618,7 @@ def sync():
                 _seen_servers.add(key)
                 st.update({"connected": True, "error": "; ".join(f"{k}: {v}" for k, v in errors.items()),
                            "version": status.get("version"), "awg": status["awg"], "ovpn": status["ovpn"],
+                           "tunnels": (status.get("tunnels") or {}).get("links", []),
                            "running": status["awg"]["running"] or status["ovpn"]["running"],
                            "online": len(online), "checked": now})
             except AgentError as e:

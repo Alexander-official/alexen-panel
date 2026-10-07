@@ -21,7 +21,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 PORT = int(os.environ.get("AGENT_PORT", "62060"))
 PANEL_CERT = os.environ.get("PANEL_CERT", "/etc/alexen-vpn/panel.pem")
 STATE = os.environ.get("STATE_DIR", "/var/lib/alexen-vpn")
@@ -31,7 +31,7 @@ OVPN_DIR = os.path.join(STATE, "openvpn")
 MGMT = ("127.0.0.1", 7505)
 
 lock = threading.RLock()
-applied = {"awg": None, "ovpn": None}   # last config that was applied
+applied = {"awg": None, "ovpn": None, "tunnels": None}   # last config that was applied
 ovpn_proc = None
 # OpenVPN: cumulative bytes per common name, including sessions that ended
 ovpn_totals = {}        # cn -> [rx, tx]
@@ -316,6 +316,11 @@ def watchdog():
                     c = applied["ovpn"]
                     applied["ovpn"] = None
                     ovpn_apply(c)
+                for t in applied.get("tunnels") or []:
+                    if run(["ip", "link", "show", t["iface"]], check=False).returncode != 0:
+                        log("tunnel", t["iface"], "gone, recreating")
+                        tunnels_apply(applied["tunnels"])
+                        break
                 if applied.get("awg") and not awg_exists():
                     log("awg interface gone, recreating")
                     c = applied["awg"]
@@ -323,6 +328,164 @@ def watchdog():
                     awg_apply(c)
         except Exception as e:
             log("watchdog:", e)
+
+
+# ---------------- preroute tunnels ----------------
+# A relay forwards ports to an exit server through a WireGuard / AmneziaWG link
+# without SNAT, so the exit sees the users' real IPs (TCP and UDP):
+#   relay: DNAT <port> -> <exit public IP>:<port>, marked, routed into the link
+#   exit:  connections that came in over the link are connmarked; their replies
+#          are routed back into the link
+# Everything lives in our own chains / rule priorities, rebuilt on every apply.
+T_CHAIN = "ALEXEN-PREROUTE"
+T_OUT = "ALEXEN-PREROUTE-OUT"
+T_PREF = 7000                      # ip rule priorities 7000 + id
+WG_DIR = "/etc/wireguard"          # the host's AppArmor lets wg read only here
+
+
+def _ipt(table: str, *args, check=False):
+    return run(["iptables", "-t", table, *args], check=check)
+
+
+def _chain(table: str, name: str, parent: str):
+    """an empty chain of ours, jumped to (once) from the parent chain"""
+    if _ipt(table, "-n", "-L", name).returncode != 0:
+        _ipt(table, "-N", name, check=True)
+    _ipt(table, "-F", name, check=True)
+    if _ipt(table, "-C", parent, "-j", name).returncode != 0:
+        _ipt(table, "-I", parent, "1", "-j", name, check=True)
+
+
+def _tun_down(iface: str):
+    if run(["ip", "link", "show", iface], check=False).returncode == 0:
+        run(["ip", "link", "del", iface], check=False)
+
+
+def _tun_ifaces():
+    out = run(["ip", "-o", "link", "show"], check=False).stdout
+    return [l.split(":")[1].strip().split("@")[0] for l in out.splitlines() if ": alxt" in l]
+
+
+def _sysctl(key: str, value: str):
+    try:
+        with open("/proc/sys/" + key.replace(".", "/"), "w") as f:
+            f.write(value)
+    except OSError as e:
+        log("sysctl", key, e)
+
+
+def _tun_link(t: dict):
+    """bring the link interface up with its keys (WireGuard in the kernel, or AmneziaWG)"""
+    iface = t["iface"]
+    os.makedirs(WG_DIR, exist_ok=True)
+    conf = os.path.join(WG_DIR if t["kind"] == "wg" else STATE, iface + ".conf")
+    lines = ["[Interface]", f"PrivateKey = {t['private_key']}"]
+    if t["role"] == "exit":
+        lines.append(f"ListenPort = {int(t['listen_port'])}")
+    if t["kind"] == "awg":
+        for k, name in AWG_PARAMS.items():
+            v = (t.get("params") or {}).get(k)
+            if v not in (None, ""):
+                lines.append(f"{name} = {v}")
+    lines += ["", "[Peer]", f"PublicKey = {t['peer_public_key']}"]
+    if t.get("psk"):
+        lines.append(f"PresharedKey = {t['psk']}")
+    if t["role"] == "exit":
+        lines.append("AllowedIPs = 0.0.0.0/0")          # users' real source addresses
+    else:
+        lines.append(f"AllowedIPs = {t['peer_addr']}/32, {t['exit_ip']}/32")
+        lines.append(f"Endpoint = {t['endpoint']}")
+        lines.append("PersistentKeepalive = 25")
+    old = open(conf).read() if os.path.exists(conf) else ""
+    new = "\n".join(lines) + "\n"
+    exists = run(["ip", "link", "show", t["iface"]], check=False).returncode == 0
+    if exists and old == new:
+        return
+    if exists and t["kind"] == "awg":
+        _tun_down(iface)               # obfuscation is read when the device starts
+        exists = False
+    with open(conf, "w") as f:
+        os.chmod(conf, 0o600)
+        f.write(new)
+    if not exists:
+        if t["kind"] == "wg":
+            run(["ip", "link", "add", iface, "type", "wireguard"])
+        else:
+            run(["amneziawg-go", iface])
+            for _ in range(50):
+                if os.path.exists(f"/var/run/amneziawg/{iface}.sock"):
+                    break
+                time.sleep(0.1)
+    run(["wg" if t["kind"] == "wg" else "awg", "setconf", iface, conf])
+    run(["ip", "address", "replace", t["local_addr"], "dev", iface])
+    run(["ip", "link", "set", iface, "mtu", str(int(t.get("mtu") or 1420)), "up"])
+
+
+def tunnels_apply(tunnels):
+    tunnels = tunnels or []
+    want = {t["iface"] for t in tunnels}
+    for iface in _tun_ifaces():
+        if iface not in want:
+            _tun_down(iface)
+    # our rules, rebuilt from scratch
+    _chain("nat", T_CHAIN, "PREROUTING")
+    _chain("mangle", T_CHAIN, "PREROUTING")
+    _chain("mangle", T_OUT, "OUTPUT")
+    _chain("mangle", T_CHAIN + "-FWD", "FORWARD")
+    rules = run(["ip", "rule", "show"], check=False).stdout
+    for line in rules.splitlines():
+        pref = line.split(":")[0].strip()
+        if pref.isdigit() and T_PREF <= int(pref) < T_PREF + 1000:
+            run(["ip", "rule", "del", "pref", pref], check=False)
+    if tunnels:
+        _sysctl("net.ipv4.ip_forward", "1")
+        _sysctl("net.ipv4.conf.all.rp_filter", "2")
+    for t in tunnels:
+        _tun_link(t)
+        iface, tid = t["iface"], int(t["id"])
+        mark, table, pref = hex(0x7a00 + tid), str(7000 + tid), str(T_PREF + tid)
+        _sysctl(f"net.ipv4.conf.{iface}.rp_filter", "0")
+        if t["role"] == "relay":
+            for f in t.get("forwards", []):
+                for proto in (["tcp", "udp"] if f["proto"] == "both" else [f["proto"]]):
+                    port, to = str(f["port"]), str(f.get("to_port") or f["port"])
+                    _ipt("mangle", "-A", T_CHAIN, "!", "-i", iface, "-p", proto, "--dport", port,
+                         "-j", "MARK", "--set-mark", mark, check=True)
+                    _ipt("nat", "-A", T_CHAIN, "!", "-i", iface, "-p", proto, "--dport", port,
+                         "-j", "DNAT", "--to-destination", f"{t['exit_ip']}:{to}", check=True)
+            run(["ip", "route", "replace", f"{t['exit_ip']}/32", "dev", iface, "table", table])
+            run(["ip", "rule", "add", "pref", pref, "fwmark", mark, "table", table])
+            # TCP through a smaller MTU: keep segments small enough
+            _ipt("mangle", "-A", T_CHAIN + "-FWD", "-o", iface, "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN",
+                 "-j", "TCPMSS", "--clamp-mss-to-pmtu", check=True)
+            _ipt("mangle", "-A", T_CHAIN + "-FWD", "-i", iface, "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN",
+                 "-j", "TCPMSS", "--clamp-mss-to-pmtu", check=True)
+            # forwarded traffic must pass even with Docker's FORWARD policy DROP
+            if _ipt("filter", "-C", "FORWARD", "-o", iface, "-j", "ACCEPT").returncode != 0:
+                _ipt("filter", "-I", "FORWARD", "1", "-o", iface, "-j", "ACCEPT")
+            if _ipt("filter", "-C", "FORWARD", "-i", iface, "-j", "ACCEPT").returncode != 0:
+                _ipt("filter", "-I", "FORWARD", "1", "-i", iface, "-j", "ACCEPT")
+        else:
+            _ipt("mangle", "-A", T_CHAIN, "-i", iface, "-j", "CONNMARK", "--set-mark", mark, check=True)
+            _ipt("mangle", "-A", T_OUT, "-m", "connmark", "--mark", mark, "-j", "MARK", "--set-mark", mark, check=True)
+            run(["ip", "route", "replace", "default", "dev", iface, "table", table])
+            run(["ip", "rule", "add", "pref", pref, "fwmark", mark, "table", table])
+    applied["tunnels"] = tunnels or None
+
+
+def tunnels_stats():
+    out = []
+    for t in applied.get("tunnels") or []:
+        tool = "wg" if t["kind"] == "wg" else "awg"
+        r = run([tool, "show", t["iface"], "dump"], check=False).stdout.strip().splitlines()
+        hs = rx = tx = 0
+        if len(r) > 1:
+            f = r[1].split("\t")
+            if len(f) >= 7:
+                hs, rx, tx = int(f[4] or 0), int(f[5] or 0), int(f[6] or 0)
+        out.append({"id": t["id"], "role": t["role"], "handshake": hs, "rx": rx, "tx": tx,
+                    "up": run(["ip", "link", "show", t["iface"]], check=False).returncode == 0})
+    return out
 
 
 # ---------------- state across restarts ----------------
@@ -342,6 +505,8 @@ def load_state():
             awg_apply(s["awg"])
         if s.get("ovpn"):
             ovpn_apply(s["ovpn"])
+        if s.get("tunnels"):
+            tunnels_apply(s["tunnels"])
         log("restored", [k for k, v in applied.items() if v])
     except FileNotFoundError:
         pass
@@ -360,6 +525,8 @@ def status():
         "ovpn": {"running": ovpn_running(),
                  "clients": len((applied.get("ovpn") or {}).get("clients", [])),
                  "hash": digest(applied["ovpn"]) if applied.get("ovpn") else ""},
+        "tunnels": {"hash": digest(applied["tunnels"]) if applied.get("tunnels") else "",
+                    "links": tunnels_stats()},
     }
 
 
@@ -398,7 +565,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
             errors = {}
             with lock:
-                for kind, fn in (("awg", awg_apply), ("ovpn", ovpn_apply)):
+                for kind, fn in (("awg", awg_apply), ("ovpn", ovpn_apply), ("tunnels", tunnels_apply)):
                     if kind in body:
                         try:
                             fn(body[kind])

@@ -67,7 +67,7 @@ import {
 } from "utils/toastHandler";
 import { useDashboard, useDashboardPick } from "../contexts/DashboardContext";
 import { applyNodeVpn, NodeVpnToggles } from "./VpnPage";
-import { NodeChain } from "./NodeChain";
+import { NodePreroute } from "./NodePreroute";
 import { FetchCoresQueryKey, useCoreSettings, useCoresQuery } from "contexts/CoreSettingsContext";
 import { DeleteNodeModal } from "./DeleteNodeModal";
 import { DeleteIcon } from "./DeleteUserModal";
@@ -313,7 +313,7 @@ const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
           vpnSlot={
             node.id ? (
               <>
-                <NodeChain nodeKey={String(node.id)} />
+                <NodePreroute nodeKey={String(node.id)} />
                 <NodeVpnToggles nodeKey={String(node.id)} />
               </>
             ) : null

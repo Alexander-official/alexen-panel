@@ -820,5 +820,21 @@
   "webpage.devicesHelp": "دستگاه‌های ثبت‌شده روی اشتراک (از Happ، v2rayNG و برنامه‌هایی که شناسه دستگاه می‌فرستند).",
   "webpage.lock": "قفل صفحه وقتی محدودیت دستگاه پر است",
   "webpage.lockHelp": "فقط دستگاه‌ها و «با ادمین تماس بگیرید» نمایش داده می‌شود: بدون لینک، QR، کانفیگ یا فایل.",
-  "webpage.section.devices": "دستگاه‌ها"
+  "webpage.section.devices": "دستگاه‌ها",
+  "preroute.title": "پیش‌مسیر (رله)",
+  "preroute.help": "این نود پورت‌ها را از طریق لینک WireGuard / AmneziaWG به سرور دیگری می‌فرستد. کاربران با کانفیگ‌های آن سرور به این نود وصل می‌شوند و آن سرور IP واقعی‌شان را می‌بیند (TCP و UDP). هر دو سرور به عامل Alexen نیاز دارند.",
+  "preroute.none": "خاموش (نود اینباندهای خودش را سرویس می‌دهد)",
+  "preroute.to": "ارسال به {{name}}",
+  "preroute.kindWg": "لینک WireGuard (سریع‌ترین)",
+  "preroute.kindAwg": "لینک AmneziaWG (پنهان از DPI)",
+  "preroute.allPorts": "همه پورت‌های اینباند آن سرور",
+  "preroute.forwarding": "ارسال {{ports}} → کاربران به {{address}} وصل می‌شوند",
+  "preroute.needAgent": "عامل روی هر دو سرور لازم است:",
+  "preroute.up": "لینک فعال · ↓ {{rx}} ↑ {{tx}}",
+  "preroute.down": "لینک هنوز برقرار نشده",
+  "preroute.apply": "اعمال",
+  "preroute.saved": "ذخیره شد: هر دو سرور ظرف ~۱۰ ثانیه اعمال می‌کنند",
+  "preroute.makeHosts": "افزودن هاست با آدرس این نود",
+  "preroute.hostsHelp": "هاست‌های اینباندهای ارسالی را با آدرس این نود کپی می‌کند تا کاربران کانفیگ از طریق رله بگیرند.",
+  "preroute.hostsMade": "{{n}} هاست اضافه شد"
 }
