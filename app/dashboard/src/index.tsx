@@ -6,6 +6,12 @@ import RelativeTime from "dayjs/plugin/relativeTime";
 import Timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import "locales/i18n";
+import { reloadForUpdate } from "utils/lazyLoad";
+
+// a page file of an older build is gone: load the new version
+window.addEventListener("vite:preloadError", (e) => {
+  if (reloadForUpdate()) e.preventDefault();
+});
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClientProvider } from "react-query";

@@ -1,14 +1,14 @@
+import { named } from "utils/lazyLoad";
 // Panel sections that open as their own page (tab) instead of a pop-up.
 // Each one reuses the existing window component inside <AsPage>.
 import { Box } from "@chakra-ui/react";
 import { AsPage } from "components/PageSurface";
 import { useDashboard } from "contexts/DashboardContext";
 import useGetUser from "hooks/useGetUser";
-import { FC, lazy, Suspense, useEffect } from "react";
+import { FC, Suspense, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 
-const named = <T extends string>(loader: () => Promise<Record<T, any>>, name: T) =>
-  lazy(() => loader().then((m) => ({ default: m[name] })));
+
 
 type Flag =
   | "isShowingStats"

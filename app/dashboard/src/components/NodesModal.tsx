@@ -49,7 +49,7 @@ import {
   useNodes,
   useNodesQuery,
 } from "contexts/NodesContext";
-import { FC, memo, ReactNode, useState } from "react";
+import { FC, memo, ReactNode, useEffect, useState } from "react";
 import { Controller, useForm, UseFormReturn } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
@@ -389,6 +389,15 @@ const AddNodeForm: FC<AddNodeFormType> = ({
   const [ssh, setSsh] = useState(emptySSH());
   const [install, setInstall] = useState({ on: true, node: true, agent: true, save: true });
   const openJob = useInstall((s) => s.open);
+  // installed by the panel: free random ports unless typed in
+  const randomPorts = () => {
+    const a = 20000 + Math.floor(Math.random() * 40000);
+    form.setValue("port", a as any, { shouldDirty: true });
+    form.setValue("api_port", (a + 1 + Math.floor(Math.random() * 500)) as any, { shouldDirty: true });
+  };
+  useEffect(() => {
+    if (install.on && Number(form.getValues("port")) === 62050 && Number(form.getValues("api_port")) === 62051) randomPorts();
+  }, [install.on]);
   const { isLoading, mutate } = useMutation(addNode, {
     onSuccess: (created: any) => {
       if (created?.id) {
@@ -465,6 +474,18 @@ const AddNodeForm: FC<AddNodeFormType> = ({
           submitBtnText={t("nodes.addNode")}
           btnProps={{ variant: "solid" }}
           addAsHost
+          portTools={
+            install.on ? (
+              <HStack w="full" spacing={2}>
+                <Button size="xs" variant="outline" onClick={randomPorts}>
+                  {t("nodeExtra.randomPorts")}
+                </Button>
+                <Text fontSize="2xs" color="gray.500">
+                  {t("nodeExtra.randomPortsHelp")}
+                </Text>
+              </HStack>
+            ) : null
+          }
           vpnSlot={
             <VStack w="full" align="stretch" spacing={3}>
               <FlagSelect value={flag} onChange={setFlag} />
@@ -513,6 +534,7 @@ type NodeFormType = FC<{
   btnLeftAdornment?: ReactNode;
   addAsHost?: boolean;
   vpnSlot?: ReactNode;
+  portTools?: ReactNode;
 }>;
 
 const NodeForm: NodeFormType = ({
@@ -524,6 +546,7 @@ const NodeForm: NodeFormType = ({
   btnLeftAdornment,
   addAsHost = false,
   vpnSlot,
+  portTools,
 }) => {
   const { t } = useTranslation();
   const [showCertificate, setShowCertificate] = useState(false);
@@ -714,6 +737,7 @@ const NodeForm: NodeFormType = ({
             />
           </Box>
         </HStack>
+        {portTools}
         <CoreSelect form={form} />
         {vpnSlot}
         {addAsHost && (

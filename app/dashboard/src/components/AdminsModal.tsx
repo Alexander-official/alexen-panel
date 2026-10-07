@@ -85,6 +85,12 @@ export const AdminsModal: FC = () => {
   const [editing, setEditing] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const profileSave = useRef<((name: string) => Promise<unknown>) | null>(null);
+  const [subFirst, setSubFirst] = useState(false);
+  const { data: profiles, refetch: refetchProfiles } = useQuery<Record<string, any>>({
+    queryKey: "admin-sub-profiles",
+    queryFn: () => fetch("/admins/sub-profiles"),
+    enabled: isManagingAdmins,
+  });
 
   const refresh = () =>
     fetch("/admins").then((data: AdminItem[]) => setAdmins(data));
@@ -104,7 +110,8 @@ export const AdminsModal: FC = () => {
     setShowForm(true);
   };
 
-  const startEdit = (admin: AdminItem) => {
+  const startEdit = (admin: AdminItem, sub = false) => {
+    setSubFirst(sub);
     setForm({
       username: admin.username,
       password: "",
@@ -159,6 +166,7 @@ export const AdminsModal: FC = () => {
         toast({ status: "success", title: t("admins.saved"), duration: 2000 });
         setShowForm(false);
         refresh();
+        refetchProfiles();
       })
       .catch((e) =>
         toast({
@@ -363,7 +371,7 @@ export const AdminsModal: FC = () => {
                   </FormControl>
                 </>
               )}
-              {!form.is_sudo && <AdminSubProfile name={editing || ""} saveRef={profileSave} />}
+              {!form.is_sudo && <AdminSubProfile name={editing || ""} saveRef={profileSave} focus={subFirst} />}
               <HStack justifyContent="flex-end" pt={2}>
                 <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>
                   {t("cancel")}
@@ -410,8 +418,31 @@ export const AdminsModal: FC = () => {
                             : ""}
                         </Text>
                       )}
+                      {!admin.is_sudo && (() => {
+                        const pr = profiles?.[admin.username];
+                        return (
+                          <HStack spacing={1} mt={1} flexWrap="wrap" rowGap={1}>
+                            <Badge variant="subtle" colorScheme={pr?.domain ? "primary" : "gray"} fontSize="2xs" title={pr?.domain || ""}>
+                              {t("adminSub.badgeDomain")}: {pr?.domain ? pr.domain.replace(/^https?:\/\//, "") : t("adminSub.general")}
+                            </Badge>
+                            <Badge variant="subtle" colorScheme={pr?.texts ? "primary" : "gray"} fontSize="2xs">
+                              {t("adminSub.badgeTexts")}: {pr?.texts ? t("adminSub.ownN", { n: pr.texts }) : t("adminSub.general")}
+                            </Badge>
+                            <Badge variant="subtle" colorScheme={pr?.external ? "primary" : "gray"} fontSize="2xs">
+                              {t("adminSub.badgeExternal")}: {pr?.external || 0}
+                              {pr?.include_general === false ? ` · ${t("adminSub.noGeneral")}` : ""}
+                              {pr?.self_edit ? ` · ${t("adminSub.selfEditShort")}` : ""}
+                            </Badge>
+                          </HStack>
+                        );
+                      })()}
                     </VStack>
                     <HStack>
+                      {!admin.is_sudo && (
+                        <Button size="xs" variant="outline" colorScheme="primary" onClick={() => startEdit(admin, true)}>
+                          {t("adminSub.button")}
+                        </Button>
+                      )}
                       <Tooltip label={t("admins.edit")}>
                         <IconButton
                           aria-label="edit"

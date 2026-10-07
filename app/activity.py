@@ -119,8 +119,13 @@ class ActivityMiddleware:
                 admin = _admin_of(headers)
                 action = f"{method} {path}"[:64]
                 if path == "/api/admin/token":
-                    form = urllib.parse.parse_qs(body.decode(errors="replace")) if body else {}
-                    admin = (form.get("username") or [""])[0][:64] or None
+                    text = body.decode(errors="replace") if body else ""
+                    if "multipart" in ctype:
+                        m = re.search(r'name="username"\r?\n\r?\n([^\r\n]*)', text)
+                        admin = (m.group(1) if m else "")[:64] or None
+                    else:
+                        form = urllib.parse.parse_qs(text)
+                        admin = (form.get("username") or [""])[0][:64] or None
                     action = "login" if status["code"] == 200 else "login_failed"
                     detail = None
                 else:

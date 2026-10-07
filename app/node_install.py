@@ -21,8 +21,9 @@ AGENT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 PANEL_XRAY = "/usr/local/bin/xray"
 
 COMPOSE = """services:
-  marzban-node:
+  alexen-node:
     image: gozargah/marzban-node:latest
+    container_name: alexen-node
     restart: always
     network_mode: host
     environment:
@@ -31,8 +32,10 @@ COMPOSE = """services:
       SERVICE_PROTOCOL: "rest"
       SSL_CLIENT_CERT_FILE: "/var/lib/marzban-node/ssl_client_cert.pem"
 {xray_env}    volumes:
-      - /var/lib/marzban-node:/var/lib/marzban-node
+      - /var/lib/alexen-node:/var/lib/marzban-node
 """
+NODE_DIR = "/opt/alexen-node"
+DATA_DIR = "/var/lib/alexen-node"
 
 
 class InstallError(Exception):
@@ -233,20 +236,25 @@ def install(job: dict, *, host: str, port: int, username: str, password: str, ke
                   check=False)
             log("ports: " + ", ".join(f"{p}/{proto}" for p, proto in ports))
         if node:
-            step("node", "installing Marzban-node")
-            s.upload(cert.encode(), "/var/lib/marzban-node/ssl_client_cert.pem")
+            step("node", "installing the Alexen node")
+            s.upload(cert.encode(), f"{DATA_DIR}/ssl_client_cert.pem")
             xray_env = ""
             if os.path.exists(PANEL_XRAY) and arch == _panel_arch():
                 log("copying the panel's Xray (same version as the panel)")
                 with open(PANEL_XRAY, "rb") as f:
-                    s.upload(f.read(), "/var/lib/marzban-node/xray-core/xray", 0o755)
+                    s.upload(f.read(), f"{DATA_DIR}/xray-core/xray", 0o755)
                 xray_env = '      XRAY_EXECUTABLE_PATH: "/var/lib/marzban-node/xray-core/xray"\n'
             else:
                 log("the node's own Xray is used (different CPU type)")
             compose = COMPOSE.format(port=int(node["port"]), api_port=int(node["api_port"]), xray_env=xray_env)
-            s.upload(compose.encode(), "/opt/marzban-node/docker-compose.yml")
-            s.run("cd /opt/marzban-node && (docker compose pull -q || docker-compose pull -q || true) && "
+            s.upload(compose.encode(), f"{NODE_DIR}/docker-compose.yml")
+            # a node installed by hand earlier (Marzban's script) would hold the same ports: it's replaced
+            s.run("for d in /opt/marzban-node; do [ -f $d/docker-compose.yml ] && (cd $d && (docker compose down || docker-compose down)) "
+                  ">/dev/null 2>&1 && echo \"stopped the old node in $d\"; done; "
+                  "docker rm -f alexen-node >/dev/null 2>&1; true", check=False)
+            s.run(f"cd {NODE_DIR} && (docker compose pull -q || docker-compose pull -q || true) && "
                   "(docker compose up -d --force-recreate || docker-compose up -d --force-recreate)")
+            s.run("sleep 3; docker ps --filter name=alexen-node --format '{{.Names}}: {{.Status}}'", check=False)
         if agent:
             step("agent", "installing the Alexen agent (the first build takes a few minutes)")
             s.upload(_agent_bundle(), "/tmp/alexen-agent.tar.gz")

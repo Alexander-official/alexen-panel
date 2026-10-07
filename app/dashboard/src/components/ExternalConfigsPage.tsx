@@ -60,7 +60,7 @@ type ExternalConfig = {
   only_active: boolean;
   groups: string[];
 };
-type AdminExternal = { enabled: boolean; label: string; self_edit: boolean; configs: ExternalConfig[] };
+type AdminExternal = { enabled: boolean; label: string; self_edit: boolean; include_general: boolean; configs: ExternalConfig[] };
 type ExternalSettings = {
   configs: ExternalConfig[];
   admins: Record<string, AdminExternal>;
@@ -598,7 +598,7 @@ export const ExternalConfigsPage: FC = () => {
   return userData.is_sudo ? <SudoExternalPage /> : <OwnExternalPage />;
 };
 
-const emptyAdmin = (): AdminExternal => ({ enabled: true, label: "", self_edit: false, configs: [] });
+const emptyAdmin = (): AdminExternal => ({ enabled: true, label: "", self_edit: false, include_general: true, configs: [] });
 
 const SudoExternalPage: FC = () => {
   const { t } = useTranslation();
@@ -729,6 +729,7 @@ const SudoExternalPage: FC = () => {
       {scope && (
         <Panel title={t("external.adminTitle", { name: scope })} help={t("external.adminHelp")}>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <Toggle label={t("adminSub.includeGeneral")} help={t("adminSub.includeGeneralHelp")} value={mine.include_general !== false} onChange={(v) => setMine({ include_general: v })} />
             <Toggle label={t("external.adminEnabled")} value={mine.enabled} onChange={(v) => setMine({ enabled: v })} />
             <Toggle label={t("external.selfEdit")} help={t("external.selfEditHelp")} value={mine.self_edit} onChange={(v) => setMine({ self_edit: v })} />
             <FormControl>

@@ -365,6 +365,7 @@ class AdminSubProfile(BaseModel):
     external_enabled: bool = True
     external_label: str = ""
     external_self_edit: bool = False
+    external_include_general: bool = True     # its users get the general external configs too
     external_count: int = 0                    # read only: edit them on the External configs page
     example: str = ""                          # read only
 
@@ -382,6 +383,7 @@ def _profile(db: Session, name: str) -> AdminSubProfile:
     return AdminSubProfile(url_prefix=d.url_prefix if d else "", suffix=d.suffix if d else None, templates=t,
                            external_enabled=e.enabled if e else True, external_label=e.label if e else "",
                            external_self_edit=e.self_edit if e else False,
+                           external_include_general=e.include_general if e else True,
                            external_count=len(e.configs) if e else 0, example=example)
 
 
@@ -418,6 +420,27 @@ def update_admin_sub_profile(name: str, body: AdminSubProfile, db: Session = Dep
     ext = _external.load(db)
     cur = ext.admins.get(name) or _external.AdminExternal()
     ext.admins[name] = cur.model_copy(update={"enabled": body.external_enabled, "label": body.external_label,
-                                              "self_edit": body.external_self_edit})
+                                              "self_edit": body.external_self_edit,
+                                              "include_general": body.external_include_general})
     _external.save(db, ext)
     return _profile(db, name)
+
+
+@router.get("/admins/sub-profiles")
+def admins_sub_profiles(db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)):
+    """which admins have their own domain, texts or external configs (for the admins list)"""
+    doms = _domain.get().admins
+    texts = get_subscription_settings(db).admins
+    ext = _external.load(db).admins
+    out = {}
+    for name in set(doms) | set(texts) | set(ext):
+        e = ext.get(name)
+        out[name] = {
+            "domain": doms[name].url_prefix if name in doms else "",
+            "texts": sum(1 for v in (texts[name].model_dump().values() if name in texts else []) if (v or "").strip()),
+            "external": len(e.configs) if e else 0,
+            "external_on": e.enabled if e else True,
+            "self_edit": e.self_edit if e else False,
+            "include_general": e.include_general if e else True,
+        }
+    return out

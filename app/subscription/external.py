@@ -92,6 +92,7 @@ class AdminExternal(BaseModel):
     # put before each config's name ("" = nothing); the page fills in the admin's name
     label: str = Field("", max_length=64)
     self_edit: bool = False      # the admin may edit this list itself
+    include_general: bool = True # its users also get the general (sudo admin's) configs
     configs: List[ExternalConfig] = []
 
 
@@ -213,7 +214,9 @@ def apply(links: List[str], *, active: bool, host_groups: Optional[list], variab
     s = settings or load()
     own = [(l, "generated") for l in sort_generated(links, s.generated_sort, s.protocol_order)]
 
-    configs = [c for c in s.configs if _visible(c, active, host_groups)]
+    mine = s.admins.get(admin) if admin else None
+    general = s.configs if not mine or mine.include_general else []
+    configs = [c for c in general if _visible(c, active, host_groups)]
     if s.external_sort == "name":
         configs.sort(key=lambda c: _name_key(c.name))
     elif s.external_sort == "name_desc":
@@ -231,7 +234,6 @@ def apply(links: List[str], *, active: bool, host_groups: Optional[list], variab
         bottom.sort(key=key)
 
     # the admin's own configs come after all of the general ones
-    mine = s.admins.get(admin) if admin else None
     if mine and mine.enabled:
         for c in mine.configs:
             if _visible(c, active, None):

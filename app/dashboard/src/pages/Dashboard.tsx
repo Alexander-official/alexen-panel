@@ -1,3 +1,4 @@
+import { named } from "utils/lazyLoad";
 import { Box, VStack } from "@chakra-ui/react";
 import { DeleteUserModal } from "components/DeleteUserModal";
 import { Filters } from "components/Filters";
@@ -10,7 +11,7 @@ import { RevokeSubscriptionModal } from "components/RevokeSubscriptionModal";
 import { UserDialog } from "components/UserDialog";
 import { UsersTable } from "components/UsersTable";
 import { fetchInbounds, useDashboard } from "contexts/DashboardContext";
-import { FC, lazy, ReactNode, Suspense, useEffect, useState } from "react";
+import { FC, ReactNode, Suspense, useEffect, useState } from "react";
 import { Statistics } from "../components/Statistics";
 import { Outlet } from "react-router-dom";
 
@@ -25,8 +26,7 @@ export const UsersView: FC = () => (
 
 // The QR window pulls in a carousel; fetch it the first time it opens.
 // Other sections are pages, see pages/sections.tsx.
-const named = <T extends string>(loader: () => Promise<Record<T, any>>, name: T) =>
-  lazy(() => loader().then((m) => ({ default: m[name] })));
+
 
 const QRCodeDialog = named(() => import("components/QRCodeDialog"), "QRCodeDialog");
 

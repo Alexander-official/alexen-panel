@@ -4,6 +4,7 @@ import { getAuthToken } from "../utils/authStorage";
 import { Dashboard, UsersView } from "./Dashboard";
 import { SECTIONS, SectionPage } from "./sections";
 import { Login } from "./Login";
+import { RouteError } from "./RouteError";
 const fetchAdminLoader = () => {
     return fetch("/admin", {
         headers: {
@@ -15,7 +16,7 @@ export const router = createHashRouter([
     {
         path: "/",
         element: <Dashboard />,
-        errorElement: <Login />,
+        errorElement: <RouteError />,
         loader: fetchAdminLoader,
         children: [
             { index: true, element: <UsersView /> },

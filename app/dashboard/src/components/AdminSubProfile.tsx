@@ -2,7 +2,7 @@
 // users' links use, its own sub texts per user state, and its external configs.
 import { Badge, Box, Button, Code, Collapse, FormControl, FormLabel, HStack, Input, Switch, Text, Textarea, VStack } from "@chakra-ui/react";
 import { ChevronDownIcon, GlobeAltIcon } from "@heroicons/react/24/outline";
-import { FC, MutableRefObject, useEffect, useState } from "react";
+import { FC, MutableRefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { fetch } from "service/http";
@@ -21,6 +21,7 @@ type Profile = {
   external_enabled: boolean;
   external_label: string;
   external_self_edit: boolean;
+  external_include_general: boolean;
   external_count: number;
   example: string;
 };
@@ -31,6 +32,7 @@ const empty: Profile = {
   external_enabled: true,
   external_label: "",
   external_self_edit: false,
+  external_include_general: true,
   external_count: 0,
   example: "",
 };
@@ -63,12 +65,16 @@ const Section: FC<{ title: string; open: boolean; onToggle: () => void; badge?: 
   </Box>
 );
 
-export const AdminSubProfile: FC<{ name: string; saveRef: MutableRefObject<((name: string) => Promise<unknown>) | null> }> = ({ name, saveRef }) => {
+export const AdminSubProfile: FC<{ name: string; saveRef: MutableRefObject<((name: string) => Promise<unknown>) | null>; focus?: boolean }> = ({ name, saveRef, focus }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [p, setP] = useState<Profile>(empty);
   const [general, setGeneral] = useState<Templates | null>(null);
-  const [open, setOpen] = useState<string>("");
+  const [open, setOpen] = useState<string>(focus ? "domain" : "");
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focus) setTimeout(() => box.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+  }, [focus]);
   const set = (patch: Partial<Profile>) => setP((x) => ({ ...x, ...patch }));
 
   useEffect(() => {
@@ -83,7 +89,7 @@ export const AdminSubProfile: FC<{ name: string; saveRef: MutableRefObject<((nam
   const ownTexts = STATES.filter(([k]) => p.templates[k]?.trim()).length;
 
   return (
-    <VStack align="stretch" spacing={2}>
+    <VStack ref={box} align="stretch" spacing={2} p={4} borderRadius="16px" borderWidth="1.5px" borderColor="primary.400" bg="var(--tier-1)">
       <HStack spacing={2}>
         <GlobeAltIcon width={16} />
         <Text fontSize="sm" fontWeight="semibold">
@@ -139,6 +145,15 @@ export const AdminSubProfile: FC<{ name: string; saveRef: MutableRefObject<((nam
       </Section>
 
       <Section title={t("adminSub.external")} open={open === "external"} onToggle={() => setOpen(open === "external" ? "" : "external")} badge={p.external_count ? t("external.linkCount", { count: p.external_count }) : undefined}>
+        <HStack justifyContent="space-between" alignItems="flex-start">
+          <Box>
+            <Text fontSize="sm">{t("adminSub.includeGeneral")}</Text>
+            <Text fontSize="2xs" color="gray.500">
+              {t("adminSub.includeGeneralHelp")}
+            </Text>
+          </Box>
+          <Switch size="sm" colorScheme="primary" isChecked={p.external_include_general} onChange={(e) => set({ external_include_general: e.target.checked })} />
+        </HStack>
         <HStack justifyContent="space-between">
           <Text fontSize="sm">{t("external.adminEnabled")}</Text>
           <Switch size="sm" colorScheme="primary" isChecked={p.external_enabled} onChange={(e) => set({ external_enabled: e.target.checked })} />
