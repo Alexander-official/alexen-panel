@@ -3,6 +3,11 @@
 // per browser (utils/appearance.ts).
 import {
   Box,
+  Button,
+  Slider,
+  SliderFilledTrack,
+  SliderThumb,
+  SliderTrack,
   Drawer,
   DrawerBody,
   DrawerCloseButton,
@@ -28,9 +33,12 @@ import {
   Appearance,
   BACKGROUND_CHOICES,
   BACKGROUNDS,
+  emptyTiers,
   getAppearance,
   Surface,
+  TierColors,
 } from "utils/appearance";
+import { useNavigate } from "react-router-dom";
 import { ColorPicker } from "./ColorPicker";
 
 const Group: FC<{ title: string; children: ReactNode }> = ({ title, children }) => (
@@ -104,7 +112,7 @@ const StyleSample: FC<{ kind: Surface; dark: boolean }> = ({ kind, dark }) => {
   );
 };
 
-export const AppearancePanel: FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+export const AppearanceSettings: FC<{ wide?: boolean }> = ({ wide }) => {
   const { t } = useTranslation();
   const { colorMode, setColorMode } = useColorMode();
   const [a, setA] = useState<Appearance>(getAppearance());
@@ -143,18 +151,7 @@ export const AppearancePanel: FC<{ isOpen: boolean; onClose: () => void }> = ({ 
   const dark = colorMode === "dark";
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} placement="right" size="sm">
-      <DrawerOverlay bg="blackAlpha.300" />
-      <DrawerContent borderLeftRadius={{ base: 0, sm: "24px" }} className="alexen-drawer">
-        <DrawerCloseButton mt={2} borderRadius="full" />
-        <DrawerHeader pb={1}>
-          <Text fontSize="lg">{t("appearance.title")}</Text>
-          <Text fontSize="xs" color="gray.500" fontWeight="normal">
-            {t("appearance.help")}
-          </Text>
-        </DrawerHeader>
-        <DrawerBody pb={8}>
-          <VStack align="stretch" spacing={7} pt={3}>
+          <SimpleGrid columns={wide ? { base: 1, xl: 2 } : 1} spacing={7} pt={3} alignItems="start">
             <Group title={t("appearance.mode")}>
               <SimpleGrid columns={3} spacing={2}>
                 {[
@@ -305,9 +302,130 @@ export const AppearancePanel: FC<{ isOpen: boolean; onClose: () => void }> = ({ 
                 </Box>
               </HStack>
             </Group>
-          </VStack>
+
+            <TierSettings a={a} dark={dark} update={update} />
+          </SimpleGrid>
+  );
+};
+
+export const AppearancePanel: FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  return (
+    <Drawer isOpen={isOpen} onClose={onClose} placement="right" size="sm">
+      <DrawerOverlay bg="blackAlpha.300" />
+      <DrawerContent borderLeftRadius={{ base: 0, sm: "24px" }} className="alexen-drawer">
+        <DrawerCloseButton mt={2} borderRadius="full" />
+        <DrawerHeader pb={1}>
+          <Text fontSize="lg">{t("appearance.title")}</Text>
+          <Text fontSize="xs" color="gray.500" fontWeight="normal">
+            {t("appearance.help")}
+          </Text>
+          <Button
+            size="xs"
+            mt={2}
+            variant="outline"
+            colorScheme="primary"
+            onClick={() => {
+              onClose();
+              navigate("/theme");
+            }}
+          >
+            {t("appearance.openPage")}
+          </Button>
+        </DrawerHeader>
+        <DrawerBody pb={8}>
+          <AppearanceSettings />
         </DrawerBody>
       </DrawerContent>
     </Drawer>
   );
 };
+
+// the three tiers: a live picture, how far apart they are, and a color per tier
+const TierSettings: FC<{ a: Appearance; dark: boolean; update: (p: Partial<Appearance>) => void }> = ({ a, dark, update }) => {
+  const { t } = useTranslation();
+  const [picking, setPicking] = useState<"" | keyof TierColors>("");
+  const mode = dark ? "dark" : "light";
+  const own = a.tiers[mode];
+  const cssVar = (v: string) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const current: Record<keyof TierColors, string> = {
+    page: own.page || cssVar("--tier-0"),
+    layer: own.layer || cssVar("--tier-1"),
+    item: own.item || cssVar("--tier-item"),
+  };
+  const setTier = (k: keyof TierColors, v: string) =>
+    update({ tiers: { ...a.tiers, [mode]: { ...own, [k]: v } } });
+  return (
+    <Group title={t("appearance.tiers")}>
+      <Text fontSize="xs" color="gray.500" mb={3}>
+        {t("appearance.tiersHelp")}
+      </Text>
+      {/* live picture: page > layer > items */}
+      <Box borderRadius="14px" p={3} style={{ background: "var(--tier-0)" }} borderWidth="1px" borderColor="var(--tier-line)" mb={3}>
+        <Text fontSize="2xs" color="gray.500" mb={1.5}>
+          {t("appearance.tier.page")}
+        </Text>
+        <Box borderRadius="12px" p={3} style={{ background: "var(--tier-1)" }} borderWidth="1px" borderColor="var(--tier-line)">
+          <Text fontSize="2xs" color="gray.500" mb={1.5}>
+            {t("appearance.tier.layer")}
+          </Text>
+          <HStack spacing={1.5}>
+            {["7h", "1d", "1w"].map((x, i) => (
+              <Box key={x} px={2.5} py={1} borderRadius="8px" fontSize="xs" style={{ background: i === 1 ? "var(--chakra-colors-primary-500)" : "var(--tier-item)" }} color={i === 1 ? "white" : undefined} borderWidth="1px" borderColor={i === 1 ? "transparent" : "var(--tier-line)"}>
+                {x}
+              </Box>
+            ))}
+            <Text fontSize="2xs" color="gray.500">
+              ← {t("appearance.tier.item")}
+            </Text>
+          </HStack>
+        </Box>
+      </Box>
+      <Box mb={3}>
+        <HStack justifyContent="space-between" mb={1}>
+          <Text fontSize="sm">{t("appearance.tierContrast")}</Text>
+          <Text fontSize="xs" color="gray.500">
+            {Math.round((a.tierContrast || 1) * 100)}%
+          </Text>
+        </HStack>
+        <Slider min={0.4} max={2.5} step={0.05} value={a.tierContrast || 1} onChange={(v) => update({ tierContrast: v })}>
+          <SliderTrack>
+            <SliderFilledTrack bg="primary.500" />
+          </SliderTrack>
+          <SliderThumb />
+        </Slider>
+      </Box>
+      <SimpleGrid columns={3} spacing={2}>
+        {(["page", "layer", "item"] as (keyof TierColors)[]).map((k) => (
+          <Choice key={k} on={picking === k} onClick={() => setPicking(picking === k ? "" : k)}>
+            <Box h="28px" borderRadius="8px" mb={1.5} borderWidth="1px" borderColor="var(--tier-line)" style={{ background: current[k] }} />
+            <Text fontSize="xs" fontWeight="medium">
+              {t(`appearance.tier.${k}`)}
+            </Text>
+            <Text fontSize="2xs" color="gray.500">
+              {own[k] ? own[k] : t("appearance.tierAuto")}
+            </Text>
+          </Choice>
+        ))}
+      </SimpleGrid>
+      {picking && (
+        <Box mt={3}>
+          <ColorPicker value={current[picking] || "#888888"} onChange={(c) => setTier(picking, c)} />
+          <Button size="xs" mt={2} variant="ghost" onClick={() => setTier(picking, "")}>
+            {t("appearance.tierReset")}
+          </Button>
+        </Box>
+      )}
+      <Button size="xs" mt={3} variant="outline" onClick={() => update({ tierContrast: 1, tiers: emptyTiers() })}>
+        {t("appearance.tiersResetAll")}
+      </Button>
+    </Group>
+  );
+};
+
+export const ThemePage: FC = () => (
+  <Box>
+    <AppearanceSettings wide />
+  </Box>
+);

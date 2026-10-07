@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from starlette.websockets import WebSocketDisconnect
 
 from app import logger, xray
-from app.db import Session, crud, get_db
+from app.db import GetDB, Session, crud, get_db
 from app.db.models import Node as DBNode
 from app.dependencies import get_dbnode, validate_dates
 from app.models.admin import Admin
@@ -318,11 +318,45 @@ def install_node(body: InstallIn, request: Request, dbnode: NodeResponse = Depen
     node_id = dbnode.id
 
     def connected():
-        try:
-            time.sleep(3)
-            xray.operations.connect_node(node_id)
-        except Exception as e:
-            logger.warning(f"node {node_id}: connect after install: {e}")
+        # the panel picks the new node and agent up right away
+        time.sleep(3)
+        if body.node:
+            try:
+                xray.operations.connect_node(node_id)
+            except Exception as e:
+                logger.warning(f"node {node_id}: connect after install: {e}")
+        if body.agent:
+            try:
+                from app import vpn
+                with GetDB() as session:
+                    s = vpn.load(session)
+                    if str(node_id) in s.servers and s.servers[str(node_id)].agent_cert:
+                        # a reinstalled agent has a new certificate
+                        s.servers[str(node_id)].agent_cert = ""
+                        vpn.save(session, s)
+                vpn.sync()
+            except Exception as e:
+                logger.warning(f"node {node_id}: VPN sync after install: {e}")
+
+    # every port this server needs from outside: its Xray inbounds and VPN services
+    open_ports = set()
+    try:
+        for ib in cores.config_of(cores.core_of(node_id)).get("inbounds", []):
+            p = ib.get("port")
+            if isinstance(p, int) and not str(ib.get("tag", "")).startswith("API"):
+                net = (ib.get("streamSettings") or {}).get("network") or ""
+                udp = ib.get("protocol") in ("hysteria", "wireguard", "dokodemo-door") or net in ("kcp", "quic", "hysteria")
+                open_ports |= {(p, "tcp"), (p, "udp")} if ib.get("protocol") == "dokodemo-door" else {(p, "udp" if udp else "tcp")}
+        from app import vpn
+        srv = vpn.load(db).servers.get(str(node_id))
+        if srv:
+            if srv.awg.enabled:
+                open_ports.add((srv.awg.port, "udp"))
+            if srv.ovpn.enabled:
+                open_ports.add((srv.ovpn.port, srv.ovpn.proto))
+            open_ports.add((srv.agent_port, "tcp"))
+    except Exception as e:
+        logger.warning(f"node {node_id}: ports to open: {e}")
 
     job = node_install.start(
         host=login.host or dbnode.address, port=login.port, username=login.username,
@@ -331,7 +365,7 @@ def install_node(body: InstallIn, request: Request, dbnode: NodeResponse = Depen
         passphrase=node_extras.decrypt(login.passphrase),
         node={"port": dbnode.port, "api_port": dbnode.api_port} if body.node else None,
         agent=body.agent, panel_url=str(request.base_url).rstrip("/"), cert=cert,
-        on_done=connected if body.node else None)
+        open_ports=sorted(open_ports), on_done=connected)
     return {"job": job}
 
 

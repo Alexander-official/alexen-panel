@@ -171,7 +171,7 @@ export const SSHFields: FC<{ value: SSHDraft; onChange: (v: SSHDraft) => void; a
 };
 
 // ---------------- install over SSH ----------------
-type Job = { id: string; done: boolean; ok: boolean; error: string; step: string; lines: string[]; total: number };
+type Job = { id: string; done: boolean; ok: boolean; error: string; step: string; step_key: string; percent: number; steps: string[]; lines: string[]; total: number };
 export const useInstall = create<{ job: string | null; title: string; open: (job: string, title: string) => void; close: () => void }>((set) => ({
   job: null,
   title: "",
@@ -247,7 +247,26 @@ export const InstallProgress: FC = () => {
               </>
             )}
           </HStack>
-          {!state?.done && <Progress size="xs" isIndeterminate colorScheme="primary" borderRadius="full" mb={2} />}
+          <HStack spacing={3} mb={2}>
+            <Progress flex="1" size="sm" value={state?.percent || 0} colorScheme={state?.done && !state.ok ? "red" : state?.done ? "green" : "primary"} borderRadius="full" hasStripe={!state?.done} isAnimated={!state?.done} />
+            <Text fontSize="sm" fontWeight="semibold" w="44px" textAlign="right">
+              {state?.percent || 0}%
+            </Text>
+          </HStack>
+          <HStack spacing={1.5} mb={3} flexWrap="wrap" rowGap={1.5}>
+            {(state?.steps || []).map((k) => {
+              const idx = state!.steps.indexOf(k);
+              const cur = state!.steps.indexOf(state!.step_key);
+              const doneStep = state!.ok || idx < cur;
+              const failed = state!.done && !state!.ok && idx === cur;
+              return (
+                <Badge key={k} variant="subtle" colorScheme={failed ? "red" : doneStep ? "green" : idx === cur ? "primary" : "gray"} fontSize="2xs" px={2} py={0.5}>
+                  {doneStep ? "✓ " : failed ? "✕ " : ""}
+                  {t(`nodeExtra.step.${k}`)}
+                </Badge>
+              );
+            })}
+          </HStack>
           <Box ref={box} bg="gray.900" color="gray.100" borderRadius="10px" p={3} h="320px" overflowY="auto" fontFamily="mono" fontSize="11px" whiteSpace="pre-wrap" wordBreak="break-all">
             {(state?.lines || []).map((l, i) => (
               <Text key={i} color={l.startsWith("==>") ? "cyan.300" : l.startsWith("!!") ? "red.300" : undefined}>
@@ -267,12 +286,13 @@ export const InstallProgress: FC = () => {
 };
 
 // what to install (node / agent) and the login: for an existing node
-export const InstallBox: FC<{ nodeId: number; name: string; address: string; saved?: ExtraOut["ssh"] }> = ({ nodeId, name, address, saved }) => {
+export const InstallBox: FC<{ nodeId: number; name: string; address: string; saved?: ExtraOut["ssh"]; nodeOk?: boolean; agentOk?: boolean }> = ({ nodeId, name, address, saved, nodeOk, agentOk }) => {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
   const [ssh, setSsh] = useState<SSHDraft>(() => ({ ...emptySSH(), ...(saved ? { host: saved.host, port: saved.port, username: saved.username, auth: saved.auth } : {}) }));
-  const [what, setWhat] = useState({ node: false, agent: true, save: true });
+  // whatever isn't working yet is ticked
+  const [what, setWhat] = useState({ node: !nodeOk, agent: !agentOk, save: true });
   const [busy, setBusy] = useState(false);
   const openJob = useInstall((s) => s.open);
   const canUseSaved = !!saved?.saved && !sshFilled(ssh);

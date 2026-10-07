@@ -17,6 +17,7 @@ from . import (
     chain,
     preroute,
     overview,
+    activity,
 )
 
 api_router = APIRouter()
@@ -40,6 +41,7 @@ routers = [
     chain.router,
     preroute.router,
     overview.router,
+    activity.router,
 ]
 
 for router in routers:

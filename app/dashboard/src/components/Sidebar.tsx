@@ -43,6 +43,8 @@ import {
   UsersIcon,
   ArrowsRightLeftIcon,
   Squares2X2Icon,
+  ClockIcon,
+  SwatchIcon,
 } from "@heroicons/react/24/outline";
 import { BRAND_NAME } from "constants/Project";
 import { useDashboard } from "contexts/DashboardContext";
@@ -175,6 +177,8 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
     { title: t("users"), path: "", icon: ic(UsersIcon) },
     { title: t("stats.title"), path: "statistics", icon: ic(ChartPieIcon) },
     ...(!isSudo && ownExternal ? [{ title: t("external.title"), path: "external", icon: ic(GlobeAltIcon) }] : []),
+    { title: t("activity.title"), path: "activity", icon: ic(ClockIcon) },
+    { title: t("appearance.title"), path: "theme", icon: ic(SwatchIcon) },
     ...(isSudo
       ? [
           { title: t("header.hostSettings"), path: "hosts", icon: ic(ListBulletIcon) },

@@ -411,6 +411,22 @@ class StatHistory(Base):
     value = Column(BigInteger, nullable=False, default=0)
 
 
+class ActivityLog(Base):
+    """who did what in the panel, and from where (app/activity.py)"""
+    __tablename__ = "activity_log"
+
+    id = Column(Integer, primary_key=True)
+    created_at = Column(DateTime, nullable=False, index=True, default=datetime.utcnow)
+    admin = Column(String(64), nullable=True, index=True)
+    action = Column(String(64), nullable=False)      # login, login_failed, or "METHOD /api/path"
+    method = Column(String(8), nullable=True)
+    path = Column(String(256), nullable=True)
+    status = Column(Integer, nullable=True)
+    ip = Column(String(64), nullable=True)
+    user_agent = Column(String(400), nullable=True)
+    detail = Column(String(4000), nullable=True)     # the request body, secrets removed
+
+
 class NotificationReminder(Base):
     __tablename__ = "notification_reminders"
 

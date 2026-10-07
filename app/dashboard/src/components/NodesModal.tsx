@@ -341,7 +341,7 @@ const NodeAccordion: FC<AccordionInboundType> = ({ toggleAccordion, node }) => {
                 <FlagSelect value={extra?.flag || ""} onChange={setFlag} />
                 <NodeVpnToggles nodeKey={String(node.id)} />
                 <VpsStatus sys={sys} />
-                <InstallBox nodeId={node.id} name={node.name} address={node.address} saved={extra?.ssh} />
+                <InstallBox nodeId={node.id} name={node.name} address={node.address} saved={extra?.ssh} nodeOk={node.status === "connected"} agentOk={!!sys && sys.cpu !== undefined} />
               </VStack>
             ) : null
           }
@@ -387,7 +387,7 @@ const AddNodeForm: FC<AddNodeFormType> = ({
   const [vpnChoice, setVpnChoice] = useState({ awg: false, ovpn: false });
   const [flag, setFlag] = useState("");
   const [ssh, setSsh] = useState(emptySSH());
-  const [install, setInstall] = useState({ on: false, node: true, agent: true, save: true });
+  const [install, setInstall] = useState({ on: true, node: true, agent: true, save: true });
   const openJob = useInstall((s) => s.open);
   const { isLoading, mutate } = useMutation(addNode, {
     onSuccess: (created: any) => {
@@ -406,7 +406,7 @@ const AddNodeForm: FC<AddNodeFormType> = ({
           });
         setFlag("");
         setSsh(emptySSH());
-        setInstall({ on: false, node: true, agent: true, save: true });
+        setInstall({ on: true, node: true, agent: true, save: true });
       }
       // the VPN choice needs the node's id: apply it once the node exists
       if (created?.id && (vpnChoice.awg || vpnChoice.ovpn)) {

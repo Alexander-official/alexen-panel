@@ -263,7 +263,16 @@ export type Appearance = {
   // colors picked by hand, used when accent / background is "custom"
   customAccent: string;
   customBackground: string;
+  // the three tiers (page, layers, items): how far apart they are, and colors
+  // picked by hand per color mode ("" = worked out from the background)
+  tierContrast: number;
+  tiers: { light: TierColors; dark: TierColors };
 };
+export type TierColors = { page: string; layer: string; item: string };
+export const emptyTiers = (): { light: TierColors; dark: TierColors } => ({
+  light: { page: "", layer: "", item: "" },
+  dark: { page: "", layer: "", item: "" },
+});
 
 const luminance = (hex: string) => {
   const [r, g, b] = hexToRgb(hex);
@@ -290,12 +299,17 @@ const DEFAULT: Appearance = {
   animations: true,
   customAccent: "#5b7cfa",
   customBackground: "#1e293b",
+  tierContrast: 1,
+  tiers: emptyTiers(),
 };
 
 export const getAppearance = (): Appearance => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...DEFAULT, ...JSON.parse(raw) };
+    if (raw) {
+      const saved = JSON.parse(raw);
+      return { ...DEFAULT, ...saved, tiers: { ...emptyTiers(), ...(saved.tiers || {}) } };
+    }
   } catch {}
   return { ...DEFAULT };
 };
@@ -330,7 +344,7 @@ export const applyAppearance = (a: Appearance) => {
     else if (k === "surface" || k === "surface-2") root.style.setProperty(`--app-${k}`, v);
     else root.style.setProperty(`--chakra-colors-${k}`, v);
   });
-  applyTiers(root, dark, tint);
+  applyTiers(root, dark, tint, a);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta && dark) meta.setAttribute("content", root.style.getPropertyValue("--tier-0") || "#1A202C");
 
@@ -350,31 +364,33 @@ export const applyAppearance = (a: Appearance) => {
  *    tier 2  sections inside a layer (and table heads)
  *    item    things you click or type in: fields, chips, outline buttons, rows on hover
  *  Dark mode rebuilds Chakra's gray scale from these, so every component follows. */
-function applyTiers(root: HTMLElement, dark: boolean, tint: Record<string, string>) {
+function applyTiers(root: HTMLElement, dark: boolean, tint: Record<string, string>, a: Appearance) {
   const set = (k: string, v: string) => root.style.setProperty(k, v);
+  const k = Math.min(2.5, Math.max(0.4, a.tierContrast || 1));
+  const own = (dark ? a.tiers?.dark : a.tiers?.light) || { page: "", layer: "", item: "" };
   if (dark) {
-    const base = tint["gray-800"] || "#151a25";
-    const t0 = mix(base, "#000000", 0.3);
-    const t1 = mix(base, "#ffffff", 0.05);
-    const t2 = mix(base, "#ffffff", 0.095);
-    const item = mix(base, "#ffffff", 0.14);
-    const itemHover = mix(base, "#ffffff", 0.2);
-    const line = mix(base, "#ffffff", 0.16);
+    const base = own.layer || tint["gray-800"] || "#151a25";
+    const t0 = own.page || mix(base, "#000000", Math.min(0.9, 0.3 * k));
+    const t1 = own.layer || mix(base, "#ffffff", 0.05 * k);
+    const item = own.item || mix(t1, "#ffffff", 0.095 * k);
+    const t2 = mix(t1, item, 0.5);
     set("--tier-0", t0); set("--tier-1", t1); set("--tier-2", t2);
-    set("--tier-item", item); set("--tier-item-hover", itemHover); set("--tier-line", line);
+    set("--tier-item", item); set("--tier-item-hover", mix(item, "#ffffff", 0.07));
+    set("--tier-line", mix(item, "#ffffff", 0.03));
     // Chakra's grays: 900/800 the page, 750 layers, 700 inner parts, 600 lines
-    set("--chakra-colors-gray-900", mix(base, "#000000", 0.42));
+    set("--chakra-colors-gray-900", mix(t0, "#000000", 0.18));
     set("--chakra-colors-gray-800", t0);
     set("--chakra-colors-gray-750", t1);
     set("--chakra-colors-gray-700", t2);
-    set("--chakra-colors-gray-600", mix(base, "#ffffff", 0.24));
+    set("--chakra-colors-gray-600", mix(item, "#ffffff", 0.1));
   } else {
-    const t1 = tint.surface || "#ffffff";
-    const t0 = mix(tint["gray-200"] || "#e1e4ec", "#ffffff", 0.3);
-    const t2 = mix(t0, t1, 0.55);
+    const t1 = own.layer || tint.surface || "#ffffff";
+    const t0 = own.page || mix(tint["gray-200"] || "#e1e4ec", "#ffffff", Math.max(0, 1 - 0.7 * k));
+    const item = own.item || mix(t0, t1, Math.max(0, 1 - 0.7 * k));
+    const t2 = mix(t1, item, 0.5);
     set("--tier-0", t0); set("--tier-1", t1); set("--tier-2", t2);
-    set("--tier-item", mix(t0, t1, 0.3)); set("--tier-item-hover", mix(t0, "#000000", 0.03));
-    set("--tier-line", mix(t0, "#000000", 0.07));
+    set("--tier-item", item); set("--tier-item-hover", mix(item, "#000000", 0.04));
+    set("--tier-line", mix(item, "#000000", 0.07));
     set("--app-surface", t1);
     set("--app-surface-2", t2);
   }

@@ -57,6 +57,10 @@ class SubPathMiddleware:
 
 app.add_middleware(SubPathMiddleware)
 
+from app.activity import ActivityMiddleware  # noqa: E402
+
+app.add_middleware(ActivityMiddleware)
+
 from app import dashboard, jobs, routers, telegram  # noqa
 from app.routers import api_router  # noqa
 
