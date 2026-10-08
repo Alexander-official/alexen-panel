@@ -1300,5 +1300,8 @@
   "preroutePage.notePlaceholder": "at",
   "serverMsg.notXui": "3x-ui ätiýaçlygy däl: 3x-ui-daky .db faýlyny saýlaň (Ätiýaçlyk → Ýükle)",
   "serverMsg.pickRelay": "Relaý serwerini saýlaň",
-  "serverMsg.noTunnelsPicked": "Hiç tunel saýlanmady"
+  "serverMsg.noTunnelsPicked": "Hiç tunel saýlanmady",
+  "outb.unstableShort": "durnuksyz",
+  "outb.unstableHelp": "Durnuksyz: {{total}} haýyşdan {{ok}}-si jogap berdi, galanlary saklandy. Serwer ýa-da aradaky tor baglanyşyklary doňdurýar (Russiýadan daşary ýurtdaky serwerlere köp duş gelýär ýa-da relaý aşa ýüklenen). Ulanyjylar käte işleýändigini, käte işlemeýändigini görerler.",
+  "outb.urlFailed": "synag salgysy açylmady"
 }

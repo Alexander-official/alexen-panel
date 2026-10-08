@@ -1300,5 +1300,8 @@
   "preroutePage.notePlaceholder": "ad",
   "serverMsg.notXui": "3x-ui yedeği değil: 3x-ui'deki .db dosyasını seçin (Yedek → İndir)",
   "serverMsg.pickRelay": "Relay sunucusunu seçin",
-  "serverMsg.noTunnelsPicked": "Hiç tünel seçilmedi"
+  "serverMsg.noTunnelsPicked": "Hiç tünel seçilmedi",
+  "outb.unstableShort": "kararsız",
+  "outb.unstableHelp": "Kararsız: {{total}} isteğin {{ok}} tanesi cevap verdi, diğerleri takıldı. Sunucu ya da aradaki ağ bağlantıları donduruyor (Rusya'dan yurt dışındaki sunuculara sık görülür ya da relay aşırı yüklü). Kullanıcılar bazen çalışıp bazen çalışmadığını görür.",
+  "outb.urlFailed": "test adresi açılmadı"
 }

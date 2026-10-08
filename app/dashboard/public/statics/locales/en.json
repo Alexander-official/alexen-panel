@@ -1300,5 +1300,8 @@
   "preroutePage.notePlaceholder": "name",
   "serverMsg.notXui": "Not a 3x-ui backup: pick the .db file from 3x-ui (Backup → Download)",
   "serverMsg.pickRelay": "Pick the relay server",
-  "serverMsg.noTunnelsPicked": "No tunnels picked"
+  "serverMsg.noTunnelsPicked": "No tunnels picked",
+  "outb.unstableShort": "unstable",
+  "outb.unstableHelp": "Unstable: {{ok}} of {{total}} requests answered, the rest hung. The server or the network on the way freezes connections (common from Russia to servers abroad, or an overloaded relay). Users will see it work now and then.",
+  "outb.urlFailed": "test URL failed"
 }

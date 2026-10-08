@@ -47,7 +47,9 @@ import { serverMessage } from "utils/serverMessage";
 import { AddOutbound, JsonItemEditor, outboundSummary, RoutingEditor } from "./CoreEditors";
 
 type Exit = { ip: string; country: string; cc: string; city: string } | null;
-export type TestResult = { error: string; delay: number | null; connect: number | null; sites: (number | null)[]; exit: Exit };
+export type TestResult = { error: string; delay: number | null; connect: number | null; sites: (number | null)[]; exit: Exit; ok?: number; total?: number };
+// some requests answered, some not: a shaky link, not a dead or blocked one
+const unstable = (r: TestResult) => !!r.total && !!r.ok && r.ok < r.total;
 type ChainServer = {
   key: string;
   name: string;
@@ -104,10 +106,25 @@ export const DelayPill: FC<{ r?: TestResult; busy?: boolean }> = ({ r, busy }) =
         </Badge>
       </Tooltip>
     );
-  if (r.delay == null)
+  if (unstable(r))
+    return (
+      <Tooltip label={t("outb.unstableHelp", { ok: r.ok, total: r.total })} hasArrow>
+        <Badge colorScheme="orange" variant="subtle" fontSize="2xs" cursor="help" textTransform="none">
+          {r.delay != null ? `${r.delay} ms · ` : ""}
+          {t("outb.unstableShort")} {r.ok}/{r.total}
+        </Badge>
+      </Tooltip>
+    );
+  if (r.delay == null && !r.sites?.some((x) => x != null))
     return (
       <Badge colorScheme="red" variant="subtle" fontSize="2xs">
         {t("outb.failed")}
+      </Badge>
+    );
+  if (r.delay == null)
+    return (
+      <Badge colorScheme="orange" variant="subtle" fontSize="2xs">
+        {t("outb.urlFailed")}
       </Badge>
     );
   return (
@@ -138,10 +155,17 @@ export const SiteChips: FC<{ r?: TestResult; names: string[] }> = ({ r, names })
           </Badge>
         )
       )}
-      {r.sites.some((x) => x == null) && r.sites.some((x) => x != null) && (
+      {unstable(r) ? (
         <Text fontSize="2xs" color="orange.400">
-          {t("outb.someBlocked")}
+          {t("outb.unstableHelp", { ok: r.ok, total: r.total })}
         </Text>
+      ) : (
+        r.sites.some((x, i) => x == null && !(i === 0 && names[0] === "URL")) &&
+        r.sites.some((x) => x != null) && (
+          <Text fontSize="2xs" color="orange.400">
+            {t("outb.someBlocked")}
+          </Text>
+        )
       )}
     </HStack>
   );

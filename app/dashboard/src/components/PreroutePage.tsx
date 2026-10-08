@@ -261,7 +261,7 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
   const [probe, setProbe] = useState<null | {
     tcp: { ip: string; port: number; ok: boolean; udp_only?: boolean }[];
     ping: { ip: string; ok: boolean }[];
-    e2e?: { port: number; to: string; tag: string; delay?: number | null; error?: string; exit?: { cc: string; country: string; ip: string } | null }[];
+    e2e?: { port: number; to: string; tag: string; delay?: number | null; error?: string; exit?: { cc: string; country: string; ip: string } | null; ok?: number; total?: number }[];
   }>(null);
   const [probing, setProbing] = useState(false);
   const runProbe = () => {
@@ -509,6 +509,13 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
                           <Text fontSize="xs" color="gray.500">
                             · {flagEmoji(c.exit.cc)} {c.exit.ip}
                           </Text>
+                        )}
+                        {!!c.total && !!c.ok && c.ok < c.total && (
+                          <Tooltip label={t("outb.unstableHelp", { ok: c.ok, total: c.total })} hasArrow>
+                            <Badge colorScheme="orange" variant="subtle" fontSize="2xs" textTransform="none" cursor="help">
+                              {t("outb.unstableShort")} {c.ok}/{c.total}
+                            </Badge>
+                          </Tooltip>
                         )}
                         {c.error === "no-user" && (
                           <Text fontSize="2xs" color="gray.500">

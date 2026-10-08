@@ -1307,5 +1307,8 @@
   "preroutePage.notePlaceholder": "имя",
   "serverMsg.notXui": "Это не бэкап 3x-ui: выберите .db файл из 3x-ui (Бэкап → Скачать)",
   "serverMsg.pickRelay": "Выберите сервер relay",
-  "serverMsg.noTunnelsPicked": "Туннели не выбраны"
+  "serverMsg.noTunnelsPicked": "Туннели не выбраны",
+  "outb.unstableShort": "нестабильно",
+  "outb.unstableHelp": "Нестабильно: ответили {{ok}} из {{total}} запросов, остальные зависли. Сервер или сеть по пути замораживает соединения (часто из России к серверам за рубежом, или перегружен relay). У пользователей будет то работать, то нет.",
+  "outb.urlFailed": "тестовый URL не открылся"
 }

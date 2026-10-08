@@ -59,14 +59,30 @@ def _geo(port: int, timeout: float) -> Optional[dict]:
 
 
 def _one_local(port: int, urls: List[str], timeout: float) -> dict:
-    # the first request also pays the handshake: the delay is the better of two
-    first = _fetch(port, urls[0], timeout)
-    second = _fetch(port, urls[0], timeout) if first is not None else _fetch(port, urls[0], timeout)
-    shown = [x for x in (first, second) if x is not None]
+    """the delay URL three times (the first also pays the handshake), each site
+    up to twice: a single lost request on a shaky link isn't a blocked site.
+    ok / total count every request, so an unstable server shows as such."""
+    ok = total = 0
+    tries = []
+    for _ in range(3):
+        ms = _fetch(port, urls[0], timeout)
+        tries.append(ms)
+        total += 1
+        ok += ms is not None
+    shown = [x for x in tries if x is not None]
     delay = min(shown) if shown else None
-    sites = [delay] + [_fetch(port, u, timeout) for u in urls[1:]]
-    return {"delay": delay, "connect": first, "sites": sites,
-            "exit": _geo(port, timeout) if delay is not None or any(x is not None for x in sites) else None}
+    sites = [delay]
+    for u in urls[1:]:
+        got = None
+        for _ in range(2 if delay is not None else 1):   # dead link: don't wait twice
+            got = _fetch(port, u, timeout)
+            total += 1
+            if got is not None:
+                ok += 1
+                break
+        sites.append(got)
+    return {"delay": delay, "connect": tries[0], "sites": sites, "ok": ok, "total": total,
+            "exit": _geo(port, timeout) if any(x is not None for x in sites) else None}
 
 
 def _test_local(outbounds: List[dict], urls: List[str], timeout: float) -> List[dict]:
@@ -151,10 +167,11 @@ one() {
   i=$1; p=$2; px="socks5h://127.0.0.1:$p"
   j=0
   for u in $URLS; do
-    n=1; [ $j -eq 0 ] && n=2
+    n=2; [ $j -eq 0 ] && n=3
     for k in $(seq 1 $n); do
       r=$(curl -s -o /dev/null -m $TO -x "$px" -w "%{http_code} %{time_total}" "$u" 2>/dev/null)
       echo "R $i $j $k $r"
+      [ $j -ne 0 ] && [ "${r%% *}" != "000" ] && [ -n "$r" ] && break
     done
     j=$((j+1))
   done
@@ -203,6 +220,8 @@ def _parse_remote(text: str, n: int, n_urls: int) -> List[dict]:
     for i, per_url in tries.items():
         if i >= n:
             continue
+        out[i]["total"] = sum(len(v) for v in per_url.values())
+        out[i]["ok"] = sum(1 for v in per_url.values() for _, ms in v if ms is not None)
         for j, values in per_url.items():
             if j >= n_urls:
                 continue
@@ -279,7 +298,7 @@ def _test_remote(node_id: int, outbounds: List[dict], urls: List[str], timeout: 
 
 
 def test(outbounds: List[dict], server: str = "master", urls: Optional[List[str]] = None,
-         timeout: float = 8.0) -> List[dict]:
+         timeout: float = 6.0) -> List[dict]:
     """for each outbound: {error, delay, connect, sites: [ms|None per url], exit}"""
     urls = urls or [u for _, u in SITES]
     clean = []

@@ -1302,5 +1302,8 @@
   "preroutePage.notePlaceholder": "نام",
   "serverMsg.notXui": "پشتیبان 3x-ui نیست: فایل ‎.db‎ را از 3x-ui انتخاب کنید (پشتیبان ← دانلود)",
   "serverMsg.pickRelay": "سرور رله را انتخاب کنید",
-  "serverMsg.noTunnelsPicked": "هیچ تونلی انتخاب نشده"
+  "serverMsg.noTunnelsPicked": "هیچ تونلی انتخاب نشده",
+  "outb.unstableShort": "ناپایدار",
+  "outb.unstableHelp": "ناپایدار: {{ok}} از {{total}} درخواست پاسخ گرفت، بقیه گیر کردند. سرور یا شبکه میان راه اتصال‌ها را منجمد می‌کند (از روسیه به سرورهای خارج رایج است، یا رله بیش از حد شلوغ است). کاربران گاهی کار کردن و گاهی کار نکردن را می‌بینند.",
+  "outb.urlFailed": "آدرس تست باز نشد"
 }

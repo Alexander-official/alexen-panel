@@ -1298,5 +1298,8 @@
   "preroutePage.notePlaceholder": "名称",
   "serverMsg.notXui": "不是 3x-ui 备份：请选择 3x-ui 的 .db 文件（备份 → 下载）",
   "serverMsg.pickRelay": "请选择中继服务器",
-  "serverMsg.noTunnelsPicked": "未选择隧道"
+  "serverMsg.noTunnelsPicked": "未选择隧道",
+  "outb.unstableShort": "不稳定",
+  "outb.unstableHelp": "不稳定：{{total}} 个请求中 {{ok}} 个有响应，其余卡住。服务器或途中网络会冻结连接（从俄罗斯连往境外服务器时常见，或中继过载）。用户会时好时坏。",
+  "outb.urlFailed": "测试地址失败"
 }

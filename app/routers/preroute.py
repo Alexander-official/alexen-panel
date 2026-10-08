@@ -384,7 +384,8 @@ def _end_to_end(db, t: preroute.Tunnel, udp_only: dict) -> list:
     if todo:
         res = outbound_tools.test([c["outbound"] for c in todo], "master", [outbound_tools.SITES[0][1]], timeout=8)
         for c, r in zip(todo, res):
-            c.update({"delay": r["delay"], "error": r["error"], "exit": r["exit"]})
+            c.update({"delay": r["delay"], "error": r["error"], "exit": r["exit"],
+                      "ok": r.get("ok", 0), "total": r.get("total", 0)})
     for c in cases:
         c.pop("outbound", None)
     return cases
