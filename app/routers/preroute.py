@@ -68,6 +68,7 @@ def _state(db: Session) -> dict:
             "id": t.id, "relay": t.relay, "exit": t.exit, "kind": t.kind, "port": t.port, "mtu": t.mtu,
             "all_ports": t.all_ports, "enabled": t.enabled, "forwards": [f.model_dump() for f in t.forwards],
             "forwarding": [f.model_dump() for f in preroute.forwards_of(db, t)],
+            "replaces": preroute.replaced_inbounds(db, t) if t.kind in ("xray", "iptables") and t.enabled else [],
             "handshake": mine.get("handshake", 0), "rx": mine.get("rx", 0), "tx": mine.get("tx", 0),
         })
     return {"servers": servers, "tunnels": tunnels}
@@ -101,11 +102,8 @@ def _check(db: Session, s: preroute.PrerouteSettings, t: preroute.Tunnel, names:
                 raise HTTPException(400, f"Port {f.port}: enter the target IP or domain")
             if f.to_addr and not preroute.ipv4(f.to_addr):
                 raise HTTPException(400, f"Can't find an IPv4 address for {f.to_addr}")
-        if t.kind == "xray":
-            own = preroute._xray_ports(t.relay) & {f.port for f in preroute.forwards_of(db, t)}
-            if own:
-                raise HTTPException(400, f"Port {', '.join(map(str, sorted(own)))} is used by an inbound of "
-                                         f"{names[t.relay]}'s Xray; pick another relay port")
+        # xray: a relay inbound on a forwarded port is replaced by the tunnel (like iptables
+        # DNAT does), so the relay can forward the very ports it serves itself (3x-ui style)
     # one relay port can lead to one place only
     mine = _expand(preroute.forwards_of(db, t))
     for x in others:

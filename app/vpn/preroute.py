@@ -111,13 +111,32 @@ def ipv4(host: str) -> str:
         return ""
 
 
+LOCAL_LISTEN = ("127.0.0.1", "localhost", "::1")
+
+
+def _public_inbound(config, i: dict) -> bool:
+    """an inbound users reach: not Xray's API one, nothing that only listens locally"""
+    api_tag = (config.get("api") or {}).get("tag")
+    return bool(i.get("tag")) and i.get("tag") not in (api_tag, "API_INBOUND") \
+        and i.get("listen") not in LOCAL_LISTEN and not str(i.get("tag", "")).startswith("chain-in")
+
+
+def _port(i: dict) -> int:
+    """an inbound's port as a number (configs carry it as a number or a string)"""
+    try:
+        return int(i.get("port"))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _xray_ports(key: str) -> set:
     from app.xray import cores
     from app import vpn
     try:
         core = cores.MAIN if key == vpn.MASTER else cores.core_of(int(key))
-        return {int(i["port"]) for i in cores.config_of(core).get("inbounds", [])
-                if str(i.get("port", "")).isdigit() and not str(i.get("tag", "")).startswith("chain-in")}
+        config = cores.config_of(core)
+        return {int(i["port"]) for i in config.get("inbounds", [])
+                if str(i.get("port", "")).isdigit() and _public_inbound(config, i)}
     except Exception:
         return set()
 
@@ -215,7 +234,12 @@ def xray_apply(key: str, config):
             import copy
             config = copy.deepcopy(config)
             inbounds = config.setdefault("inbounds", [])
-            used = {i.get("port") for i in inbounds}
+            forwarded = {f.port for t in mine for f in forwards_of(db, t) if target_of(db, t, f)}
+            # the relay's own inbounds on forwarded ports give way to the tunnel (as with iptables)
+            gone = [i.get("tag") for i in inbounds if _port(i) in forwarded and _public_inbound(config, i)]
+            if gone:
+                config["inbounds"] = inbounds = [i for i in inbounds if i.get("tag") not in gone]
+            used = {_port(i) for i in inbounds}
             tags = []
             for t in mine:
                 for f in forwards_of(db, t):
@@ -242,6 +266,20 @@ def xray_apply(key: str, config):
         from app import logger
         logger.warning(f"preroute: tunnel inbounds not added to {key}: {e}")
         return config
+
+
+def replaced_inbounds(db, t: Tunnel) -> List[str]:
+    """the relay's own inbounds this rule takes over (same port): they stop serving there"""
+    from app.xray import cores
+    try:
+        core = cores.MAIN if t.relay == "master" else cores.core_of(int(t.relay))
+        config = cores.config_of(core)
+    except Exception as e:
+        from app import logger
+        logger.warning(f"preroute: config of {t.relay}: {e}")
+        return []
+    ports = {f.port for f in forwards_of(db, t)}
+    return [i["tag"] for i in config.get("inbounds", []) if _public_inbound(config, i) and _port(i) in ports]
 
 
 def xray_relays(s: PrerouteSettings) -> set:

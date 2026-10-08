@@ -1303,5 +1303,6 @@
   "serverMsg.noTunnelsPicked": "Hiç tünel seçilmedi",
   "outb.unstableShort": "kararsız",
   "outb.unstableHelp": "Kararsız: {{total}} isteğin {{ok}} tanesi cevap verdi, diğerleri takıldı. Sunucu ya da aradaki ağ bağlantıları donduruyor (Rusya'dan yurt dışındaki sunuculara sık görülür ya da relay aşırı yüklü). Kullanıcılar bazen çalışıp bazen çalışmadığını görür.",
-  "outb.urlFailed": "test adresi açılmadı"
+  "outb.urlFailed": "test adresi açılmadı",
+  "preroutePage.replaces": "{{name}} üzerindeki şu inbound'lar bu kurala yer açar (aynı portlar): {{tags}}. {{name}}'e bu portlardan bağlanan kullanıcılar hedefe gider."
 }

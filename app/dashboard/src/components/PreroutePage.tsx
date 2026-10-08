@@ -61,6 +61,7 @@ type Tunnel = {
   enabled: boolean;
   forwards: Fwd[];
   forwarding: Fwd[];
+  replaces?: string[];
   handshake: number;
   rx: number;
   tx: number;
@@ -480,6 +481,11 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
             </HStack>
           )}
 
+          {tunnel && !!tunnel.replaces?.length && (
+            <Text fontSize="xs" color="orange.400">
+              {t("preroutePage.replaces", { name: name(tunnel.relay), tags: tunnel.replaces.join(", ") })}
+            </Text>
+          )}
           {probe && (
             <Box p={3} borderRadius="12px" bg="var(--tier-2)">
               {!!probe.e2e?.length && (

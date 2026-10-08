@@ -1303,5 +1303,6 @@
   "serverMsg.noTunnelsPicked": "No tunnels picked",
   "outb.unstableShort": "unstable",
   "outb.unstableHelp": "Unstable: {{ok}} of {{total}} requests answered, the rest hung. The server or the network on the way freezes connections (common from Russia to servers abroad, or an overloaded relay). Users will see it work now and then.",
-  "outb.urlFailed": "test URL failed"
+  "outb.urlFailed": "test URL failed",
+  "preroutePage.replaces": "On {{name}} these inbounds give way to this rule (same ports): {{tags}}. Users connecting to {{name}} on those ports go to the target."
 }

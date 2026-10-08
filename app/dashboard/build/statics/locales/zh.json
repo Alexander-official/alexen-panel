@@ -1301,5 +1301,6 @@
   "serverMsg.noTunnelsPicked": "未选择隧道",
   "outb.unstableShort": "不稳定",
   "outb.unstableHelp": "不稳定：{{total}} 个请求中 {{ok}} 个有响应，其余卡住。服务器或途中网络会冻结连接（从俄罗斯连往境外服务器时常见，或中继过载）。用户会时好时坏。",
-  "outb.urlFailed": "测试地址失败"
+  "outb.urlFailed": "测试地址失败",
+  "preroutePage.replaces": "{{name}} 上的这些入站让位给此规则（相同端口）：{{tags}}。连接 {{name}} 这些端口的用户会被转到目标。"
 }
