@@ -37,6 +37,7 @@ class Tunnel(BaseModel):
     mtu: int = Field(1420, ge=1200, le=1500)
     all_ports: bool = True                        # every inbound port of the exit
     forwards: List[Forward] = []                  # or just these
+    enabled: bool = True                          # off: kept, but nothing of it runs
     relay_private: str = ""
     relay_public: str = ""
     exit_private: str = ""
@@ -73,11 +74,11 @@ def save(db, s: PrerouteSettings) -> PrerouteSettings:
 
 
 def relays(s: PrerouteSettings) -> set:
-    return {t.relay for t in s.tunnels.values()}
+    return {t.relay for t in s.tunnels.values() if t.enabled}
 
 
 def exits(s: PrerouteSettings) -> set:
-    return {t.exit for t in s.tunnels.values() if t.exit}
+    return {t.exit for t in s.tunnels.values() if t.exit and t.enabled}
 
 
 def participants(s: PrerouteSettings) -> set:
@@ -167,6 +168,8 @@ def agent_tunnels(db, key: str, s: Optional[PrerouteSettings] = None) -> List[di
     s = s or load(db)
     out = []
     for t in s.tunnels.values():
+        if not t.enabled:
+            continue   # its server still gets the (shorter) list, so the agent removes it
         if t.kind == "iptables":
             if t.relay == key:
                 forwards = []
@@ -205,7 +208,7 @@ def xray_apply(key: str, config):
         from app.db import GetDB
         with GetDB() as db:
             s = load(db)
-            mine = [t for t in s.tunnels.values() if t.kind == "xray" and t.relay == key]
+            mine = [t for t in s.tunnels.values() if t.kind == "xray" and t.relay == key and t.enabled]
             if not mine:
                 return config
             import copy

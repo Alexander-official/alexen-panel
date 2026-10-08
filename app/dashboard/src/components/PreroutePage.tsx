@@ -57,6 +57,7 @@ type Tunnel = {
   port: number;
   mtu: number;
   all_ports: boolean;
+  enabled: boolean;
   forwards: Fwd[];
   forwarding: Fwd[];
   handshake: number;
@@ -134,7 +135,7 @@ const Diagram: FC<{ data: Data }> = ({ data }) => {
     );
   return (
     <VStack {...card} p={{ base: 4, md: 6 }} spacing={5} align="stretch">
-      {data.tunnels.map((tn) => {
+      {data.tunnels.filter((tn) => tn.enabled !== false).map((tn) => {
         const r = by(tn.relay);
         const e = tn.exit ? by(tn.exit) : undefined;
         const link = LINK(tn.kind);
@@ -244,6 +245,18 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
     fetch(`/preroute/tunnels/${tunnel.id}/hosts`, { method: "POST" })
       .then((r: any) => toast({ title: t("preroutePage.hostsMade", { n: r.created }), status: "success", position: "top" }))
       .catch(fail);
+  const [toggling, setToggling] = useState(false);
+  const toggle = (on: boolean) => {
+    if (!tunnel) return;
+    setToggling(true);
+    fetch(`/preroute/tunnels/${tunnel.id}/enabled`, { method: "PUT", body: { enabled: on } })
+      .then(() => {
+        toast({ title: on ? t("preroutePage.turnedOn") : t("preroutePage.turnedOff"), status: "success", position: "top", duration: 3000 });
+        onDone();
+      })
+      .catch(fail)
+      .finally(() => setToggling(false));
+  };
   const [probe, setProbe] = useState<null | { tcp: { ip: string; port: number; ok: boolean }[]; ping: { ip: string; ok: boolean }[] }>(null);
   const [probing, setProbing] = useState(false);
   const runProbe = () => {
@@ -266,12 +279,30 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
       : !relayAgent?.connected || !exitAgent?.connected;
 
   return (
-    <Box {...card} overflow="hidden">
+    <Box {...card} overflow="hidden" opacity={tunnel && tunnel.enabled === false ? 0.6 : 1}>
       <HStack px={5} py={3.5} spacing={3} cursor="pointer" onClick={() => setOpen((o) => !o)}>
         <Text fontWeight="semibold" fontSize="sm" flex="1">
           {tunnel ? `${name(tunnel.relay)} → ${tunnel.exit ? name(tunnel.exit) : t("preroutePage.customTargets", { n: new Set(tunnel.forwards.map((f) => f.to_addr)).size })} · ${KIND_LABEL[tunnel.kind]}` : t("preroutePage.newRule")}
         </Text>
-        {tunnel && LINK(tunnel.kind) && (
+        {tunnel && tunnel.enabled === false && (
+          <Badge colorScheme="gray" variant="subtle" fontSize="2xs">
+            {t("preroutePage.off")}
+          </Badge>
+        )}
+        {tunnel && (
+          <Tooltip label={tunnel.enabled === false ? t("preroutePage.turnOn") : t("preroutePage.turnOff")} hasArrow>
+            <Box onClick={(e) => e.stopPropagation()}>
+              <Switch
+                size="sm"
+                colorScheme="primary"
+                isChecked={tunnel.enabled !== false}
+                isDisabled={toggling}
+                onChange={(e) => toggle(e.target.checked)}
+              />
+            </Box>
+          </Tooltip>
+        )}
+        {tunnel && tunnel.enabled !== false && LINK(tunnel.kind) && (
           <Text fontSize="xs" color={linkUp(tunnel) ? "green.400" : "orange.400"}>
             {linkUp(tunnel) ? t("preroutePage.linkUp") : t("preroutePage.linkDown")}
           </Text>

@@ -1279,5 +1279,10 @@
   "preroutePage.testHelp": "Relaýyň özünden: her maksada ýetip bilýärmi (her porta TCP, ping)? Relaýyň ýetip bilmeýän maksady hiç bir ugrukdyrma bilen işlemeýär.",
   "preroutePage.testFrom": "{{name}} tarapyndan görünýän",
   "preroutePage.testBlocked": "Relaýyň özi maksatdaky bu portlara birikip bilmeýär: aradaky tor (relaýyň ýurdundaky süzgüç ýa-da maksadyň gorag diwary / üpjünçisi) baglanyşyklary taşlaýar. Ugrukdyrma düzgünleri dogry, ýöne hiç zat geçip bilmeýär. Relaýyň ýetip bilýän maksadyny saýlaň ýa-da maksatda portlary açyň.",
-  "preroutePage.testOk": "Relaý ähli maksat portlaryna ýetýär."
+  "preroutePage.testOk": "Relaý ähli maksat portlaryna ýetýär.",
+  "preroutePage.off": "Öçük",
+  "preroutePage.turnOn": "Bu düzgüni aç",
+  "preroutePage.turnOff": "Öçür (pozulmaýar, hiç zady işlemeýär)",
+  "preroutePage.turnedOn": "Düzgün açyldy; serwerler täzelenýär",
+  "preroutePage.turnedOff": "Düzgün öçürildi; relaý öz portlaryna ýene özi hyzmat edýär"
 }

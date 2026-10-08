@@ -1279,5 +1279,10 @@
   "preroutePage.testHelp": "From the relay itself: can it reach each target (TCP to every port, ping)? A target the relay can't reach can't work through any forwarding.",
   "preroutePage.testFrom": "Seen from {{name}}",
   "preroutePage.testBlocked": "The relay itself can't open these ports on the target: the network between them (filtering in the relay's country or the target's firewall / provider) drops the connections. The forwarding rules are fine, but nothing can pass. Pick a target the relay can reach, or open the ports on the target.",
-  "preroutePage.testOk": "The relay reaches every target port."
+  "preroutePage.testOk": "The relay reaches every target port.",
+  "preroutePage.off": "Off",
+  "preroutePage.turnOn": "Turn this rule on",
+  "preroutePage.turnOff": "Turn off (kept, nothing of it runs)",
+  "preroutePage.turnedOn": "Rule on; the servers are updating",
+  "preroutePage.turnedOff": "Rule off; the relay serves its own ports again"
 }

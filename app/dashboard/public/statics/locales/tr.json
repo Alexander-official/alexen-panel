@@ -1279,5 +1279,10 @@
   "preroutePage.testHelp": "Relay'in kendisinden: her hedefe ulaşabiliyor mu (her porta TCP, ping)? Relay'in ulaşamadığı bir hedef hiçbir yönlendirmeyle çalışmaz.",
   "preroutePage.testFrom": "{{name}} üzerinden görünen",
   "preroutePage.testBlocked": "Relay'in kendisi hedefteki bu portlara bağlanamıyor: aradaki ağ (relay'in ülkesindeki filtreleme veya hedefin güvenlik duvarı / sağlayıcısı) bağlantıları düşürüyor. Yönlendirme kuralları doğru ama hiçbir şey geçemez. Relay'in ulaşabildiği bir hedef seçin veya hedefte portları açın.",
-  "preroutePage.testOk": "Relay tüm hedef portlara ulaşıyor."
+  "preroutePage.testOk": "Relay tüm hedef portlara ulaşıyor.",
+  "preroutePage.off": "Kapalı",
+  "preroutePage.turnOn": "Bu kuralı aç",
+  "preroutePage.turnOff": "Kapat (silinmez, hiçbir şeyi çalışmaz)",
+  "preroutePage.turnedOn": "Kural açıldı; sunucular güncelleniyor",
+  "preroutePage.turnedOff": "Kural kapatıldı; relay kendi portlarına yeniden kendisi hizmet veriyor"
 }

@@ -82,6 +82,7 @@ const RULES: [string, RegExp, string, string[]][] = [
   ["PUT", /^\/api\/preroute\/tunnels\/new$/, "prerouteCreate", []],
   ["PUT", /^\/api\/preroute\/tunnels\/(\d+)$/, "prerouteEdit", ["id"]],
   ["DELETE", /^\/api\/preroute\/tunnels\/(\d+)$/, "prerouteDelete", ["id"]],
+  ["PUT", /^\/api\/preroute\/tunnels\/(\d+)\/enabled$/, "prerouteEdit", ["id"]],
   ["PUT", /^\/api\/sub-settings$/, "subSettings", []],
   ["PUT", /^\/api\/sub-webpage$/, "subWebpage", []],
   ["PUT", /^\/api\/json-sub-settings$/, "jsonSub", []],

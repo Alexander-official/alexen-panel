@@ -66,7 +66,7 @@ def _state(db: Session) -> dict:
                      if x.get("id") == t.id and x.get("role") == "relay"), None) or {}
         tunnels.append({
             "id": t.id, "relay": t.relay, "exit": t.exit, "kind": t.kind, "port": t.port, "mtu": t.mtu,
-            "all_ports": t.all_ports, "forwards": [f.model_dump() for f in t.forwards],
+            "all_ports": t.all_ports, "enabled": t.enabled, "forwards": [f.model_dump() for f in t.forwards],
             "forwarding": [f.model_dump() for f in preroute.forwards_of(db, t)],
             "handshake": mine.get("handshake", 0), "rx": mine.get("rx", 0), "tx": mine.get("tx", 0),
         })
@@ -165,6 +165,25 @@ def put_tunnel(tid: str, body: TunnelIn, bg: BackgroundTasks, db: Session = Depe
     s.tunnels[str(new_id)] = t
     preroute.save(db, s)
     _after_change(bg, old, t)
+    return _state(db)
+
+
+class EnabledIn(BaseModel):
+    enabled: bool
+
+
+@router.put("/tunnels/{tid}/enabled")
+def set_tunnel_enabled(tid: str, body: EnabledIn, bg: BackgroundTasks, db: Session = Depends(get_db),
+                       admin: Admin = Depends(Admin.check_sudo_admin)):
+    """turn a rule off (kept, nothing of it runs) or on again"""
+    s = preroute.load(db)
+    t = s.tunnels.get(tid)
+    if t is None:
+        raise HTTPException(404, "Rule not found")
+    if t.enabled != body.enabled:
+        t.enabled = body.enabled
+        preroute.save(db, s)
+        _after_change(bg, t)
     return _state(db)
 
 

@@ -1277,5 +1277,10 @@
   "preroutePage.testHelp": "从中继本机检测：能否连到每个目标（每个端口 TCP、ping）？中继连不上的目标，任何转发都无法工作。",
   "preroutePage.testFrom": "从 {{name}} 看到的结果",
   "preroutePage.testBlocked": "中继本身无法连接目标的这些端口：两者之间的网络（中继所在国家的过滤或目标的防火墙 / 服务商）丢弃了连接。转发规则没有问题，但流量无法通过。请选择中继能连上的目标，或在目标上开放端口。",
-  "preroutePage.testOk": "中继能连到所有目标端口。"
+  "preroutePage.testOk": "中继能连到所有目标端口。",
+  "preroutePage.off": "已关闭",
+  "preroutePage.turnOn": "开启此规则",
+  "preroutePage.turnOff": "关闭（保留，但不生效）",
+  "preroutePage.turnedOn": "规则已开启；服务器正在更新",
+  "preroutePage.turnedOff": "规则已关闭；中继重新由自身提供端口服务"
 }
