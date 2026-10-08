@@ -1284,5 +1284,21 @@
   "preroutePage.turnOn": "Turn this rule on",
   "preroutePage.turnOff": "Turn off (kept, nothing of it runs)",
   "preroutePage.turnedOn": "Rule on; the servers are updating",
-  "preroutePage.turnedOff": "Rule off; the relay serves its own ports again"
+  "preroutePage.turnedOff": "Rule off; the relay serves its own ports again",
+  "preroutePage.e2eTitle": "Like a user: real config through the relay port (from the panel)",
+  "preroutePage.e2eNoUser": "no active user has this inbound",
+  "preroutePage.e2eOk": "Works: traffic goes through the relay and out to the internet.",
+  "preroutePage.e2eFail": "Something doesn't pass: see the line marked ✕ (the checks below show where it stops).",
+  "preroutePage.udpNoTcp": "UDP service, no TCP check",
+  "preroutePage.xuiButton": "Import from 3x-ui",
+  "preroutePage.xuiTitle": "Tunnels from a 3x-ui backup",
+  "preroutePage.xuiHelp": "Pick the .db file from 3x-ui (Panel settings → Backup). Its tunnel inbounds (port → IP:port, TCP/UDP) become one Xray tunnel rule on the relay you choose, with their names. Only the tunnel settings are read.",
+  "preroutePage.xuiNone": "No tunnel inbounds in this backup.",
+  "preroutePage.xuiRelay": "Relay (users connect here):",
+  "preroutePage.xuiCreate": "Create {{n}} tunnels",
+  "preroutePage.xuiDone": "{{n}} tunnels added",
+  "preroutePage.notePlaceholder": "name",
+  "serverMsg.notXui": "Not a 3x-ui backup: pick the .db file from 3x-ui (Backup → Download)",
+  "serverMsg.pickRelay": "Pick the relay server",
+  "serverMsg.noTunnelsPicked": "No tunnels picked"
 }

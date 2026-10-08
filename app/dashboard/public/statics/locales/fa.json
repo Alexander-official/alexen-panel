@@ -1286,5 +1286,21 @@
   "preroutePage.turnOn": "روشن کردن این قانون",
   "preroutePage.turnOff": "خاموش کردن (حذف نمی‌شود، اجرا هم نمی‌شود)",
   "preroutePage.turnedOn": "قانون روشن شد؛ سرورها به‌روز می‌شوند",
-  "preroutePage.turnedOff": "قانون خاموش شد؛ رله دوباره خودش پورت‌هایش را سرویس می‌دهد"
+  "preroutePage.turnedOff": "قانون خاموش شد؛ رله دوباره خودش پورت‌هایش را سرویس می‌دهد",
+  "preroutePage.e2eTitle": "مثل کاربر: کانفیگ واقعی از طریق پورت رله (از پنل)",
+  "preroutePage.e2eNoUser": "کاربر فعالی این inbound را ندارد",
+  "preroutePage.e2eOk": "کار می‌کند: ترافیک از رله عبور می‌کند و به اینترنت می‌رسد.",
+  "preroutePage.e2eFail": "چیزی رد نمی‌شود: خط ✕ را ببینید (بررسی‌های زیر نشان می‌دهد کجا متوقف می‌شود).",
+  "preroutePage.udpNoTcp": "سرویس UDP، تست TCP ندارد",
+  "preroutePage.xuiButton": "وارد کردن از 3x-ui",
+  "preroutePage.xuiTitle": "تونل‌های پشتیبان 3x-ui",
+  "preroutePage.xuiHelp": "فایل ‎.db‎ را از 3x-ui انتخاب کنید (تنظیمات پنل ← پشتیبان). inboundهای تونل آن (پورت ← IP:پورت، TCP/UDP) روی رله انتخابی یک قانون Xray tunnel با نام‌هایشان می‌شوند. فقط تنظیمات تونل خوانده می‌شود.",
+  "preroutePage.xuiNone": "در این پشتیبان inbound تونلی نیست.",
+  "preroutePage.xuiRelay": "رله (کاربران به اینجا وصل می‌شوند):",
+  "preroutePage.xuiCreate": "ساخت {{n}} تونل",
+  "preroutePage.xuiDone": "{{n}} تونل اضافه شد",
+  "preroutePage.notePlaceholder": "نام",
+  "serverMsg.notXui": "پشتیبان 3x-ui نیست: فایل ‎.db‎ را از 3x-ui انتخاب کنید (پشتیبان ← دانلود)",
+  "serverMsg.pickRelay": "سرور رله را انتخاب کنید",
+  "serverMsg.noTunnelsPicked": "هیچ تونلی انتخاب نشده"
 }

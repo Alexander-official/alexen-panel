@@ -26,6 +26,7 @@ class Forward(BaseModel):
     port: int = Field(..., ge=1, le=65535)                 # on the relay (what users connect to)
     to_port: Optional[int] = Field(None, ge=1, le=65535)   # on the exit; empty: the same port
     to_addr: str = Field("", max_length=255)               # iptables / xray: another target; empty: the exit
+    note: str = Field("", max_length=64)                   # a name for it (e.g. from a 3x-ui remark)
 
 
 class Tunnel(BaseModel):

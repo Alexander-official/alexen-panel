@@ -1284,5 +1284,21 @@
   "preroutePage.turnOn": "Bu kuralı aç",
   "preroutePage.turnOff": "Kapat (silinmez, hiçbir şeyi çalışmaz)",
   "preroutePage.turnedOn": "Kural açıldı; sunucular güncelleniyor",
-  "preroutePage.turnedOff": "Kural kapatıldı; relay kendi portlarına yeniden kendisi hizmet veriyor"
+  "preroutePage.turnedOff": "Kural kapatıldı; relay kendi portlarına yeniden kendisi hizmet veriyor",
+  "preroutePage.e2eTitle": "Kullanıcı gibi: relay portu üzerinden gerçek config (panelden)",
+  "preroutePage.e2eNoUser": "bu inbound'u kullanan aktif kullanıcı yok",
+  "preroutePage.e2eOk": "Çalışıyor: trafik relay üzerinden geçip internete çıkıyor.",
+  "preroutePage.e2eFail": "Bir şey geçmiyor: ✕ işaretli satıra bakın (aşağıdaki kontroller nerede durduğunu gösterir).",
+  "preroutePage.udpNoTcp": "UDP servisi, TCP testi yapılmaz",
+  "preroutePage.xuiButton": "3x-ui'den içe aktar",
+  "preroutePage.xuiTitle": "3x-ui yedeğindeki tüneller",
+  "preroutePage.xuiHelp": "3x-ui'deki .db dosyasını seçin (Panel ayarları → Yedek). Tünel inbound'ları (port → IP:port, TCP/UDP) seçtiğiniz relay'de adlarıyla birlikte tek bir Xray tünel kuralı olur. Sadece tünel ayarları okunur.",
+  "preroutePage.xuiNone": "Bu yedekte tünel inbound'u yok.",
+  "preroutePage.xuiRelay": "Relay (kullanıcılar buraya bağlanır):",
+  "preroutePage.xuiCreate": "{{n}} tünel oluştur",
+  "preroutePage.xuiDone": "{{n}} tünel eklendi",
+  "preroutePage.notePlaceholder": "ad",
+  "serverMsg.notXui": "3x-ui yedeği değil: 3x-ui'deki .db dosyasını seçin (Yedek → İndir)",
+  "serverMsg.pickRelay": "Relay sunucusunu seçin",
+  "serverMsg.noTunnelsPicked": "Hiç tünel seçilmedi"
 }

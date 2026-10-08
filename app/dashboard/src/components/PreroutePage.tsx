@@ -34,9 +34,10 @@ import { useQuery } from "react-query";
 import { fetch } from "service/http";
 import { formatBytes } from "utils/formatByte";
 import { serverMessage } from "utils/serverMessage";
+import { flagEmoji } from "utils/flags";
 
 type Proto = "tcp" | "udp" | "both";
-type Fwd = { proto: Proto; port: number; to_port?: number | null; to_addr?: string };
+type Fwd = { proto: Proto; port: number; to_port?: number | null; to_addr?: string; note?: string };
 type Kind = "wg" | "awg" | "iptables" | "xray";
 const LINK = (k: Kind) => k === "wg" || k === "awg";
 const KIND_LABEL: Record<Kind, string> = { wg: "WireGuard", awg: "AmneziaWG", iptables: "iptables", xray: "Xray tunnel" };
@@ -257,7 +258,11 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
       .catch(fail)
       .finally(() => setToggling(false));
   };
-  const [probe, setProbe] = useState<null | { tcp: { ip: string; port: number; ok: boolean }[]; ping: { ip: string; ok: boolean }[] }>(null);
+  const [probe, setProbe] = useState<null | {
+    tcp: { ip: string; port: number; ok: boolean; udp_only?: boolean }[];
+    ping: { ip: string; ok: boolean }[];
+    e2e?: { port: number; to: string; tag: string; delay?: number | null; error?: string; exit?: { cc: string; country: string; ip: string } | null }[];
+  }>(null);
   const [probing, setProbing] = useState(false);
   const runProbe = () => {
     if (!tunnel) return;
@@ -431,6 +436,17 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
                       value={f.to_port || ""}
                       onChange={(e) => setFwd(i, { to_port: Number(e.target.value.replace(/\D/g, "")) || null })}
                     />
+                    {!link && (
+                      <Input
+                        size="sm"
+                        w="110px"
+                        borderRadius="10px"
+                        placeholder={t("preroutePage.notePlaceholder")}
+                        value={f.note || ""}
+                        maxLength={64}
+                        onChange={(e) => setFwd(i, { note: e.target.value })}
+                      />
+                    )}
                     <IconButton size="sm" variant="ghost" aria-label="remove" icon={<TrashIcon width={14} />} onClick={() => set({ forwards: d.forwards.filter((_, n) => n !== i) })} />
                   </HStack>
                 ))}
@@ -466,6 +482,52 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
 
           {probe && (
             <Box p={3} borderRadius="12px" bg="var(--tier-2)">
+              {!!probe.e2e?.length && (
+                <Box mb={3}>
+                  <Text fontSize="xs" fontWeight="semibold" mb={1.5}>
+                    {t("preroutePage.e2eTitle")}
+                  </Text>
+                  <VStack align="stretch" spacing={1}>
+                    {probe.e2e.map((c) => (
+                      <HStack key={c.port + c.to} spacing={2} flexWrap="wrap" rowGap={1}>
+                        <Badge
+                          variant="subtle"
+                          colorScheme={c.error === "no-user" ? "gray" : c.delay ? "green" : "red"}
+                          textTransform="none"
+                          fontSize="xs"
+                          fontFamily="mono"
+                        >
+                          {c.error === "no-user" ? "—" : c.delay ? `✓ ${c.delay} ms` : "✕"}
+                        </Badge>
+                        <Text fontSize="xs" fontFamily="mono">
+                          :{c.port} → {c.to}
+                        </Text>
+                        <Text fontSize="xs" color="gray.500">
+                          {c.tag}
+                        </Text>
+                        {c.exit && (
+                          <Text fontSize="xs" color="gray.500">
+                            · {flagEmoji(c.exit.cc)} {c.exit.ip}
+                          </Text>
+                        )}
+                        {c.error === "no-user" && (
+                          <Text fontSize="2xs" color="gray.500">
+                            {t("preroutePage.e2eNoUser")}
+                          </Text>
+                        )}
+                        {c.error && c.error !== "no-user" && (
+                          <Text fontSize="2xs" color="red.400" noOfLines={1} title={c.error}>
+                            {c.error}
+                          </Text>
+                        )}
+                      </HStack>
+                    ))}
+                  </VStack>
+                  <Text fontSize="xs" mt={1.5} color={probe.e2e.every((c) => c.delay || c.error === "no-user") ? "green.400" : "red.400"}>
+                    {probe.e2e.every((c) => c.delay || c.error === "no-user") ? t("preroutePage.e2eOk") : t("preroutePage.e2eFail")}
+                  </Text>
+                </Box>
+              )}
               <Text fontSize="xs" fontWeight="semibold" mb={1.5}>
                 {t("preroutePage.testFrom", { name: tunnel ? name(tunnel.relay) : "" })}
               </Text>
@@ -475,18 +537,24 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
                     {x.ok ? "✓" : "✕"} ping {x.ip}
                   </Badge>
                 ))}
-                {probe.tcp.map((x) => (
-                  <Badge key={x.ip + x.port} variant="subtle" colorScheme={x.ok ? "green" : "red"} textTransform="none" fontSize="2xs">
-                    {x.ok ? "✓" : "✕"} TCP {x.ip}:{x.port}
-                  </Badge>
-                ))}
+                {probe.tcp.map((x) =>
+                  x.udp_only ? (
+                    <Badge key={x.ip + x.port} variant="subtle" colorScheme="gray" textTransform="none" fontSize="2xs">
+                      UDP {x.ip}:{x.port} · {t("preroutePage.udpNoTcp")}
+                    </Badge>
+                  ) : (
+                    <Badge key={x.ip + x.port} variant="subtle" colorScheme={x.ok ? "green" : "red"} textTransform="none" fontSize="2xs">
+                      {x.ok ? "✓" : "✕"} TCP {x.ip}:{x.port}
+                    </Badge>
+                  )
+                )}
               </HStack>
-              {probe.tcp.some((x) => !x.ok) && (
+              {probe.tcp.some((x) => !x.ok && !x.udp_only) && (
                 <Text fontSize="xs" color="red.400" mt={2}>
                   {t("preroutePage.testBlocked")}
                 </Text>
               )}
-              {probe.tcp.length > 0 && probe.tcp.every((x) => x.ok) && (
+              {probe.tcp.some((x) => !x.udp_only) && probe.tcp.every((x) => x.ok || x.udp_only) && (
                 <Text fontSize="xs" color="green.400" mt={2}>
                   {t("preroutePage.testOk")}
                 </Text>
@@ -698,11 +766,125 @@ const FromHosts: FC<{ data: Data; onDone: () => void; onClose: () => void }> = (
   );
 };
 
+
+type XuiTunnel = { port: number; to_addr: string; to_port: number; proto: "tcp" | "udp" | "both"; note: string; enabled: boolean };
+
+// a 3x-ui backup (.db): its tunnel inbounds become one Xray tunnel rule on the picked relay
+const ImportXui: FC<{ data: Data; onDone: () => void; onClose: () => void }> = ({ data, onDone, onClose }) => {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [file, setFile] = useState<File | null>(null);
+  const [list, setList] = useState<XuiTunnel[] | null>(null);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [relay, setRelay] = useState(data.servers[0]?.key || "master");
+  const [busy, setBusy] = useState(false);
+  const fail = (e: any) => toast({ title: serverMessage(t, e?.response?._data?.detail) || t("errors.generic"), status: "error", position: "top", duration: 6000 });
+  const form = (apply: boolean) => {
+    const f = new FormData();
+    f.append("file", file as File);
+    f.append("relay", relay);
+    f.append("apply", apply ? "true" : "false");
+    if (apply) f.append("ports", [...picked].join(","));
+    return f;
+  };
+  const read = (f: File) => {
+    setFile(f);
+    setBusy(true);
+    const fd = new FormData();
+    fd.append("file", f);
+    fetch("/preroute/import-3xui", { method: "POST", body: fd })
+      .then((r: { tunnels: XuiTunnel[] }) => {
+        setList(r.tunnels);
+        setPicked(new Set(r.tunnels.filter((x) => x.enabled).map((x) => x.port)));
+      })
+      .catch(fail)
+      .finally(() => setBusy(false));
+  };
+  const create = () => {
+    setBusy(true);
+    fetch("/preroute/import-3xui", { method: "POST", body: form(true) })
+      .then(() => {
+        toast({ title: t("preroutePage.xuiDone", { n: picked.size }), status: "success", position: "top", duration: 3500 });
+        onDone();
+      })
+      .catch(fail)
+      .finally(() => setBusy(false));
+  };
+  return (
+    <Box {...card} p={5}>
+      <HStack justify="space-between" mb={2}>
+        <Text fontWeight="semibold">{t("preroutePage.xuiTitle")}</Text>
+        <Button size="xs" variant="ghost" onClick={onClose}>
+          {t("cancel")}
+        </Button>
+      </HStack>
+      <Text fontSize="xs" color="gray.500" mb={3}>
+        {t("preroutePage.xuiHelp")}
+      </Text>
+      <Input type="file" accept=".db" size="sm" p={1} onChange={(e) => e.target.files?.[0] && read(e.target.files[0])} />
+      {list && !list.length && (
+        <Text fontSize="sm" color="orange.400" mt={3}>
+          {t("preroutePage.xuiNone")}
+        </Text>
+      )}
+      {list && list.length > 0 && (
+        <VStack align="stretch" spacing={3} mt={4}>
+          <HStack spacing={2} flexWrap="wrap" rowGap={2}>
+            <Text fontSize="sm">{t("preroutePage.xuiRelay")}</Text>
+            <Select size="sm" w="auto" value={relay} onChange={(e) => setRelay(e.target.value)}>
+              {data.servers.map((sv) => (
+                <option key={sv.key} value={sv.key}>
+                  {sv.name} · {sv.address}
+                </option>
+              ))}
+            </Select>
+          </HStack>
+          <VStack align="stretch" spacing={1}>
+            {list.map((x) => (
+              <HStack key={x.port} spacing={3} px={2.5} py={1.5} borderRadius="10px" bg="var(--tier-2)" opacity={picked.has(x.port) ? 1 : 0.55}>
+                <Switch
+                  size="sm"
+                  colorScheme="primary"
+                  isChecked={picked.has(x.port)}
+                  onChange={(e) => {
+                    const n = new Set(picked);
+                    e.target.checked ? n.add(x.port) : n.delete(x.port);
+                    setPicked(n);
+                  }}
+                />
+                <Text fontSize="sm" fontFamily="mono" minW="56px">
+                  :{x.port}
+                </Text>
+                <Text fontSize="sm" fontFamily="mono" flex="1">
+                  → {x.to_addr}:{x.to_port}
+                </Text>
+                <Badge variant="subtle" fontSize="2xs">
+                  {x.proto === "both" ? "TCP+UDP" : x.proto.toUpperCase()}
+                </Badge>
+                <Text fontSize="xs" color="gray.500" minW="70px" textAlign="right">
+                  {x.note}
+                  {!x.enabled ? ` (${t("preroutePage.off")})` : ""}
+                </Text>
+              </HStack>
+            ))}
+          </VStack>
+          <HStack justify="flex-end">
+            <Button size="sm" colorScheme="primary" isLoading={busy} isDisabled={!picked.size} onClick={create}>
+              {t("preroutePage.xuiCreate", { n: picked.size })}
+            </Button>
+          </HStack>
+        </VStack>
+      )}
+    </Box>
+  );
+};
+
 export const PreroutePage: FC = () => {
   const { t } = useTranslation();
   const { data, refetch } = useQuery<Data>({ queryKey: "preroute", queryFn: () => fetch("/preroute"), refetchInterval: 8000 });
   const [adding, setAdding] = useState(false);
   const [bulk, setBulk] = useState(false);
+  const [xui, setXui] = useState(false);
   if (!data) return null;
   return (
     <VStack align="stretch" spacing={5} maxW="1150px">
@@ -710,6 +892,9 @@ export const PreroutePage: FC = () => {
         <Text fontSize="sm" color="gray.500" flex="1" minW="260px">
           {t("preroutePage.help")}
         </Text>
+        <Button size="sm" variant="outline" onClick={() => setXui(true)} isDisabled={xui}>
+          {t("preroutePage.xuiButton")}
+        </Button>
         <Button size="sm" variant="outline" onClick={() => setBulk(true)} isDisabled={bulk}>
           {t("preroutePage.bulkButton")}
         </Button>
@@ -718,6 +903,16 @@ export const PreroutePage: FC = () => {
         </Button>
       </HStack>
       <Diagram data={data} />
+      {xui && (
+        <ImportXui
+          data={data}
+          onClose={() => setXui(false)}
+          onDone={() => {
+            setXui(false);
+            refetch();
+          }}
+        />
+      )}
       {bulk && (
         <FromHosts
           data={data}

@@ -1284,5 +1284,21 @@
   "preroutePage.turnOn": "Bu düzgüni aç",
   "preroutePage.turnOff": "Öçür (pozulmaýar, hiç zady işlemeýär)",
   "preroutePage.turnedOn": "Düzgün açyldy; serwerler täzelenýär",
-  "preroutePage.turnedOff": "Düzgün öçürildi; relaý öz portlaryna ýene özi hyzmat edýär"
+  "preroutePage.turnedOff": "Düzgün öçürildi; relaý öz portlaryna ýene özi hyzmat edýär",
+  "preroutePage.e2eTitle": "Ulanyjy ýaly: relaý porty arkaly hakyky config (panelden)",
+  "preroutePage.e2eNoUser": "bu inboundy ulanýan işjeň ulanyjy ýok",
+  "preroutePage.e2eOk": "Işleýär: trafik relaý arkaly geçip internete çykýar.",
+  "preroutePage.e2eFail": "Bir zat geçmeýär: ✕ bellikli setire serediň (aşakdaky barlaglar nirede togtaýandygyny görkezýär).",
+  "preroutePage.udpNoTcp": "UDP hyzmaty, TCP barlagy edilmeýär",
+  "preroutePage.xuiButton": "3x-ui-dan import et",
+  "preroutePage.xuiTitle": "3x-ui ätiýaçlygyndaky tuneller",
+  "preroutePage.xuiHelp": "3x-ui-daky .db faýlyny saýlaň (Panel sazlamalary → Ätiýaçlyk). Tunel inboundlary (port → IP:port, TCP/UDP) saýlan relaýyňyzda atlary bilen bir Xray tunel düzgüni bolýar. Diňe tunel sazlamalary okalýar.",
+  "preroutePage.xuiNone": "Bu ätiýaçlykda tunel inboundy ýok.",
+  "preroutePage.xuiRelay": "Relaý (ulanyjylar şu ýere birikýär):",
+  "preroutePage.xuiCreate": "{{n}} tunel döret",
+  "preroutePage.xuiDone": "{{n}} tunel goşuldy",
+  "preroutePage.notePlaceholder": "at",
+  "serverMsg.notXui": "3x-ui ätiýaçlygy däl: 3x-ui-daky .db faýlyny saýlaň (Ätiýaçlyk → Ýükle)",
+  "serverMsg.pickRelay": "Relaý serwerini saýlaň",
+  "serverMsg.noTunnelsPicked": "Hiç tunel saýlanmady"
 }

@@ -2,7 +2,7 @@
 over a WireGuard / AmneziaWG link, plain iptables or an Xray tunnel inbound."""
 from typing import List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -285,8 +285,10 @@ def test_tunnel(tid: str, db: Session = Depends(get_db), admin: Admin = Depends(
             return False
         with ThreadPoolExecutor(max_workers=16) as ex:
             tcp = dict(zip(targets, ex.map(one, targets)))
-        for h in hosts:
-            ping[h] = subprocess.run(["ping", "-c", "3", "-W", "2", "-q", h], capture_output=True).returncode == 0
+        import shutil
+        if shutil.which("ping"):   # not in every image: then just no ping line
+            for h in hosts:
+                ping[h] = subprocess.run(["ping", "-c", "3", "-W", "2", "-q", h], capture_output=True).returncode == 0
     else:
         from app import outbound_tools
         try:
@@ -304,5 +306,159 @@ def test_tunnel(tid: str, db: Session = Depends(get_db), admin: Admin = Depends(
                     ping[parts[1]] = parts[2] == "1"
         finally:
             client.close()
-    return {"tcp": [{"ip": h, "port": p, "ok": tcp.get((h, p), False)} for h, p in targets],
-            "ping": [{"ip": h, "ok": ping.get(h, False)} for h in hosts]}
+    udp_only = {}
+    try:
+        e2e = _end_to_end(db, t, udp_only)
+    except Exception as e:
+        from app import logger
+        logger.warning(f"preroute test {tid}: end-to-end part failed: {e}")
+        e2e = []
+    return {"tcp": [{"ip": h, "port": p, "ok": tcp.get((h, p), False), "udp_only": udp_only.get((h, p), False)}
+                    for h, p in targets],
+            "ping": [{"ip": h, "ok": ping[h]} for h in hosts if h in ping],
+            "e2e": e2e}
+
+
+UDP_NETWORKS = {"hysteria", "kcp", "mkcp", "quic"}
+
+
+def _panel_inbound_at(db, ip: str, port: int):
+    """(server key, inbound) of a panel server listening on ip:port, or None"""
+    from app.xray import cores
+    for key in vpn.server_keys(db):
+        if preroute.ipv4(preroute.address_of(db, key)) != ip:
+            continue
+        core = cores.MAIN if key == vpn.MASTER else cores.core_of(int(key))
+        for ib in cores.config_of(core).get("inbounds", []):
+            if ib.get("port") == port and ib.get("tag"):
+                return key, ib
+    return None
+
+
+def _end_to_end(db, t: preroute.Tunnel, udp_only: dict) -> list:
+    """like a user: a real config of the target inbound, pointed at relay:port,
+    connected from the panel. Only for targets that are this panel's inbounds."""
+    from app import outbound_tools, xray
+    from app.db.models import User
+    from app.models.user import UserResponse
+    from app.subscription import external_sources as es
+    from app.subscription.share import generate_v2ray_links
+    relay_addr = preroute.address_of(db, t.relay)
+    cases = []
+    for f in preroute.forwards_of(db, t)[:16]:
+        ip, to = preroute.target_of(db, t, f), int(f.to_port or f.port)
+        hit = _panel_inbound_at(db, ip, to) if ip else None
+        if not hit:
+            continue
+        key, ib = hit
+        net = ((ib.get("streamSettings") or {}).get("network") or "tcp").lower()
+        if ib.get("protocol") in ("hysteria", "wireguard") or net in UDP_NETWORKS:
+            udp_only[(ip, to)] = True
+        tag = ib["tag"]
+        if tag not in xray.config.inbounds_by_tag:
+            continue
+        from app.models.proxy import ProxyTypes
+        protocol = ProxyTypes(xray.config.inbounds_by_tag[tag]["protocol"])
+        link = None
+        for u in db.query(User).filter(User.status == "active").limit(200):
+            ur = UserResponse.model_validate(u)
+            if tag not in (ur.inbounds.get(protocol) or []):
+                continue
+            links = generate_v2ray_links({protocol: ur.proxies[protocol]}, {protocol: [tag]},
+                                         extra_data=ur.model_dump(), reverse=False)
+            link = next((l for l in links if es.parse(l)), None)
+            if link:
+                break
+        if not link:
+            cases.append({"port": f.port, "to": f"{ip}:{to}", "tag": tag, "error": "no-user"})
+            continue
+        ob = es.parse(link)["outbound"]
+        st = ob.get("settings") or {}
+        if "address" in st:
+            st["address"], st["port"] = relay_addr, f.port
+        for k in ("vnext", "servers"):
+            for srv in st.get(k) or []:
+                srv["address"], srv["port"] = relay_addr, f.port
+        cases.append({"port": f.port, "to": f"{ip}:{to}", "tag": tag, "outbound": ob})
+    todo = [c for c in cases if "outbound" in c]
+    if todo:
+        res = outbound_tools.test([c["outbound"] for c in todo], "master", [outbound_tools.SITES[0][1]], timeout=8)
+        for c, r in zip(todo, res):
+            c.update({"delay": r["delay"], "error": r["error"], "exit": r["exit"]})
+    for c in cases:
+        c.pop("outbound", None)
+    return cases
+
+
+
+def _xui_tunnels(data: bytes) -> list:
+    """the tunnel (dokodemo-door) inbounds of a 3x-ui database backup"""
+    import json
+    import os
+    import sqlite3
+    import tempfile
+    if not data.startswith(b"SQLite format 3"):
+        raise HTTPException(400, "Not a 3x-ui backup: pick the .db file from 3x-ui (Backup → Download)")
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        f.write(data)
+        path = f.name
+    try:
+        c = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            cols = [r[1] for r in c.execute("pragma table_info(inbounds)")]
+            if "protocol" not in cols:
+                raise HTTPException(400, "Not a 3x-ui backup: it has no inbounds table")
+            rows = [dict(zip(cols, r)) for r in c.execute("select * from inbounds")]
+        finally:
+            c.close()
+    except sqlite3.DatabaseError:
+        raise HTTPException(400, "Not a 3x-ui backup: pick the .db file from 3x-ui (Backup → Download)")
+    finally:
+        os.unlink(path)
+    out = []
+    for r in rows:
+        if r.get("protocol") not in ("tunnel", "dokodemo-door"):
+            continue
+        try:
+            st = json.loads(r.get("settings") or "{}")
+        except ValueError:
+            continue
+        addr = st.get("rewriteAddress") or st.get("address") or ""
+        to = st.get("rewritePort") or st.get("port") or r.get("port")
+        net = (st.get("allowedNetwork") or st.get("network") or "tcp,udp").replace(" ", "")
+        proto = "both" if ("tcp" in net and "udp" in net) else ("udp" if "udp" in net else "tcp")
+        if not addr or not r.get("port"):
+            continue
+        out.append({"port": int(r["port"]), "to_addr": str(addr), "to_port": int(to), "proto": proto,
+                    "note": str(r.get("remark") or "")[:64], "enabled": bool(r.get("enable", 1))})
+    return sorted(out, key=lambda x: x["port"])
+
+
+@router.post("/import-3xui")
+def import_3xui(bg: BackgroundTasks, file: UploadFile = File(...), relay: str = Form(""), apply: bool = Form(False),
+                ports: str = Form(""), db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)):
+    """read a 3x-ui backup's tunnels; with apply, add them to the relay as one Xray tunnel rule
+    (only the listed relay ports when "ports" is given)"""
+    data = file.file.read(20 * 1024 * 1024 + 1)
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(400, "The file is too big for a 3x-ui backup")
+    found = _xui_tunnels(data)
+    if not apply:
+        return {"tunnels": found}
+    names = vpn.server_keys(db)
+    if relay not in names:
+        raise HTTPException(400, "Pick the relay server")
+    pick = {int(p) for p in ports.split(",") if p.strip().isdigit()} if ports.strip() else None
+    chosen = [x for x in found if pick is None or x["port"] in pick]
+    if not chosen:
+        raise HTTPException(400, "No tunnels picked")
+    s = preroute.load(db)
+    new_id = max((t.id for t in s.tunnels.values()), default=0) + 1
+    t = preroute.Tunnel(id=new_id, relay=relay, exit="", kind="xray", all_ports=False,
+                        forwards=[preroute.Forward(proto=x["proto"], port=x["port"], to_port=x["to_port"],
+                                                   to_addr=x["to_addr"], note=x["note"]) for x in chosen])
+    _check(db, s, t, names)
+    s.tunnels[str(new_id)] = t
+    preroute.save(db, s)
+    _after_change(bg, t)
+    return _state(db)

@@ -1282,5 +1282,21 @@
   "preroutePage.turnOn": "开启此规则",
   "preroutePage.turnOff": "关闭（保留，但不生效）",
   "preroutePage.turnedOn": "规则已开启；服务器正在更新",
-  "preroutePage.turnedOff": "规则已关闭；中继重新由自身提供端口服务"
+  "preroutePage.turnedOff": "规则已关闭；中继重新由自身提供端口服务",
+  "preroutePage.e2eTitle": "模拟用户：通过中继端口使用真实配置（从面板）",
+  "preroutePage.e2eNoUser": "没有使用此入站的活跃用户",
+  "preroutePage.e2eOk": "正常：流量经中继转发并访问互联网。",
+  "preroutePage.e2eFail": "有未通过的项：见标 ✕ 的行（下方检测显示中断位置）。",
+  "preroutePage.udpNoTcp": "UDP 服务，不做 TCP 检测",
+  "preroutePage.xuiButton": "从 3x-ui 导入",
+  "preroutePage.xuiTitle": "3x-ui 备份中的隧道",
+  "preroutePage.xuiHelp": "选择 3x-ui 的 .db 文件（面板设置 → 备份）。其中的隧道入站（端口 → IP:端口，TCP/UDP）会在所选中继上成为一条带名称的 Xray tunnel 规则。只读取隧道设置。",
+  "preroutePage.xuiNone": "此备份中没有隧道入站。",
+  "preroutePage.xuiRelay": "中继（用户连接到这里）：",
+  "preroutePage.xuiCreate": "创建 {{n}} 条隧道",
+  "preroutePage.xuiDone": "已添加 {{n}} 条隧道",
+  "preroutePage.notePlaceholder": "名称",
+  "serverMsg.notXui": "不是 3x-ui 备份：请选择 3x-ui 的 .db 文件（备份 → 下载）",
+  "serverMsg.pickRelay": "请选择中继服务器",
+  "serverMsg.noTunnelsPicked": "未选择隧道"
 }

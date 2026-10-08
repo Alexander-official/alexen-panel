@@ -1291,5 +1291,21 @@
   "preroutePage.turnOn": "Включить правило",
   "preroutePage.turnOff": "Выключить (сохранится, но не работает)",
   "preroutePage.turnedOn": "Правило включено; серверы обновляются",
-  "preroutePage.turnedOff": "Правило выключено; relay снова сам обслуживает свои порты"
+  "preroutePage.turnedOff": "Правило выключено; relay снова сам обслуживает свои порты",
+  "preroutePage.e2eTitle": "Как пользователь: настоящий конфиг через порт relay (с панели)",
+  "preroutePage.e2eNoUser": "нет активного пользователя с этим inbound",
+  "preroutePage.e2eOk": "Работает: трафик идёт через relay и выходит в интернет.",
+  "preroutePage.e2eFail": "Что-то не проходит: смотрите строку с ✕ (проверки ниже показывают, где обрывается).",
+  "preroutePage.udpNoTcp": "UDP-сервис, TCP не проверяется",
+  "preroutePage.xuiButton": "Импорт из 3x-ui",
+  "preroutePage.xuiTitle": "Туннели из бэкапа 3x-ui",
+  "preroutePage.xuiHelp": "Выберите .db файл из 3x-ui (Настройки панели → Бэкап). Его туннельные inbound (порт → IP:порт, TCP/UDP) станут одним правилом Xray tunnel на выбранном relay, с именами. Читаются только настройки туннелей.",
+  "preroutePage.xuiNone": "В этом бэкапе нет туннельных inbound.",
+  "preroutePage.xuiRelay": "Relay (сюда подключаются пользователи):",
+  "preroutePage.xuiCreate": "Создать туннели: {{n}}",
+  "preroutePage.xuiDone": "Добавлено туннелей: {{n}}",
+  "preroutePage.notePlaceholder": "имя",
+  "serverMsg.notXui": "Это не бэкап 3x-ui: выберите .db файл из 3x-ui (Бэкап → Скачать)",
+  "serverMsg.pickRelay": "Выберите сервер relay",
+  "serverMsg.noTunnelsPicked": "Туннели не выбраны"
 }
