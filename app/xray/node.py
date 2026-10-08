@@ -552,15 +552,29 @@ class XRayNode:
                 ssl_cert: str,
                 usage_coefficient: float = 1):
 
-        # trying to detect what's the server of node
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(1)
-            s.connect((address, port))
-            s.send(b'HEAD / HTTP/1.0\r\n\r\n')
-            s.recv(1024)
-            s.close()
-            # it might be uvicorn
+        # which kind of node: REST (uvicorn answers HTTP) or the old RPyC one.
+        # A few tries: one dropped packet must not pick the wrong kind for good,
+        # and when nothing answers, REST (what the panel installs) is the guess.
+        rest = True
+        for _ in range(3):
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(4)
+                s.connect((address, port))
+                s.send(b'HEAD / HTTP/1.0\r\n\r\n')
+                reply = s.recv(1024)
+                s.close()
+                rest = True if reply else rest
+                break
+            except socket.timeout:
+                continue
+            except ConnectionResetError:
+                # an RPyC (TLS) server drops a plain HTTP request
+                rest = False
+                break
+            except Exception:
+                continue
+        if rest:
             return ReSTXRayNode(
                 address=address,
                 port=port,
@@ -569,8 +583,7 @@ class XRayNode:
                 ssl_cert=ssl_cert,
                 usage_coefficient=usage_coefficient
             )
-        except Exception:
-            # if might be rpyc
+        else:
             return RPyCXRayNode(
                 address=address,
                 port=port,

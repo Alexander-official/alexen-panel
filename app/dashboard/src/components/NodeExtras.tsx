@@ -421,3 +421,88 @@ export const VpsStatus: FC<{ sys?: SysInfo; hasAgent?: boolean }> = ({ sys }) =>
     </VStack>
   );
 };
+
+// ---------------- connection: status, reconnect / restart, direct or through SSH ----------------
+export const NodeConnection: FC<{ nodeId: number; status?: string; message?: string | null; extra?: any; hasLogin: boolean }> = ({ nodeId, status, message, extra, hasLogin }) => {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState("");
+  const transport = extra?.transport || "direct";
+  const tunnel = extra?.tunnel;
+  const refresh = () => {
+    [1500, 4000, 8000].forEach((ms) => setTimeout(() => queryClient.invalidateQueries("fetch-nodes-query-key"), ms));
+    setTimeout(() => queryClient.invalidateQueries("nodes-extras"), 3000);
+  };
+  const act = (what: "reconnect" | "restart") => {
+    setBusy(what);
+    fetch(`/node/${nodeId}/${what}`, { method: "POST" })
+      .then(() => {
+        toast({ status: "info", title: t(`nodeConn.${what}Started`), duration: 2000, position: "top" });
+        refresh();
+      })
+      .catch((e: any) => toast({ status: "error", title: serverMessage(t, e?.response?._data?.detail) || t("errors.generic"), position: "top" }))
+      .finally(() => setTimeout(() => setBusy(""), 1500));
+  };
+  const setTransport = (v: string) =>
+    saveNodeExtra(nodeId, { transport: v } as any)
+      .then(() => {
+        queryClient.invalidateQueries("nodes-extras");
+        refresh();
+      })
+      .catch((e: any) => toast({ status: "error", title: serverMessage(t, e?.response?._data?.detail) || t("errors.generic"), position: "top" }));
+  const tone = status === "connected" ? "green" : status === "disabled" ? "gray" : status === "error" ? "red" : "orange";
+  return (
+    <VStack align="stretch" spacing={2.5} w="full" p={3} borderRadius="lg" bg="var(--tier-2)" borderWidth="1px" borderColor="var(--tier-line)">
+      <HStack justifyContent="space-between" flexWrap="wrap" rowGap={2}>
+        <HStack spacing={2}>
+          <Box w="9px" h="9px" borderRadius="full" bg={`${tone}.400`} />
+          <Text fontSize="sm" fontWeight="medium">
+            {t(`nodeConn.status.${status || "connecting"}`)}
+          </Text>
+        </HStack>
+        <HStack spacing={2}>
+          <Button size="xs" variant="outline" isLoading={busy === "reconnect"} onClick={() => act("reconnect")}>
+            {t("nodeConn.reconnect")}
+          </Button>
+          <Button size="xs" variant="outline" isLoading={busy === "restart"} onClick={() => act("restart")} isDisabled={status !== "connected"}>
+            {t("nodeConn.restart")}
+          </Button>
+        </HStack>
+      </HStack>
+      {message && status !== "connected" && (
+        <Text fontSize="xs" color="red.400" wordBreak="break-word">
+          {serverMessage(t, message)}
+        </Text>
+      )}
+      <Box>
+        <Text fontSize="xs" color="gray.500" mb={1}>
+          {t("nodeConn.transport")}
+        </Text>
+        <ButtonGroup size="xs" isAttached variant="outline">
+          <Button colorScheme="primary" variant={transport === "direct" ? "solid" : "outline"} onClick={() => transport !== "direct" && setTransport("direct")}>
+            {t("nodeConn.direct")}
+          </Button>
+          <Button colorScheme="primary" variant={transport === "ssh" ? "solid" : "outline"} isDisabled={!hasLogin} onClick={() => transport !== "ssh" && setTransport("ssh")}>
+            {t("nodeConn.ssh")}
+          </Button>
+        </ButtonGroup>
+        <Text fontSize="2xs" color="gray.500" mt={1}>
+          {!hasLogin ? t("nodeConn.sshNeedsLogin") : transport === "ssh" ? t("nodeConn.sshHelp") : t("nodeConn.directHelp")}
+        </Text>
+        {transport === "ssh" && tunnel && (
+          <HStack spacing={1.5} mt={1}>
+            <Badge variant="subtle" colorScheme={tunnel.up ? "green" : "red"} fontSize="2xs">
+              {tunnel.up ? t("nodeConn.tunnelUp") : t("nodeConn.tunnelDown")}
+            </Badge>
+            {!tunnel.up && tunnel.error && (
+              <Text fontSize="2xs" color="red.400">
+                {serverMessage(t, tunnel.error)}
+              </Text>
+            )}
+          </HStack>
+        )}
+      </Box>
+    </VStack>
+  );
+};

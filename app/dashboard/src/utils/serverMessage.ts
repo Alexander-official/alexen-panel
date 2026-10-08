@@ -36,6 +36,11 @@ const RULES: [RegExp, string, string[]][] = [
   [/^command failed \((\d+)\): (.+)$/, "commandFailed", ["code", "command"]],
   [/^You can't edit external configs$/, "noExternal", []],
   [/^Use a full address like .*$/, "fullAddress", []],
+  [/^Save the VPS login first.*$/, "needLoginTunnel", []],
+  [/Connection refused/i, "connRefused", []],
+  [/timed? ?out|ConnectTimeout|Read timed out/i, "connTimeout", []],
+  [/Name or service not known|getaddrinfo failed|nodename nor servname/i, "connResolve", []],
+  [/certificate verify failed|SSLError|WRONG_VERSION_NUMBER/i, "connTls", []],
   [/^Pick a start and an end date$/, "pickRange", []],
   [/^Pick at most 400 days$/, "rangeLong", []],
 ];

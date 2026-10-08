@@ -416,10 +416,17 @@ def call(db, key: str, srv: ServerVPN, method: str, path: str, body=None, timeou
         raise AgentError("no address")
     cert, k = _panel_cert(db)
     target = _connect_host(host)
+    port = srv.agent_port
+    # a node reached through SSH (app/node_tunnel.py): its agent goes the same way
+    if key != MASTER and not srv.agent_address and str(key).isdigit():
+        from app import node_tunnel
+        local = node_tunnel.local_for(int(key), srv.agent_port)
+        if local:
+            target, port = "127.0.0.1", local
     pin = srv.agent_cert
     if not pin:
         try:
-            pin = ssl.get_server_certificate((target, srv.agent_port), timeout=5)
+            pin = ssl.get_server_certificate((target, port), timeout=8)
         except Exception as e:
             raise AgentError(_unreachable(host, srv.agent_port, e))
         with _lock:
@@ -435,7 +442,7 @@ def call(db, key: str, srv: ServerVPN, method: str, path: str, body=None, timeou
     session.verify = _tmp(f"agent-{key}", pin)
     try:
         url_host = f"[{target}]" if ":" in target else target
-        r = session.request(method, f"https://{url_host}:{srv.agent_port}{path}", json=body, timeout=timeout)
+        r = session.request(method, f"https://{url_host}:{port}{path}", json=body, timeout=timeout)
     except requests.exceptions.SSLError:
         raise AgentError("the agent's certificate changed (reinstalled?): reset the pin in VPN settings")
     except requests.RequestException as e:

@@ -267,9 +267,23 @@ def add_node(dbnode: "DBNode"):
     remove_node(dbnode.id)
 
     tls = get_tls()
-    xray.nodes[dbnode.id] = XRayNode(address=dbnode.address,
-                                     port=dbnode.port,
-                                     api_port=dbnode.api_port,
+    address, port, api_port = dbnode.address, dbnode.port, dbnode.api_port
+    # through SSH when the node's own ports can't be reached well (app/node_tunnel.py)
+    try:
+        from app import node_extras, node_tunnel
+        with GetDB() as db:
+            extra = node_extras.get(db, dbnode.id)
+        if extra.transport == "ssh" and extra.ssh and extra.ssh.secret:
+            login = extra.ssh.model_copy(update={"host": extra.ssh.host or dbnode.address})
+            port, api_port = node_tunnel.ensure(dbnode.id, login, dbnode.port, dbnode.api_port)
+            address = "127.0.0.1"
+        else:
+            node_tunnel.stop(dbnode.id)
+    except Exception as e:
+        logger.warning(f"node {dbnode.name}: SSH tunnel: {e}")
+    xray.nodes[dbnode.id] = XRayNode(address=address,
+                                     port=port,
+                                     api_port=api_port,
                                      ssl_key=tls['key'],
                                      ssl_cert=tls['certificate'],
                                      usage_coefficient=dbnode.usage_coefficient)

@@ -23,6 +23,8 @@ class SSHLogin(BaseModel):
 class NodeExtra(BaseModel):
     flag: str = Field("", max_length=8)    # ISO country code, e.g. "DE"
     ssh: Optional[SSHLogin] = None
+    # how the panel reaches the node: its own ports, or through SSH (app/node_tunnel.py)
+    transport: str = Field("direct", pattern="^(direct|ssh)$")
 
 
 class Extras(BaseModel):

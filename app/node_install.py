@@ -7,6 +7,7 @@ import io
 import os
 import re
 import shlex
+import socket
 import tarfile
 import threading
 import time
@@ -55,14 +56,15 @@ def _key_from_text(text: str, passphrase: str):
     raise InstallError("Can't read the private key (OpenSSH / PEM, RSA / Ed25519 / ECDSA expected)")
 
 
-def connect(host: str, port: int, username: str, password: str = "", key: str = "", passphrase: str = ""):
+def connect(host: str, port: int, username: str, password: str = "", key: str = "", passphrase: str = "",
+            timeout: int = 0):
     import paramiko
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
         client.connect(host, port=port, username=username, password=password or None,
                        pkey=_key_from_text(key, passphrase) if key else None,
-                       timeout=15, banner_timeout=20, auth_timeout=20,
+                       timeout=timeout or 25, banner_timeout=40, auth_timeout=40,
                        look_for_keys=False, allow_agent=False)
     except InstallError:
         raise
@@ -93,28 +95,35 @@ class _Session:
             chan.sendall((self.password + "\n").encode())
         out, buf = [], b""
         deadline = time.time() + 1800
+        chan.settimeout(1.0)
+
+        def take(data: bytes, final: bool = False):
+            nonlocal buf
+            buf += data
+            *lines, buf = buf.split(b"\n") if not final else (buf.split(b"\n") + [b""])
+            for line in lines:
+                text = _ANSI.sub("", line.decode("utf-8", "replace")).rstrip()
+                if text and text != self.password:
+                    out.append(text)
+                    if not quiet:
+                        self.log(text)
+
+        # read until the channel is closed (EOF), not just until the exit
+        # status arrives: on a slow line the last output comes after it
         while True:
             if time.time() > deadline:
                 chan.close()
                 raise InstallError(f"timed out: {command[:120]}")
-            if chan.recv_ready():
-                buf += chan.recv(4096)
-                *lines, buf = buf.split(b"\n")
-                for line in lines:
-                    text = _ANSI.sub("", line.decode("utf-8", "replace")).rstrip()
-                    if text and text != self.password:
-                        out.append(text)
-                        if not quiet:
-                            self.log(text)
-            elif chan.exit_status_ready() and not chan.recv_ready():
+            try:
+                data = chan.recv(4096)
+            except socket.timeout:
+                if chan.exit_status_ready() and chan.eof_received:
+                    break
+                continue
+            if not data:
                 break
-            else:
-                time.sleep(0.05)
-        if buf.strip():
-            text = _ANSI.sub("", buf.decode("utf-8", "replace")).rstrip()
-            out.append(text)
-            if not quiet:
-                self.log(text)
+            take(data)
+        take(b"", final=True)
         code = chan.recv_exit_status()
         if check and code != 0:
             raise InstallError(f"command failed ({code}): {command[:120]}")
@@ -200,7 +209,16 @@ def install(job: dict, *, host: str, port: int, username: str, password: str, ke
         log(f"==> {text}")
 
     step("connect", f"connecting to {username}@{host}:{port}")
-    client = connect(host, port, username, password, key, passphrase)
+    client = None
+    for attempt in range(5):
+        try:
+            client = connect(host, port, username, password, key, passphrase, timeout=8)
+            break
+        except InstallError as e:
+            if attempt == 4 or "login failed" in str(e) or "private key" in str(e):
+                raise
+            log(f"   no answer yet, trying again ({attempt + 2}/5)")
+            time.sleep(1)
     try:
         s = _Session(client, username, password, log)
         if not s.root:
@@ -283,10 +301,13 @@ def start(**kwargs) -> str:
             if on_done:
                 on_done()
         except InstallError as e:
-            job["error"] = str(e)
+            job["error"] = str(e) or "install failed"
+            job["lines"].append("!! " + job["error"])
+            logger.warning(f"node install: {job['error']}")
         except Exception as e:
             logger.exception("node install")
-            job["error"] = f"{e.__class__.__name__}: {e}"
+            job["error"] = f"{e.__class__.__name__}: {e}" if str(e) else e.__class__.__name__
+            job["lines"].append("!! " + job["error"])
         finally:
             job["done"] = True
             # forget old jobs

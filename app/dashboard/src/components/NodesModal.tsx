@@ -78,6 +78,7 @@ import {
   FlagSelect,
   InstallBox,
   InstallProgress,
+  NodeConnection,
   saveNodeExtra,
   SSHFields,
   sshFilled,
@@ -306,7 +307,7 @@ const NodeAccordion: FC<AccordionInboundType> = memo(({ toggleAccordion, node })
       </AccordionButton>
       <AccordionPanel px={2} pb={2}>
         <VStack pb={3} alignItems="flex-start">
-          {nodeStatus === "error" && (
+          {false && nodeStatus === "error" && (
             <Alert status="error" size="xs">
               <Box>
                 <HStack w="full">
@@ -338,6 +339,7 @@ const NodeAccordion: FC<AccordionInboundType> = memo(({ toggleAccordion, node })
           vpnSlot={
             node.id ? (
               <VStack w="full" align="stretch" spacing={3}>
+                <NodeConnection nodeId={node.id} status={nodeStatus} message={(node as any).message} extra={extra} hasLogin={!!extra?.ssh?.saved} />
                 <FlagSelect value={extra?.flag || ""} onChange={setFlag} />
                 <NodeVpnToggles nodeKey={String(node.id)} />
                 <VpsStatus sys={sys} />

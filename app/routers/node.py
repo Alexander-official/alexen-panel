@@ -194,8 +194,8 @@ def reconnect_node(
     dbnode: NodeResponse = Depends(get_node),
     _: Admin = Depends(Admin.check_sudo_admin),
 ):
-    """Trigger a reconnection for the specified node. Only accessible to sudo admins."""
-    bg.add_task(xray.operations.connect_node, node_id=dbnode.id)
+    """Connect again now: a hanging attempt is dropped, not waited for"""
+    bg.add_task(_reconnect_now, dbnode.id)
     return {"detail": "Reconnection task scheduled"}
 
 
@@ -209,8 +209,9 @@ def remove_node(
     crud.remove_node(db, dbnode)
     xray.operations.remove_node(dbnode.id)
     cores.forget_node(dbnode.id)
-    from app import node_extras
+    from app import node_extras, node_tunnel
     node_extras.drop(db, dbnode.id)
+    node_tunnel.stop(dbnode.id)
 
     logger.info(f'Node "{dbnode.name}" deleted')
     return {}
@@ -252,13 +253,16 @@ class SSHIn(BaseModel):
 
 class NodeExtraIn(BaseModel):
     flag: str = Field("", max_length=8)
+    transport: _Optional[str] = Field(None, pattern="^(direct|ssh)$")
     ssh: _Optional[SSHIn] = None   # given: saved (secrets encrypted)
     forget_ssh: bool = False
 
 
-def _extra_out(extra: node_extras.NodeExtra) -> dict:
+def _extra_out(extra: node_extras.NodeExtra, node_id=None) -> dict:
     ssh = extra.ssh
-    return {"flag": extra.flag, "ssh": None if not ssh else {
+    from app import node_tunnel
+    tunnel = node_tunnel.state(int(node_id)) if node_id is not None and str(node_id).isdigit() else None
+    return {"flag": extra.flag, "transport": extra.transport, "tunnel": tunnel, "ssh": None if not ssh else {
         "host": ssh.host, "port": ssh.port, "username": ssh.username, "auth": ssh.auth, "saved": bool(ssh.secret)}}
 
 
@@ -273,20 +277,49 @@ def _merge_ssh(old: _Optional[node_extras.SSHLogin], new: SSHIn) -> node_extras.
 
 @router.get("/nodes/extras")
 def nodes_extras(db: Session = Depends(get_db), _: Admin = Depends(Admin.check_sudo_admin)):
-    return {k: _extra_out(v) for k, v in node_extras.load(db).nodes.items()}
+    return {k: _extra_out(v, k) for k, v in node_extras.load(db).nodes.items()}
 
 
 @router.put("/node/{node_id}/extra")
-def put_node_extra(body: NodeExtraIn, dbnode: NodeResponse = Depends(get_node),
+def put_node_extra(body: NodeExtraIn, bg: BackgroundTasks, dbnode: NodeResponse = Depends(get_node),
                    db: Session = Depends(get_db), _: Admin = Depends(Admin.check_sudo_admin)):
     extra = node_extras.get(db, dbnode.id)
+    old_transport = extra.transport
     extra.flag = body.flag.strip().upper()[:2] if body.flag.strip() else ""
     if body.forget_ssh:
         extra.ssh = None
     elif body.ssh is not None:
         extra.ssh = _merge_ssh(extra.ssh, body.ssh)
+    if body.transport:
+        if body.transport == "ssh" and not (extra.ssh and extra.ssh.secret):
+            raise HTTPException(400, "Save the VPS login first: the tunnel uses it")
+        extra.transport = body.transport
     node_extras.put(db, dbnode.id, extra)
-    return _extra_out(extra)
+    if extra.transport != old_transport:
+        # connect again the new way
+        bg.add_task(_reconnect_now, dbnode.id)
+    return _extra_out(extra, dbnode.id)
+
+
+def _reconnect_now(node_id: int):
+    """drop whatever attempt is running and connect again at once"""
+    from app.xray import operations
+    operations._connecting_nodes.pop(node_id, None)
+    try:
+        node = xray.nodes.pop(node_id, None)
+        if node is not None:
+            node.disconnect()
+    except Exception:
+        pass
+    operations.connect_node(node_id)
+
+
+@router.post("/node/{node_id}/restart")
+def restart_node_core(bg: BackgroundTasks, dbnode: NodeResponse = Depends(get_node),
+                      _: Admin = Depends(Admin.check_sudo_admin)):
+    """restart the node's Xray (connects first if it isn't connected)"""
+    bg.add_task(xray.operations.restart_node, dbnode.id)
+    return {}
 
 
 class InstallIn(BaseModel):
