@@ -1,6 +1,7 @@
 // Preroute: rules "relay VPS port -> exit VPS port" (app/vpn/preroute.py).
 // A diagram on top shows every rule; below, each rule can be edited.
 import {
+  Badge,
   Box,
   Button,
   Collapse,
@@ -243,6 +244,17 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
     fetch(`/preroute/tunnels/${tunnel.id}/hosts`, { method: "POST" })
       .then((r: any) => toast({ title: t("preroutePage.hostsMade", { n: r.created }), status: "success", position: "top" }))
       .catch(fail);
+  const [probe, setProbe] = useState<null | { tcp: { ip: string; port: number; ok: boolean }[]; ping: { ip: string; ok: boolean }[] }>(null);
+  const [probing, setProbing] = useState(false);
+  const runProbe = () => {
+    if (!tunnel) return;
+    setProbing(true);
+    setProbe(null);
+    fetch(`/preroute/tunnels/${tunnel.id}/test`, { method: "POST" })
+      .then(setProbe)
+      .catch(fail)
+      .finally(() => setProbing(false));
+  };
   const setFwd = (i: number, p: Partial<Fwd>) => set({ forwards: d.forwards.map((f, n) => (n === i ? { ...f, ...p } : f)) });
   const relayAgent = data.servers.find((s) => s.key === d.relay)?.agent;
   const exitAgent = data.servers.find((s) => s.key === d.exit)?.agent;
@@ -421,12 +433,48 @@ const RuleEditor: FC<{ data: Data; tunnel?: Tunnel; onDone: () => void; startOpe
             </HStack>
           )}
 
+          {probe && (
+            <Box p={3} borderRadius="12px" bg="var(--tier-2)">
+              <Text fontSize="xs" fontWeight="semibold" mb={1.5}>
+                {t("preroutePage.testFrom", { name: tunnel ? name(tunnel.relay) : "" })}
+              </Text>
+              <HStack spacing={1.5} flexWrap="wrap" rowGap={1.5}>
+                {probe.ping.map((x) => (
+                  <Badge key={"p" + x.ip} variant="subtle" colorScheme={x.ok ? "green" : "orange"} textTransform="none" fontSize="2xs">
+                    {x.ok ? "✓" : "✕"} ping {x.ip}
+                  </Badge>
+                ))}
+                {probe.tcp.map((x) => (
+                  <Badge key={x.ip + x.port} variant="subtle" colorScheme={x.ok ? "green" : "red"} textTransform="none" fontSize="2xs">
+                    {x.ok ? "✓" : "✕"} TCP {x.ip}:{x.port}
+                  </Badge>
+                ))}
+              </HStack>
+              {probe.tcp.some((x) => !x.ok) && (
+                <Text fontSize="xs" color="red.400" mt={2}>
+                  {t("preroutePage.testBlocked")}
+                </Text>
+              )}
+              {probe.tcp.length > 0 && probe.tcp.every((x) => x.ok) && (
+                <Text fontSize="xs" color="green.400" mt={2}>
+                  {t("preroutePage.testOk")}
+                </Text>
+              )}
+            </Box>
+          )}
           <HStack justify="space-between" flexWrap="wrap" rowGap={2}>
             <HStack>
               {tunnel && (
                 <Button size="sm" variant="ghost" colorScheme="red" leftIcon={<TrashIcon width={14} />} onClick={remove}>
                   {t("preroutePage.delete")}
                 </Button>
+              )}
+              {tunnel && (
+                <Tooltip label={t("preroutePage.testHelp")} hasArrow>
+                  <Button size="sm" variant="outline" isLoading={probing} onClick={runProbe}>
+                    {t("preroutePage.test")}
+                  </Button>
+                </Tooltip>
               )}
               {tunnel && !!tunnel.exit && (
                 <Tooltip label={t("preroute.hostsHelp")} hasArrow>

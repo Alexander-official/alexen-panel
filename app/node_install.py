@@ -19,7 +19,12 @@ from app import logger
 jobs: Dict[str, dict] = {}
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\r")
 AGENT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vpn-agent")
-PANEL_XRAY = "/usr/local/bin/xray"
+# the Xray the panel really runs (XRAY_EXECUTABLE_PATH can point to a newer one
+# than the image's /usr/local/bin/xray): the node gets the same version
+try:
+    from config import XRAY_EXECUTABLE_PATH as PANEL_XRAY
+except Exception:
+    PANEL_XRAY = "/usr/local/bin/xray"
 
 COMPOSE = """services:
   alexen-node:
@@ -27,6 +32,9 @@ COMPOSE = """services:
     container_name: alexen-node
     restart: always
     network_mode: host
+    logging:            # the node logs every ping: keep its log small
+      driver: json-file
+      options: {{max-size: "10m", max-file: "3"}}
     environment:
       SERVICE_PORT: "{port}"
       XRAY_API_PORT: "{api_port}"

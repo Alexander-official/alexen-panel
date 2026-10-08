@@ -73,7 +73,7 @@ const MoveButtons: FC<{ index: number; count: number; onMove: (to: number) => vo
 );
 
 // edit one JSON object in a textarea, applied when it parses
-const JsonItemEditor: FC<{ value: any; onApply: (v: any) => void; onCancel: () => void }> = ({ value, onApply, onCancel }) => {
+export const JsonItemEditor: FC<{ value: any; onApply: (v: any) => void; onCancel: () => void }> = ({ value, onApply, onCancel }) => {
   const { t } = useTranslation();
   const [text, setText] = useState(() => JSON.stringify(value, null, 2));
   const [error, setError] = useState("");
@@ -264,7 +264,7 @@ export const InboundsEditor: FC<EditorProps> = ({ config, onChange }) => {
 const OUTBOUND_KINDS = ["link", "freedom", "blackhole", "socks", "http", "wireguard", "json"] as const;
 type OutboundKind = (typeof OUTBOUND_KINDS)[number];
 
-const outboundSummary = (o: any) => {
+export const outboundSummary = (o: any) => {
   const s = o.settings || {};
   const server = s.vnext?.[0] || s.servers?.[0] || s.peers?.[0];
   const addr = s.address
@@ -277,7 +277,7 @@ const outboundSummary = (o: any) => {
   return [o.protocol, addr, net, sec && sec !== "none" ? sec : ""].filter(Boolean).join(" · ");
 };
 
-const AddOutbound: FC<{ existing: string[]; onAdd: (o: any) => void; onCancel: () => void }> = ({ existing, onAdd, onCancel }) => {
+export const AddOutbound: FC<{ existing: string[]; onAdd: (o: any) => void; onCancel: () => void }> = ({ existing, onAdd, onCancel }) => {
   const { t } = useTranslation();
   const toast = useToast();
   const [kind, setKind] = useState<OutboundKind>("link");

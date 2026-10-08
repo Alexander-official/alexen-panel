@@ -151,12 +151,17 @@ def record_user_inbound_stats(params: list):
         safe_execute(db, stmt, params)
 
 
-def get_outbounds_stats(api: XRayAPI):
+def get_outbounds_stats(api: XRayAPI, server: str = "master"):
     try:
+        stats = list(filter(attrgetter('value'), api.get_outbounds_stats(reset=True, timeout=10)))
+        try:  # per-outbound totals for the Outbounds page
+            from app import outbound_tools
+            outbound_tools.add(server, [(stat.name, stat.link, stat.value) for stat in stats])
+        except Exception:
+            pass
         # a relay's link to its exit (app/xray/chain.py) is counted on the exit already
         params = [{"up": stat.value, "down": 0} if stat.link == "uplink" else {"up": 0, "down": stat.value}
-                  for stat in filter(attrgetter('value'), api.get_outbounds_stats(reset=True, timeout=10))
-                  if stat.name != "chain-out"]
+                  for stat in stats if stat.name != "chain-out"]
         return params
     except xray_exc.XrayError:
         return []
@@ -266,7 +271,8 @@ def record_node_usages():
             api_instances[node_id] = node.api
 
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {node_id: executor.submit(get_outbounds_stats, api) for node_id, api in api_instances.items()}
+        futures = {node_id: executor.submit(get_outbounds_stats, api, "master" if node_id is None else str(node_id))
+                   for node_id, api in api_instances.items()}
     api_params = {node_id: future.result() for node_id, future in futures.items()}
 
     total_up = 0

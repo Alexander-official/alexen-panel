@@ -131,6 +131,12 @@ export const SECTIONS: Section[] = [
     Component: named(() => import("components/PreroutePage"), "PreroutePage"),
   },
   {
+    path: "outbounds",
+    title: "outb.title",
+    sudo: true,
+    Component: named(() => import("components/OutboundsPage"), "OutboundsPage"),
+  },
+  {
     path: "vpn",
     title: "vpn.title",
     sudo: true,

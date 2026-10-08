@@ -19,6 +19,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import {
+  ArrowTopRightOnSquareIcon,
   ArrowLeftOnRectangleIcon,
   ArrowPathIcon,
   ChartBarIcon,
@@ -208,6 +209,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
               { title: t("header.nodeSettings"), path: "nodes", icon: ic(Square3Stack3DIcon) },
               { title: t("header.nodesUsage"), path: "nodes-usage", icon: ic(ChartBarIcon) },
               { title: t("sidebar.coreSettings"), path: "core", icon: ic(CpuChipIcon) },
+              { title: t("outb.title"), path: "outbounds", icon: ic(ArrowTopRightOnSquareIcon) },
               { title: t("autoChange.title"), path: "auto-change", icon: ic(ArrowsRightLeftIcon) },
               { title: t("vpn.title"), path: "vpn", icon: ic(LockClosedIcon) },
             ],

@@ -27,6 +27,7 @@ echo "==> building (compiles AmneziaWG, takes a few minutes the first time)"
 docker build -q -t alexen-vpn-agent:latest "$DIR/build"
 docker rm -f alexen-vpn >/dev/null 2>&1 || true
 docker run -d --name alexen-vpn --restart always --network host --privileged \
+  --log-opt max-size=10m --log-opt max-file=3 \
   -e AGENT_PORT="$PORT" \
   -v "$DIR/panel.pem:/etc/alexen-vpn/panel.pem:ro" \
   -v /var/lib/alexen-vpn:/var/lib/alexen-vpn \

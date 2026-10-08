@@ -45,7 +45,8 @@ import {
 } from "contexts/CoreSettingsContext";
 import { fetchInbounds } from "contexts/DashboardContext";
 import { FetchNodesQueryKey } from "contexts/NodesContext";
-import { InboundsEditor, JsonToolbar, OutboundsEditor, RoutingEditor } from "./CoreEditors";
+import { InboundsEditor, JsonToolbar, RoutingEditor } from "./CoreEditors";
+import { OutboundsBoard } from "./OutboundsPage";
 import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import debounce from "lodash.debounce";
 import { FC, useCallback, useEffect, useRef, useState } from "react";
@@ -427,7 +428,7 @@ const CoreSettingModalContent: FC = () => {
                 {draft && <InboundsEditor config={draft} onChange={changeFromVisual} />}
               </TabPanel>
               <TabPanel p={0}>
-                {draft && <OutboundsEditor config={draft} onChange={changeFromVisual} />}
+                {draft && <OutboundsBoard config={draft} onChange={changeFromVisual} />}
               </TabPanel>
               <TabPanel p={0}>
                 {draft && <RoutingEditor config={draft} onChange={changeFromVisual} />}

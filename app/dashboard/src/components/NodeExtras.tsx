@@ -423,13 +423,34 @@ export const VpsStatus: FC<{ sys?: SysInfo; hasAgent?: boolean }> = ({ sys }) =>
 };
 
 // ---------------- connection: status, reconnect / restart, direct or through SSH ----------------
-export const NodeConnection: FC<{ nodeId: number; status?: string; message?: string | null; extra?: any; hasLogin: boolean }> = ({ nodeId, status, message, extra, hasLogin }) => {
+export const NodeConnection: FC<{ nodeId: number; status?: string; message?: string | null; extra?: any; hasLogin: boolean; version?: string | null }> = ({
+  nodeId,
+  status,
+  message,
+  extra,
+  hasLogin,
+  version,
+}) => {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState("");
   const transport = extra?.transport || "direct";
   const tunnel = extra?.tunnel;
+  // the panel's own Xray: a node on another version can behave differently (e.g. Hysteria)
+  const { data: core } = useQuery<{ version: string }>({ queryKey: "core-version", queryFn: () => fetch("/core"), staleTime: 300000 });
+  const panelVersion = core?.version;
+  const outdated = !!version && !!panelVersion && version !== panelVersion;
+  const updateXray = () => {
+    setBusy("xray");
+    fetch(`/node/${nodeId}/update-xray`, { method: "POST" })
+      .then((r: any) => {
+        toast({ status: "success", title: t("nodeConn.xrayUpdated", { version: r?.version || "" }), duration: 3500, position: "top" });
+        refresh();
+      })
+      .catch((e: any) => toast({ status: "error", title: serverMessage(t, e?.response?._data?.detail) || t("errors.generic"), position: "top", duration: 6000 }))
+      .finally(() => setBusy(""));
+  };
   const refresh = () => {
     [1500, 4000, 8000].forEach((ms) => setTimeout(() => queryClient.invalidateQueries("fetch-nodes-query-key"), ms));
     setTimeout(() => queryClient.invalidateQueries("nodes-extras"), 3000);
@@ -474,6 +495,23 @@ export const NodeConnection: FC<{ nodeId: number; status?: string; message?: str
         <Text fontSize="xs" color="red.400" wordBreak="break-word">
           {serverMessage(t, message)}
         </Text>
+      )}
+      {version && (
+        <HStack spacing={2} flexWrap="wrap" rowGap={1.5}>
+          <Badge variant="subtle" colorScheme={outdated ? "orange" : "green"} fontSize="2xs">
+            Xray {version}
+          </Badge>
+          {outdated && (
+            <>
+              <Text fontSize="2xs" color="orange.400">
+                {t("nodeConn.xrayDiffers", { version: panelVersion })}
+              </Text>
+              <Button size="xs" variant="outline" colorScheme="orange" isLoading={busy === "xray"} isDisabled={!hasLogin} onClick={updateXray}>
+                {t("nodeConn.updateXray")}
+              </Button>
+            </>
+          )}
+        </HStack>
       )}
       <Box>
         <Text fontSize="xs" color="gray.500" mb={1}>

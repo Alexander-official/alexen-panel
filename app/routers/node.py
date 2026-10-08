@@ -322,6 +322,57 @@ def restart_node_core(bg: BackgroundTasks, dbnode: NodeResponse = Depends(get_no
     return {}
 
 
+@router.post("/node/{node_id}/update-xray")
+def update_node_xray(dbnode: NodeResponse = Depends(get_node), _: Admin = Depends(Admin.check_sudo_admin)):
+    """give the node the panel's Xray (same version) over SSH and restart it"""
+    import shlex
+    from app import node_install, outbound_tools
+    if not os.path.exists(node_install.PANEL_XRAY):
+        raise HTTPException(400, "The panel's Xray binary was not found")
+    try:
+        client, Session = outbound_tools.ssh_session(dbnode.id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    try:
+        with GetDB() as db:
+            lg = node_extras.get(db, dbnode.id).ssh
+        s = Session(client, lg.username, node_extras.decrypt(lg.secret) if lg.auth == "password" else "",
+                    lambda _: None)
+        arch = s.run("uname -m", sudo=False, quiet=True).strip().splitlines()[-1]
+        if arch != os.uname().machine:
+            raise HTTPException(400, f"The node's CPU ({arch}) differs from the panel's: it keeps its own Xray")
+        base = s.run("for d in /var/lib/alexen-node /var/lib/marzban-node; do [ -d $d ] && echo $d && break; done",
+                     quiet=True).strip().splitlines()
+        if not base:
+            raise HTTPException(400, "No Alexen node installation found on the VPS")
+        base = base[-1]
+        with open(node_install.PANEL_XRAY, "rb") as f:
+            s.upload(f.read(), f"{base}/xray-core/xray.new", 0o755)
+        d = shlex.quote(base + "/xray-core")
+        s.run(f"cd {d} && ./xray.new version >/dev/null && {{ [ -f xray ] && cp -f xray xray.old; mv -f xray.new xray; }}",
+              quiet=True)
+        # the compose must point at this binary (older installs used the image's own Xray)
+        compose = s.run("for f in /opt/alexen-node/docker-compose.yml /opt/marzban-node/docker-compose.yml; do "
+                        "[ -f $f ] && echo $f && break; done", quiet=True).strip().splitlines()
+        if compose:
+            c = shlex.quote(compose[-1])
+            s.run(f"grep -q XRAY_EXECUTABLE_PATH {c} || sed -i 's#^    environment:#    environment:\\n"
+                  f"      XRAY_EXECUTABLE_PATH: \"/var/lib/marzban-node/xray-core/xray\"#' {c}; "
+                  f"cd $(dirname {c}) && docker compose up -d >/dev/null 2>&1 || docker-compose up -d >/dev/null 2>&1; "
+                  f"docker restart alexen-node >/dev/null 2>&1 || true", check=False, quiet=True)
+        version = s.run(f"{d}/xray version | head -1", quiet=True).strip().splitlines()[-1]
+    except node_install.InstallError as e:
+        raise HTTPException(400, str(e))
+    finally:
+        try:
+            client.close()
+        except Exception:
+            pass
+    import threading
+    threading.Thread(target=_reconnect_now, args=(dbnode.id,), daemon=True).start()
+    return {"version": version}
+
+
 class InstallIn(BaseModel):
     ssh: _Optional[SSHIn] = None   # empty: the saved login
     save: bool = False             # keep this login for later

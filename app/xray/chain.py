@@ -11,6 +11,9 @@ server (cores.resolve for nodes, XRayCore.start for the master), apply() adds
 The link's client sits on policy level 1, which has no user stats, so it never
 shows up as a user and its traffic isn't counted twice.
 
+A server can also exit through one of its core's own outbounds (exits): a rule
+at the end of its routing sends what no other rule picked to that outbound.
+
 Settings live in the settings table under "chain"."""
 import base64
 import copy
@@ -53,6 +56,10 @@ class Link(BaseModel):
 
 class ChainSettings(BaseModel):
     links: Dict[str, Link] = {}   # relay key -> link
+    # server key -> tag of an outbound (or balancer) of its core: what no rule
+    # sends elsewhere leaves that server through it (e.g. a relay to a server
+    # abroad when sites are blocked where this one is). Instead of a link.
+    exits: Dict[str, str] = {}
 
 
 def load(db=None) -> ChainSettings:
@@ -157,13 +164,14 @@ def _apply_chain(key: str, config):
         from app.db import GetDB
         with GetDB() as db:
             s = load(db)
-            if not s.links:
-                return config
             as_exit = {relay: link for relay, link in s.links.items() if link.exit == key}
             as_relay = s.links.get(key)
-            if not as_exit and not as_relay:
+            exit_tag = s.exits.get(key, "") if not as_relay else ""
+            if not as_exit and not as_relay and not exit_tag:
                 return config
             config = copy.deepcopy(config)
+            if exit_tag:
+                _apply_exit(key, config, exit_tag)
             inbounds = config.setdefault("inbounds", [])
             used = {i.get("port") for i in inbounds}
             for relay, link in as_exit.items():
@@ -181,6 +189,37 @@ def _apply_chain(key: str, config):
     except Exception as e:
         logger.warning(f"chain: not applied to {key}: {e}")
         return config
+
+
+def exit_target(config, tag: str) -> str:
+    """"outbound" / "balancer" when the config has this tag, else "" """
+    if tag in {o.get("tag") for o in config.get("outbounds", [])}:
+        return "outbound"
+    if tag in {b.get("tag") for b in (config.get("routing") or {}).get("balancers", [])}:
+        return "balancer"
+    return ""
+
+
+def user_inbound_tags(config) -> list:
+    """the inbounds users connect to: not the API one, nothing that only listens locally"""
+    api_tag = (config.get("api") or {}).get("tag")
+    return [i["tag"] for i in config.get("inbounds", [])
+            if i.get("tag") and i["tag"] != api_tag and not str(i["tag"]).startswith(IN_PREFIX)
+            and i.get("listen") not in ("127.0.0.1", "localhost", "::1")]
+
+
+def _apply_exit(key: str, config, tag: str):
+    kind = exit_target(config, tag)
+    if not kind:
+        logger.warning(f"chain: exit \"{tag}\" of {key} is not in its core config; traffic leaves directly")
+        return
+    tags = user_inbound_tags(config)
+    if not tags:
+        return
+    rule = {"type": "field", "inboundTag": tags, "network": "tcp,udp",
+            ("balancerTag" if kind == "balancer" else "outboundTag"): tag}
+    # last: the config's own rules (API, blocks, per-site choices) still come first
+    config.setdefault("routing", {}).setdefault("rules", []).append(rule)
 
 
 def restart_servers(keys) -> None:

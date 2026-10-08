@@ -220,3 +220,70 @@ def make_hosts(tid: str, db: Session = Depends(get_db), admin: Admin = Depends(A
     db.commit()
     xray.hosts.update()
     return {"created": made}
+
+
+_PROBE = r"""
+for t in $TARGETS; do
+  h=${t%:*}; p=${t#*:}
+  ok=0; for i in 1 2; do timeout 4 bash -c "</dev/tcp/$h/$p" 2>/dev/null && { ok=1; break; }; done
+  echo "T $h $p $ok"
+done
+for h in $HOSTS; do
+  ping -c 3 -W 2 -q "$h" >/dev/null 2>&1 && echo "P $h 1" || echo "P $h 0"
+done
+"""
+
+
+@router.post("/tunnels/{tid}/test")
+def test_tunnel(tid: str, db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)):
+    """from the relay itself: can it reach the targets? (TCP connect to each
+    target port, ping to each target IP). A target the relay can't reach can't
+    work through any forwarding, so this tells a network block from a panel problem."""
+    import shlex
+    import socket
+    import subprocess
+    from concurrent.futures import ThreadPoolExecutor
+    s = preroute.load(db)
+    t = s.tunnels.get(tid)
+    if not t:
+        raise HTTPException(404, "Rule not found")
+    targets = []
+    for f in preroute.forwards_of(db, t):
+        ip = preroute.target_of(db, t, f)
+        if ip and f.proto in ("tcp", "both"):
+            targets.append((ip, int(f.to_port or f.port)))
+    hosts = sorted({ip for ip, _ in targets} | {preroute.target_of(db, t, f) for f in preroute.forwards_of(db, t)} - {""})
+    targets = sorted(set(targets))[:40]
+    tcp, ping = {}, {}
+    if t.relay == vpn.MASTER:
+        def one(tp):
+            for _ in range(2):
+                try:
+                    socket.create_connection(tp, timeout=4).close()
+                    return True
+                except OSError:
+                    pass
+            return False
+        with ThreadPoolExecutor(max_workers=16) as ex:
+            tcp = dict(zip(targets, ex.map(one, targets)))
+        for h in hosts:
+            ping[h] = subprocess.run(["ping", "-c", "3", "-W", "2", "-q", h], capture_output=True).returncode == 0
+    else:
+        from app import outbound_tools
+        try:
+            client, _ = outbound_tools.ssh_session(int(t.relay))
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        try:
+            env = f"TARGETS={shlex.quote(' '.join(f'{h}:{p}' for h, p in targets))} HOSTS={shlex.quote(' '.join(hosts))}"
+            _, out, _ = client.exec_command("bash -c " + shlex.quote(f"{env}\n{_PROBE}"), timeout=300)
+            for line in out.read().decode().splitlines():
+                parts = line.split()
+                if len(parts) == 4 and parts[0] == "T":
+                    tcp[(parts[1], int(parts[2]))] = parts[3] == "1"
+                elif len(parts) == 3 and parts[0] == "P":
+                    ping[parts[1]] = parts[2] == "1"
+        finally:
+            client.close()
+    return {"tcp": [{"ip": h, "port": p, "ok": tcp.get((h, p), False)} for h, p in targets],
+            "ping": [{"ip": h, "ok": ping.get(h, False)} for h in hosts]}

@@ -339,7 +339,7 @@ const NodeAccordion: FC<AccordionInboundType> = memo(({ toggleAccordion, node })
           vpnSlot={
             node.id ? (
               <VStack w="full" align="stretch" spacing={3}>
-                <NodeConnection nodeId={node.id} status={nodeStatus} message={(node as any).message} extra={extra} hasLogin={!!extra?.ssh?.saved} />
+                <NodeConnection nodeId={node.id} status={nodeStatus} message={(node as any).message} extra={extra} hasLogin={!!extra?.ssh?.saved} version={(node as any).xray_version} />
                 <FlagSelect value={extra?.flag || ""} onChange={setFlag} />
                 <NodeVpnToggles nodeKey={String(node.id)} />
                 <VpsStatus sys={sys} />
