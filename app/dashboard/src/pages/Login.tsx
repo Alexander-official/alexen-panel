@@ -8,9 +8,13 @@ import {
   FormControl,
   FormLabel,
   HStack,
+  IconButton,
   Text,
+  useColorMode,
   VStack,
 } from "@chakra-ui/react";
+import { MoonIcon, SunIcon } from "@heroicons/react/24/outline";
+import { updateThemeColor } from "utils/themeColor";
 import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FC, useEffect, useState } from "react";
@@ -23,12 +27,31 @@ import { fetch } from "service/http";
 import { removeAuthToken, setAuthToken } from "utils/authStorage";
 import { ReactComponent as Logo } from "assets/logo.svg";
 import { useTranslation } from "react-i18next";
+import { serverMessage } from "utils/serverMessage";
 import { Language } from "components/Language";
 
 const schema = z.object({
   username: z.string().min(1, "login.fieldRequired"),
   password: z.string().min(1, "login.fieldRequired"),
 });
+
+// light / dark before signing in too
+const ThemeSwitch: FC = () => {
+  const { colorMode, toggleColorMode } = useColorMode();
+  const { t } = useTranslation();
+  return (
+    <IconButton
+      size="sm"
+      variant="outline"
+      aria-label={t("header.theme", "Theme")}
+      icon={colorMode === "dark" ? <SunIcon width={16} /> : <MoonIcon width={16} />}
+      onClick={() => {
+        updateThemeColor(colorMode === "dark" ? "light" : "dark");
+        toggleColorMode();
+      }}
+    />
+  );
+};
 
 export const LogoIcon = chakra(Logo, {
   baseStyle: {
@@ -79,13 +102,16 @@ export const Login: FC = () => {
         navigate("/");
       })
       .catch((err) => {
-        setError(err.response._data.detail);
+        // no answer at all (server down, network cut): say so instead of breaking the page
+        const detail = err?.response?._data?.detail;
+        setError(detail ? serverMessage(t, typeof detail === "string" ? detail : JSON.stringify(detail)) : t("errors.network"));
       })
       .finally(setLoading.bind(null, false));
   };
   return (
     <VStack justifyContent="space-between" minH="100dvh" p={{ base: 4, md: 6 }} w="full" className="alexen-login">
-      <HStack justifyContent="end" w="full">
+      <HStack justifyContent="end" w="full" spacing={2}>
+        <ThemeSwitch />
         <Language />
       </HStack>
       <Box

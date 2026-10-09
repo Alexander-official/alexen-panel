@@ -2,6 +2,7 @@
 // server, or through an outbound such as a relay), the core's outbounds with a
 // delay / site test (from the panel or from a node) and their traffic, and the
 // routing rules. The board is also the Outbounds tab of the core settings.
+import { PageLoading } from "./PageLoading";
 import {
   Badge,
   Box,
@@ -599,7 +600,7 @@ export const OutboundsPage: FC = () => {
       .catch((e: any) => toast({ status: "error", title: errText(t, e), position: "top", duration: 8000 }))
       .finally(() => setSaving(false));
   };
-  if (!config) return <Spinner />;
+  if (!config) return <PageLoading rows={2} />;
   return (
     <VStack align="stretch" spacing={4} maxW="1200px" pb={dirty ? 20 : 0}>
       <ServerExits dirty={dirty} />

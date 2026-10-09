@@ -25,6 +25,11 @@ class Node(BaseModel):
 
 
 class NodeCreate(Node):
+    # checked on the way in only: a stored node must always stay readable
+    name: str = Field(min_length=1, max_length=256)
+    address: str = Field(min_length=1, max_length=256)
+    port: int = Field(62050, ge=1, le=65535)
+    api_port: int = Field(62051, ge=1, le=65535)
     add_as_new_host: bool = True
     # which Xray core config the node runs, see app/xray/cores.py
     core_id: str = "main"
@@ -43,8 +48,8 @@ class NodeCreate(Node):
 class NodeModify(Node):
     name: Optional[str] = Field(None, nullable=True)
     address: Optional[str] = Field(None, nullable=True)
-    port: Optional[int] = Field(None, nullable=True)
-    api_port: Optional[int] = Field(None, nullable=True)
+    port: Optional[int] = Field(None, nullable=True, ge=1, le=65535)
+    api_port: Optional[int] = Field(None, nullable=True, ge=1, le=65535)
     status: Optional[NodeStatus] = Field(None, nullable=True)
     usage_coefficient: Optional[float] = Field(None, nullable=True)
     core_id: Optional[str] = Field(None, nullable=True)

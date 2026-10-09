@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple, Union
 
 from sqlalchemy import and_, delete, func, or_
-from sqlalchemy.orm import Query, Session, joinedload
+from sqlalchemy.orm import Query, Session, joinedload, selectinload
 from sqlalchemy.sql.functions import coalesce
 
 from app.db.models import (
@@ -180,7 +180,14 @@ def get_user_queryset(db: Session) -> Query:
     Returns:
         Query: Base user query.
     """
-    return db.query(User).options(joinedload(User.admin)).options(joinedload(User.next_plan))
+    # what every user response reads, loaded for all rows in a few queries instead
+    # of several per user (a list of 1000 users took seconds)
+    return db.query(User).options(
+        joinedload(User.admin),
+        joinedload(User.next_plan),
+        selectinload(User.proxies).selectinload(Proxy.excluded_inbounds),
+        selectinload(User.usage_logs),
+    )
 
 
 def get_user(db: Session, username: str) -> Optional[User]:
@@ -425,10 +432,20 @@ def remove_user(db: Session, dbuser: User) -> User:
         User: The removed user object.
     """
     # its usage rows go with it: note where it is connected so it can be cut off
+    import warnings
+    from sqlalchemy.exc import SAWarning
     from app.xray.operations import remember_servers
     remember_servers(dbuser.id)
-    db.delete(dbuser)
-    db.commit()
+    # two deletes at once (a double click): the second one finds no row; SQLAlchemy
+    # only warns about that, so make it an error and let the caller answer 404
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SAWarning)
+        try:
+            db.delete(dbuser)
+            db.commit()
+        except SAWarning:
+            db.rollback()
+            raise LookupError("User not found")
     return dbuser
 
 

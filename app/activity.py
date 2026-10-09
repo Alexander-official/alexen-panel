@@ -60,11 +60,9 @@ def _admin_of(headers: dict) -> Optional[str]:
 
 
 def _client_ip(scope, headers: dict) -> str:
-    fwd = headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()[:64]
+    from app import login_guard
     client = scope.get("client")
-    return (client[0] if client else "")[:64]
+    return login_guard.client_ip(client[0] if client else "", headers.get("x-forwarded-for"))
 
 
 def record(**row):

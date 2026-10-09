@@ -36,24 +36,22 @@ def get_dbnode(node_id: int, db: Session = Depends(get_db)):
     return dbnode
 
 
+def _utc(value: Union[str, datetime]) -> datetime:
+    """a datetime in UTC: one without a zone (e.g. "2024-01-31T23:59:59") is taken as UTC"""
+    d = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    return d.replace(tzinfo=timezone.utc) if d.tzinfo is None else d.astimezone(timezone.utc)
+
+
 def validate_dates(start: Optional[Union[str, datetime]], end: Optional[Union[str, datetime]]) -> (datetime, datetime):
     """Validate if start and end dates are correct and if end is after start."""
     try:
-        if start:
-            start_date = start if isinstance(start, datetime) else datetime.fromisoformat(
-                start).astimezone(timezone.utc)
-        else:
-            start_date = datetime.now(timezone.utc) - timedelta(days=30)
-        if end:
-            end_date = end if isinstance(end, datetime) else datetime.fromisoformat(end).astimezone(timezone.utc)
-            if start_date and end_date < start_date:
-                raise HTTPException(status_code=400, detail="Start date must be before end date")
-        else:
-            end_date = datetime.now(timezone.utc)
-
-        return start_date, end_date
-    except ValueError:
+        start_date = _utc(start) if start else datetime.now(timezone.utc) - timedelta(days=30)
+        end_date = _utc(end) if end else datetime.now(timezone.utc)
+    except (ValueError, TypeError):
         raise HTTPException(status_code=400, detail="Invalid date range or format")
+    if end and end_date < start_date:
+        raise HTTPException(status_code=400, detail="Start date must be before end date")
+    return start_date, end_date
 
 
 def get_user_template(template_id: int, db: Session = Depends(get_db)):

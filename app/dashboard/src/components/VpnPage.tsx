@@ -1,5 +1,6 @@
 // VPN services: AmneziaWG and OpenVPN per server (app/vpn). Each server runs
 // the Alexen VPN agent; the panel pushes who may connect and reads traffic.
+import { PageLoading } from "./PageLoading";
 import {
   Box,
   Button,
@@ -524,7 +525,7 @@ export const VpnPage: FC = () => {
     queryFn: () => fetch("/vpn"),
     refetchInterval: 10000,
   });
-  if (!data) return null;
+  if (!data) return <PageLoading rows={3} />;
   return (
     <VStack align="stretch" spacing={5} maxW="1100px">
       <Text fontSize="sm" color="gray.500" maxW="820px">

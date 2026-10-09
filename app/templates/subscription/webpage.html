@@ -9,7 +9,7 @@
     page loads even where CDNs are blocked. Data comes from app/subscription/webpage.py -#}
 <style>
 :root {
-  --accent: {{ data.accent }};
+  --accent: {{ data.accent | e }};
   --bg: #f4f5f8; --card: #ffffff; --soft: rgba(15, 23, 42, .045); --line: rgba(15, 23, 42, .08);
   --text: #0f172a; --muted: #64748b; --shadow: 0 1px 2px rgba(16,24,40,.04), 0 6px 24px rgba(16,24,40,.06);
   --ok: #16a34a; --warn: #d97706; --bad: #dc2626;
@@ -205,6 +205,12 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
   };
 
+  // links an admin typed: never run script (javascript:, data:, vbscript:); app links (v2rayng:// ...) stay
+  var href = function (u) {
+    u = String(u == null ? "" : u);
+    return /^[\s\u0000-\u001f]*(javascript|data|vbscript)\s*:/i.test(u.replace(/[\t\n\r]/g, "")) ? "#" : u;
+  };
+
   var store = function (k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
   var pickLang = function () {
     var saved = store("sub-lang");
@@ -245,9 +251,10 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
   if (!D.platforms[plat]) plat = D.platforms[detected] ? detected : platforms[0];
   var appId = {};
 
+  // texts and the values put into them are HTML-escaped here: every T() goes into markup
   var T = function (k, o) {
-    var v = (L[lang] && L[lang][k]) || (L.en && L.en[k]) || k;
-    if (o) Object.keys(o).forEach(function (x) { v = v.replace("{" + x + "}", o[x]); });
+    var v = esc((L[lang] && L[lang][k]) || (L.en && L.en[k]) || k);
+    if (o) Object.keys(o).forEach(function (x) { v = v.replace("{" + x + "}", esc(o[x])); });
     return v;
   };
   var bytes = function (b) {
@@ -295,7 +302,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
         (d < 0 ? T("expired") : d === 0 ? T("today") : T("days", { n: d })) + "</div>";
     }
     stats.push('<div class="stat"><div class="k">' + T("expires") + "</div>" + exp + "</div>");
-    if (u.reset && u.reset !== "no_reset") stats.push('<div class="stat"><div class="k">' + T("resets") + '</div><div class="v">' + esc(T("reset." + u.reset)) + "</div></div>");
+    if (u.reset && u.reset !== "no_reset") stats.push('<div class="stat"><div class="k">' + T("resets") + '</div><div class="v">' + (T("reset." + u.reset)) + "</div></div>");
     var st = T("status." + u.status);
     return '<section class="card"><div class="user"><div class="avatar">' + esc((u.username || "?").charAt(0).toUpperCase()) +
       '</div><div style="min-width:0"><div class="uname">' + esc(u.username) + '</div><span class="pill ' + esc(u.status) + '">' + esc(st) +
@@ -306,8 +313,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
     var apps = D.platforms[plat] || [];
     var cur = apps.filter(function (a) { return a.id === appId[plat]; })[0] || apps.filter(function (a) { return a.featured; })[0] || apps[0];
     var tabs = platforms.map(function (p) {
-      return '<button class="tab' + (p === plat ? " on" : "") + '" data-plat="' + p + '"' + (p === detected ? ' title="' + esc(T("thisDevice")) + '"' : "") + ">" +
-        icon(p, 16) + esc(PLAT[p] || p) + (p === detected ? '<span class="here" aria-label="' + esc(T("thisDevice")) + '"></span>' : "") + "</button>";
+      return '<button class="tab' + (p === plat ? " on" : "") + '" data-plat="' + p + '"' + (p === detected ? ' title="' + (T("thisDevice")) + '"' : "") + ">" +
+        icon(p, 16) + esc(PLAT[p] || p) + (p === detected ? '<span class="here" aria-label="' + (T("thisDevice")) + '"></span>' : "") + "</button>";
     }).join("");
     var chips = apps.map(function (a) {
       return '<button class="app' + (cur && a.id === cur.id ? " on" : "") + '" data-app="' + esc(a.id) + '">' + esc(a.name) +
@@ -317,10 +324,10 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
     if (!cur) body = '<div class="d">' + T("noApps") + "</div>";
     else {
       var inst = cur.install.map(function (b) {
-        return '<a class="btn" href="' + esc(b.url) + '" target="_blank" rel="noopener">' + icon("download", 16) + esc(b.label) + "</a>";
+        return '<a class="btn" href="' + esc(href(b.url)) + '" target="_blank" rel="noopener">' + icon("download", 16) + esc(b.label) + "</a>";
       }).join("");
       var add = cur.add
-        ? '<div class="d">' + T("s2d") + '</div><div class="btns"><a class="btn primary big" href="' + esc(cur.add) + '">' + icon("open", 18) + esc(T("add", { app: cur.name })) +
+        ? '<div class="d">' + T("s2d") + '</div><div class="btns"><a class="btn primary big" href="' + esc(href(cur.add)) + '">' + icon("open", 18) + (T("add", { app: cur.name })) +
           '</a><button class="btn big" data-copy="sub">' + icon("copy", 16) + T("copyLink") + "</button></div>"
         : '<div class="d">' + T("s2c") + '</div><div class="btns"><button class="btn primary big" data-copy="sub">' + icon("copy", 18) + T("copyLink") + "</button></div>";
       body = '<div class="steps">' +
@@ -342,12 +349,12 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
       var awg = v.awg || [], many = awg.length > 1, b = "", qrs = "";
       awg.forEach(function (d) {
         var id = "qr-vpn-" + i + "-" + d.n;
-        b += '<a class="btn primary" href="' + esc(d.url) + '">' + icon("download", 16) + T("vpnAwg") +
+        b += '<a class="btn primary" href="' + esc(href(d.url)) + '">' + icon("download", 16) + T("vpnAwg") +
           (many ? " · " + T("vpnDevice", { n: d.n }) : " · .conf") + "</a>" +
           (d.qr ? '<button class="btn" data-qr="' + id + '" aria-label="' + T("qr") + '">' + icon("qr", 16) + "</button>" : "");
         if (d.qr) qrs += '<div class="qr" id="' + id + '">' + (many ? '<div class="sub">' + T("vpnDevice", { n: d.n }) + "</div>" : "") + d.qr + "</div>";
       });
-      if (v.ovpn) b += '<a class="btn" href="' + esc(v.ovpn) + '">' + icon("download", 16) + T("vpnOvpn") + " · .ovpn</a>";
+      if (v.ovpn) b += '<a class="btn" href="' + esc(href(v.ovpn)) + '">' + icon("download", 16) + T("vpnOvpn") + " · .ovpn</a>";
       return '<div class="vpnrow"><div class="t">' + esc(v.name) + '</div><div class="btns">' + b + "</div>" + qrs +
         (many ? '<div class="sub">' + T("vpnDevicesHelp") + "</div>" : "") + "</div>";
     }).join("");
@@ -355,7 +362,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
     var apps = ((D.vpn_apps || {})[plat] || []).filter(function (a) { return (a.kind === "awg" && hasAwg) || (a.kind === "ovpn" && hasOvpn); });
     var appsHtml = apps.length ? '<div class="sub">' + T("vpnApps") + '</div><div class="btns">' + apps.map(function (a) {
       return a.install.map(function (x) {
-        return '<a class="btn" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + icon("download", 16) + esc(a.name) + (a.install.length > 1 ? " · " + esc(x.label) : "") + "</a>";
+        return '<a class="btn" href="' + esc(href(x.url)) + '" target="_blank" rel="noopener">' + icon("download", 16) + esc(a.name) + (a.install.length > 1 ? " · " + esc(x.label) : "") + "</a>";
       }).join("");
     }).join("") + "</div>" : "";
     return '<section class="card"><h2>' + icon("lock") + T("vpnTitle") + '</h2><div class="d" style="color:var(--muted);margin:-6px 0 14px">' + T("vpnHelp") + "</div>" + rows + appsHtml + "</section>";
@@ -420,7 +427,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
   var lockedCard = function () {
     return '<section class="card lock"><div class="lockicon">' + icon("lock", 28) + '</div><div class="t">' + T("deviceLimitTitle") +
       '</div><div class="d">' + T("deviceLimitHelp") + "</div>" +
-      (D.support ? '<a class="btn primary big" href="' + esc(D.support) + '" target="_blank" rel="noopener">' + icon("help", 18) + T("contactAdmin") + "</a>" : "") +
+      (D.support ? '<a class="btn primary big" href="' + esc(href(D.support)) + '" target="_blank" rel="noopener">' + icon("help", 18) + T("contactAdmin") + "</a>" : "") +
       "</section>";
   };
 
@@ -436,10 +443,10 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 1
     var body = D.locked ? lockedCard() + devicesCard()
       : (D.sections || []).filter(function (x) { return x.enabled && parts[x.id]; }).map(function (x) { return parts[x.id](); }).join("");
     var foot = local(D.footer) || D.title;
-    var logo = D.logo ? '<img src="' + esc(D.logo) + '" alt="">' : esc((D.title || "S").charAt(0).toUpperCase());
+    var logo = D.logo ? '<img src="' + esc(href(D.logo)) + '" alt="">' : esc((D.title || "S").charAt(0).toUpperCase());
     document.getElementById("app").innerHTML =
       '<header><div class="logo">' + logo + '</div><div class="brand">' + esc(D.title) + "</div>" +
-      (D.support ? '<a class="iconbtn" href="' + esc(D.support) + '" target="_blank" rel="noopener">' + icon("help", 16) + '<span class="label">' + T("support") + "</span></a>" : "") +
+      (D.support ? '<a class="iconbtn" href="' + esc(href(D.support)) + '" target="_blank" rel="noopener">' + icon("help", 16) + '<span class="label">' + T("support") + "</span></a>" : "") +
       '<select class="iconbtn" id="lang" aria-label="Language">' + langs + "</select>" +
       '<button class="iconbtn" id="theme" aria-label="Theme">' + icon("sun", 16) + "</button></header>" +
       body + "<footer>" + esc(foot) + "</footer>";

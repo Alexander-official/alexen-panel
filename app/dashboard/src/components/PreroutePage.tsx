@@ -1,5 +1,6 @@
 // Preroute: rules "relay VPS port -> exit VPS port" (app/vpn/preroute.py).
 // A diagram on top shows every rule; below, each rule can be edited.
+import { PageLoading } from "./PageLoading";
 import {
   Badge,
   Box,
@@ -898,7 +899,7 @@ export const PreroutePage: FC = () => {
   const [adding, setAdding] = useState(false);
   const [bulk, setBulk] = useState(false);
   const [xui, setXui] = useState(false);
-  if (!data) return null;
+  if (!data) return <PageLoading rows={2} />;
   return (
     <VStack align="stretch" spacing={5} maxW="1150px">
       <HStack spacing={4} flexWrap="wrap" rowGap={3}>

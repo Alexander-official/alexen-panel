@@ -95,6 +95,8 @@ const fetchUsers = (query: FilterType): Promise<User[]> => {
       useDashboard.setState({ users });
       return users;
     })
+    // the load-error toast already told the user; keep what is shown
+    .catch(() => useDashboard.getState().users)
     .finally(() => {
       useDashboard.setState({ loading: false });
     });

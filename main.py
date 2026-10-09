@@ -97,6 +97,7 @@ Then, navigate to {click.style(f'http://127.0.0.1:{UVICORN_PORT}', bold=True)} o
             "main:app",
             **bind_args,
             workers=1,
+            server_header=False,
             reload=DEBUG,
             log_level=logging.DEBUG if DEBUG else logging.INFO
         )

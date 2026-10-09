@@ -19,6 +19,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import {
+  ArchiveBoxArrowDownIcon,
   ArrowTopRightOnSquareIcon,
   ArrowLeftOnRectangleIcon,
   ArrowPathIcon,
@@ -222,6 +223,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
               { title: t("header.subSettings"), path: "sub", icon: ic(DocumentTextIcon) },
               { title: t("domain.title"), path: "domain", icon: ic(LinkIcon) },
               { title: t("external.title"), path: "external", icon: ic(GlobeAltIcon) },
+              { title: t("backup.title"), path: "backup", icon: ic(ArchiveBoxArrowDownIcon) },
               {
                 title: t("resetAllUsage"),
                 icon: ic(ArrowPathIcon),

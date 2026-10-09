@@ -39,6 +39,8 @@ i18n
             },
             load: "languageOnly",
             detection: {
+                // the user's own pick (localStorage) first: a cookie from an earlier visit must not override it
+                order: ["querystring", "localStorage", "cookie", "sessionStorage", "navigator", "htmlTag"],
                 caches: ["localStorage", "sessionStorage", "cookie"],
             },
             backend: {

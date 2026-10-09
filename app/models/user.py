@@ -48,9 +48,16 @@ class UserDataLimitResetStrategy(str, Enum):
     year = "year"
 
 
+# what SQLite (64-bit integers) and Python dates can hold: bigger values used to
+# reach the database and break every list containing the user
+MAX_BYTES = 2 ** 63 - 1
+MAX_EXPIRE = 253402300799          # 9999-12-31 23:59:59 UTC
+MAX_SECONDS = 100 * 365 * 86400    # durations: a hundred years
+
+
 class NextPlanModel(BaseModel):
-    data_limit: Optional[int] = None
-    expire: Optional[int] = None
+    data_limit: Optional[int] = Field(None, ge=0, le=MAX_BYTES)
+    expire: Optional[int] = Field(None, ge=0, le=MAX_SECONDS)
     add_remaining_traffic: bool = False
     fire_on_either: bool = True
     model_config = ConfigDict(from_attributes=True)
@@ -58,19 +65,19 @@ class NextPlanModel(BaseModel):
 
 class User(BaseModel):
     proxies: Dict[ProxyTypes, ProxySettings] = {}
-    expire: Optional[int] = Field(None, nullable=True)
+    expire: Optional[int] = Field(None, nullable=True, le=MAX_EXPIRE)
     data_limit: Optional[int] = Field(
-        ge=0, default=None, description="data_limit can be 0 or greater"
+        ge=0, le=MAX_BYTES, default=None, description="data_limit can be 0 or greater"
     )
     data_limit_reset_strategy: UserDataLimitResetStrategy = (
         UserDataLimitResetStrategy.no_reset
     )
     inbounds: Dict[ProxyTypes, List[str]] = {}
     ip_limit: Optional[int] = Field(
-        ge=0, default=None, description="max simultaneous IPs, 0 or null means unlimited"
+        ge=0, le=100000, default=None, description="max simultaneous IPs, 0 or null means unlimited"
     )
     hwid_limit: Optional[int] = Field(
-        ge=0, default=None, description="max devices (HWID) that can fetch the subscription, 0 or null means unlimited"
+        ge=0, le=100000, default=None, description="max devices (HWID) that can fetch the subscription, 0 or null means unlimited"
     )
     note: Optional[str] = Field(None, nullable=True)
     sub_updated_at: Optional[datetime] = Field(None, nullable=True)
@@ -79,10 +86,10 @@ class User(BaseModel):
     online_ip_count: Optional[int] = 0
     hwid_count: Optional[int] = 0
     online_at: Optional[datetime] = Field(None, nullable=True)
-    on_hold_expire_duration: Optional[int] = Field(None, nullable=True)
+    on_hold_expire_duration: Optional[int] = Field(None, nullable=True, ge=0, le=MAX_SECONDS)
     on_hold_timeout: Optional[Union[datetime, None]] = Field(None, nullable=True)
 
-    auto_delete_in_days: Optional[int] = Field(None, nullable=True)
+    auto_delete_in_days: Optional[int] = Field(None, nullable=True, le=36500)
 
     next_plan: Optional[NextPlanModel] = Field(None, nullable=True)
 
@@ -100,6 +107,8 @@ class User(BaseModel):
     def validate_proxies(cls, v, values, **kwargs):
         if not v:
             raise ValueError("Each user needs at least one proxy")
+        if not isinstance(v, dict):
+            raise ValueError("proxies must be an object like {\"vless\": {}}")
         return {
             proxy_type: ProxySettings.from_dict(
                 proxy_type, v.get(proxy_type, {}))
@@ -159,6 +168,14 @@ class UserCreate(User):
             "on_hold_expire_duration": 0,
         }
     })
+
+    @model_validator(mode="after")
+    def require_proxies(self):
+        # the field validator only runs when "proxies" is sent: without this a
+        # user with no proxy reached the database and broke every user list
+        if not self.proxies:
+            raise ValueError("Each user needs at least one proxy")
+        return self
 
     @property
     def excluded_inbounds(self):
@@ -289,6 +306,13 @@ class UserModify(User):
 
 
 class UserResponse(User):
+    # stored values are read as they are: the upper bounds of User only guard input
+    expire: Optional[int] = Field(None, nullable=True)
+    data_limit: Optional[int] = Field(None, ge=0)
+    ip_limit: Optional[int] = None
+    hwid_limit: Optional[int] = None
+    on_hold_expire_duration: Optional[int] = None
+    auto_delete_in_days: Optional[int] = None
     username: str
     status: UserStatus
     used_traffic: int

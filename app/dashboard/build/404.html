@@ -34,8 +34,22 @@
     <meta name="msapplication-TileColor" content="#2b5797" />
     <meta name="msapplication-config" content="/statics/favicon/browserconfig.xml" />
     <meta name="theme-color" content="#3B81F6" />
-    <script type="module" crossorigin src="/statics/index.c856cdcd.js"></script>
-    <link rel="modulepreload" crossorigin href="/statics/vendor.42c6164c.js">
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // before the app loads: paint in the saved mode, no white flash on dark themes
+      (function () {
+        try {
+          var m = localStorage.getItem("chakra-ui-color-mode");
+          var dark = m === "dark" || (m !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+          var r = document.documentElement;
+          r.style.colorScheme = dark ? "dark" : "light";
+          r.style.background = dark ? "#0f1218" : "#eceff4";
+          r.setAttribute("data-theme", dark ? "dark" : "light");
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/statics/index.ea4de53c.js"></script>
+    <link rel="modulepreload" crossorigin href="/statics/vendor.aa4def18.js">
     <link rel="stylesheet" href="/statics/index.a23421a0.css">
   </head>
   <body>

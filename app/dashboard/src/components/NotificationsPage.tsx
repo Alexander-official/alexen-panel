@@ -1,5 +1,6 @@
 // Important notifications (suspicious traffic and the like) and, for the sudo
 // admin, the anti-theft rules that raise them (app/antitheft.py).
+import { CardLoading } from "./PageLoading";
 import { Badge, Box, Button, HStack, Icon, IconButton, Input, Select, SimpleGrid, Switch, Text, Textarea, useToast, VStack } from "@chakra-ui/react";
 import { BellAlertIcon, CheckIcon, PlusIcon, ShieldExclamationIcon, TrashIcon } from "@heroicons/react/24/outline";
 import dayjs from "dayjs";
@@ -41,7 +42,7 @@ const TheftSettings: FC = () => {
       setIgnore(d.ignore.join(", "));
     });
   }, []);
-  if (!s) return null;
+  if (!s) return <CardLoading h="220px" />;
   const draft = { ...s, ignore: ignore.split(/[,\s]+/).map((x) => x.trim()).filter(Boolean) };
   const dirty = JSON.stringify(draft) !== saved;
   const setRule = (id: string, p: Partial<Rule>) => setS({ ...s, rules: s.rules.map((r) => (r.id === id ? { ...r, ...p } : r)) });

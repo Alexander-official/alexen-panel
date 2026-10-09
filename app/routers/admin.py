@@ -16,13 +16,10 @@ router = APIRouter(tags=["Admin"], prefix="/api", responses={401: responses._401
 
 
 def get_client_ip(request: Request) -> str:
-    """Extract the client's IP address from the request headers or client."""
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-    if request.client:
-        return request.client.host
-    return "Unknown"
+    """The client's IP; X-Forwarded-For only counts when a trusted proxy sent it (app/login_guard.py)."""
+    from app import login_guard
+    return login_guard.client_ip(request.client.host if request.client else "",
+                                 request.headers.get("X-Forwarded-For"))
 
 
 @router.post("/admin/token", response_model=Token)
@@ -32,16 +29,28 @@ def admin_token(
     db: Session = Depends(get_db),
 ):
     """Authenticate an admin and issue a token."""
+    from app import login_guard
     client_ip = get_client_ip(request)
+
+    wait = login_guard.blocked_for(client_ip, form_data.username)
+    if wait:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many failed logins: try again in {max(1, round(wait / 60))} minutes",
+            headers={"Retry-After": str(wait)},
+        )
 
     dbadmin = validate_admin(db, form_data.username, form_data.password)
     if not dbadmin:
-        report.login(form_data.username, form_data.password, client_ip, False)
+        login_guard.failed(client_ip, form_data.username)
+        # never pass on the password that was tried: it is often the real one with a typo
+        report.login(form_data.username, "🔒", client_ip, False)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    login_guard.succeeded(client_ip, form_data.username)
 
     if client_ip not in LOGIN_NOTIFY_WHITE_LIST:
         report.login(form_data.username, "🔒", client_ip, True)

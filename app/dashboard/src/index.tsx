@@ -16,6 +16,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClientProvider } from "react-query";
 import { queryClient } from "utils/react-query";
+import { ToastContainer } from "utils/loadErrorToast";
 import { updateThemeColor } from "utils/themeColor";
 import { initAppearance } from "utils/appearance";
 import { theme } from "../chakra.config";
@@ -37,6 +38,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>
+      <ToastContainer />
     </ChakraProvider>
   </React.StrictMode>
 );

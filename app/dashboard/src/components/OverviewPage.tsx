@@ -1,3 +1,4 @@
+import { CardLoading, PageLoading } from "./PageLoading";
 import {
   Badge,
   Box,
@@ -268,7 +269,7 @@ export const OverviewPage: FC = () => {
     [data, period]
   );
 
-  if (!data) return null;
+  if (!data) return <PageLoading stats={6} rows={2} />;
   const by = data.users.by_status;
   const statuses = ["active", "on_hold", "limited", "expired", "disabled"];
   const isSudo = !!data.system;
@@ -506,7 +507,7 @@ export const StatsHistory: FC = () => {
     () => (data?.points || []).map((p) => dayjs.unix(p).format(data?.unit === "hour" ? (period === "24h" ? "HH:mm" : "DD MMM HH:mm") : "DD MMM")),
     [data, period]
   );
-  if (!data) return null;
+  if (!data) return <CardLoading h="320px" />;
   const opts = (n: number): ApexOptions =>
     base({
       chart: { type: kind, stacked: true, toolbar: { show: false }, background: "transparent", fontFamily: "inherit" },

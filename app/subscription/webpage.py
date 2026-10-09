@@ -372,7 +372,7 @@ def page_data(db, s: WebPageSettings, user, sub_url: str, links: List[str], head
     texts = {lang: {**base_texts["en"], **base_texts[lang], **{k: v for k, v in s.texts.get(lang, {}).items() if v}}
              for lang in langs}
     look = {"title": title, "logo": s.logo_url, "support": s.support_url or headers.get("support-url", ""),
-            "accent": s.accent, "theme": s.theme, "style": s.style, "lang": s.default_lang, "texts": texts,
+            "accent": _safe_color(s.accent), "theme": s.theme, "style": s.style, "lang": s.default_lang, "texts": texts,
             "css": s.custom_css, "footer": s.footer, "device_limit": device_limit}
     if s.lock_on_device_limit and device_limit and len(devices) >= device_limit:
         # nothing that lets one connect: no link, QR, configs, app buttons or files
@@ -428,3 +428,10 @@ def page_data(db, s: WebPageSettings, user, sub_url: str, links: List[str], head
         # the template's tojson sorts keys: keep the platform order separately
         "order": list(platforms),
     }
+
+
+def _safe_color(value) -> str:
+    """a CSS color for the page: #rgb / #rrggbb(aa) or a plain color name, else the default"""
+    import re
+    v = str(value or "").strip()
+    return v if re.fullmatch(r"#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,20}", v) else "#6366f1"

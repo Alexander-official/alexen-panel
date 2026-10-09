@@ -28,6 +28,7 @@ export const useHosts = create<HostsStore>((set) => ({
     set({ isLoading: true });
     fetch("/hosts")
       .then((hosts) => set({ hosts }))
+      .catch(() => {}) // said by the load-error toast
       .finally(() => set({ isLoading: false }));
   },
   setHosts: (body) => {

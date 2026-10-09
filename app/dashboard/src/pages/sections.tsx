@@ -107,6 +107,12 @@ export const SECTIONS: Section[] = [
     Component: named(() => import("components/SubSettingsModal"), "SubSettingsModal"),
   },
   {
+    path: "backup",
+    title: "backup.title",
+    sudo: true,
+    Component: named(() => import("components/BackupPage"), "BackupPage"),
+  },
+  {
     path: "domain",
     title: "domain.title",
     sudo: true,

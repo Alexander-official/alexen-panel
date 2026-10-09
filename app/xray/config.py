@@ -143,6 +143,26 @@ class XRayConfig(dict):
             self["routing"] = {"rules": []}
             self["routing"]["rules"].insert(0, rule)
 
+    @staticmethod
+    def _valid_port(port) -> bool:
+        """1-65535, or Xray's text forms: "443", "1000-2000", "80,443,1000-2000" """
+        if isinstance(port, bool):
+            return False
+        if isinstance(port, int):
+            return 1 <= port <= 65535
+        if not isinstance(port, str) or not port.strip():
+            return False
+        if port.startswith("env:"):
+            import re
+            return bool(re.fullmatch(r"env:[A-Za-z_][A-Za-z0-9_]*", port))
+        for part in port.replace(" ", "").split(","):
+            ends = part.split("-")
+            if len(ends) > 2 or not all(e.isdigit() and 1 <= int(e) <= 65535 for e in ends):
+                return False
+            if len(ends) == 2 and int(ends[0]) > int(ends[1]):
+                return False
+        return True
+
     def _validate(self):
         if not self.get("inbounds"):
             raise ValueError("config doesn't have inbounds")
@@ -150,7 +170,14 @@ class XRayConfig(dict):
         if not self.get("outbounds"):
             raise ValueError("config doesn't have outbounds")
 
+        if not isinstance(self["inbounds"], list) or not all(isinstance(i, dict) for i in self["inbounds"]):
+            raise ValueError("inbounds must be a list of objects")
+        if not isinstance(self["outbounds"], list) or not all(isinstance(o, dict) for o in self["outbounds"]):
+            raise ValueError("outbounds must be a list of objects")
+
         for inbound in self['inbounds']:
+            if "port" in inbound and not self._valid_port(inbound["port"]):
+                raise ValueError(f"inbound {inbound.get('tag', '')}: port {inbound['port']!r} is not 1-65535")
             if not inbound.get("tag"):
                 raise ValueError("all inbounds must have a unique tag")
             if ',' in inbound.get("tag"):

@@ -42,6 +42,11 @@ class NoCacheHTMLStatics(StaticFiles):
     manual hard refresh."""
     async def get_response(self, path, scope):
         response: Response = await super().get_response(path, scope)
+        # app routes like /dashboard/login/ have no file: they get the app itself with 200
+        # (the 404 page is the same html, but its status upset monitors and proxies);
+        # a missing asset (a name with an extension) stays a real 404
+        if response.status_code == 404 and "." not in path.rsplit("/", 1)[-1] and not path.startswith("statics"):
+            response = await super().get_response("index.html", scope)
         media = response.headers.get("content-type", "")
         if path.endswith(".html") or media.startswith("text/html"):
             response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"

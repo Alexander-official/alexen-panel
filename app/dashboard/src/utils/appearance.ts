@@ -325,10 +325,7 @@ export const applyAppearance = (a: Appearance) => {
     a.background === "custom"
       ? customBackground(a.customBackground)
       : BACKGROUNDS[a.background] || BACKGROUNDS.default;
-  const dark =
-    root.classList.contains("chakra-ui-dark") ||
-    document.body.classList.contains("chakra-ui-dark") ||
-    document.documentElement.getAttribute("data-theme") === "dark";
+  const dark = isDarkMode();
   const pageBg = (dark ? bg.dark : bg.light) || "";
   root.style.setProperty("--app-bg", pageBg);
 
@@ -396,7 +393,42 @@ function applyTiers(root: HTMLElement, dark: boolean, tint: Record<string, strin
   }
 }
 
-export const initAppearance = () => applyAppearance(getAppearance());
+/** dark or light right now. Before React has rendered (the first paint, the
+ *  login page) Chakra hasn't set its class yet: then its saved choice decides. */
+export const isDarkMode = () => {
+  const root = document.documentElement;
+  if (root.classList.contains("chakra-ui-dark") || document.body?.classList.contains("chakra-ui-dark")) return true;
+  if (root.classList.contains("chakra-ui-light") || document.body?.classList.contains("chakra-ui-light")) return false;
+  const attr = root.getAttribute("data-theme");
+  if (attr === "dark" || attr === "light") return attr === "dark";
+  let saved: string | null = null;
+  try {
+    saved = localStorage.getItem("chakra-ui-color-mode");
+  } catch {}
+  if (saved === "dark" || saved === "light") return saved === "dark";
+  return !!window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+};
+
+let watching = false;
+export const initAppearance = () => {
+  applyAppearance(getAppearance());
+  if (watching) return;
+  watching = true;
+  // the mode can change anywhere (header button, login page, another tab): follow it
+  let last = isDarkMode();
+  const follow = () => {
+    const now = isDarkMode();
+    if (now !== last) {
+      last = now;
+      applyAppearance(getAppearance());
+    }
+  };
+  const obs = new MutationObserver(follow);
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme", "style"] });
+  if (document.body) obs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  else window.addEventListener("DOMContentLoaded", () => obs.observe(document.body, { attributes: true, attributeFilter: ["class"] }));
+  window.addEventListener("storage", (e) => e.key === "chakra-ui-color-mode" && follow());
+};
 
 /** ready combinations: mode, card style, accent, background and layer colors together */
 export type Preset = {

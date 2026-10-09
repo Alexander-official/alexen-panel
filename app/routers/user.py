@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Union
 
+from pydantic import ValidationError
+from sqlalchemy.exc import InvalidRequestError
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 
@@ -20,6 +22,27 @@ from app.models.user import (
     UserUsagesResponse,
 )
 from app.utils import report, responses
+
+_delete_locks: dict = {}
+_delete_locks_guard = __import__("threading").Lock()
+
+
+class _delete_lock:
+    """a lock per username (the panel runs in one process)"""
+    def __init__(self, username: str):
+        with _delete_locks_guard:
+            self.lock = _delete_locks.setdefault(username, __import__("threading").Lock())
+        self.username = username
+
+    def __enter__(self):
+        self.lock.acquire()
+
+    def __exit__(self, *exc):
+        self.lock.release()
+        with _delete_locks_guard:
+            if not self.lock.locked():
+                _delete_locks.pop(self.username, None)
+
 
 router = APIRouter(tags=["User"], prefix="/api", responses={401: responses._401})
 
@@ -121,9 +144,16 @@ def modify_user(
         modified_user.ip_limit, modified_user.hwid_limit = crud.clamp_user_limits_to_admin(
             dbadmin, modified_user.ip_limit, modified_user.hwid_limit)
 
-    old_status = dbuser.status
-    dbuser = crud.update_user(db, dbuser, modified_user)
-    user = UserResponse.model_validate(dbuser)
+    old_status, username = dbuser.status, dbuser.username
+    try:
+        dbuser = crud.update_user(db, dbuser, modified_user)
+        user = UserResponse.model_validate(dbuser)
+    except (InvalidRequestError, ValidationError):
+        # deleted by another request while this edit ran: say so instead of a 500
+        db.rollback()
+        if crud.get_user(db, username) is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        raise
 
     if user.status in [UserStatus.active, UserStatus.on_hold]:
         bg.add_task(xray.operations.update_user, dbuser=dbuser)
@@ -158,7 +188,16 @@ def remove_user(
     admin: Admin = Depends(Admin.get_current),
 ):
     """Remove a user"""
-    crud.remove_user(db, dbuser)
+    # one delete per user at a time; the second of a double click finds it gone
+    username = dbuser.username
+    with _delete_lock(username):
+        db.expire_all()
+        if crud.get_user(db, username) is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        try:
+            crud.remove_user(db, dbuser)
+        except LookupError:
+            raise HTTPException(status_code=404, detail="User not found")
     bg.add_task(xray.operations.remove_user, dbuser=dbuser)
 
     bg.add_task(
