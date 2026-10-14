@@ -1355,5 +1355,13 @@
   "outb.routeApply": "Ulan (soňra ýazdyr)",
   "outb.notConnected": "Bu serwer panele birikmedik ({{status}}): çykyş sazlamasy oňa ýetip bilmeýär, ol henizem könesini ulanýar. Ilki birikdiriň.",
   "outb.connectViaSsh": "SSH arkaly birikdir",
-  "outb.sshSwitched": "SSH arkaly birikýär… bir minuta çenli dowam edip biler"
+  "outb.sshSwitched": "SSH arkaly birikýär… bir minuta çenli dowam edip biler",
+  "coreEditors.realIp": "CDN arkasynda: hakyky IP-ni sözbaşydan al",
+  "coreEditors.realIpHelp": "Cloudflare (ýa-da başga CDN) arkaly her baglanyşyk CDN serwerlerinden gelýär; ulanyjy onlarça IP bilen görünýär we IP çägi ony kesýär. Açyk: Xray CDN-iň iberýän müşderi salgysyny (CF-Connecting-IP / X-Forwarded-For) ulanýar. Diňe ulanyjylaryň CDN arkaly birikýän inboundlary üçin: göni birikýän biri sözbaşyny galplaşdyryp biler.",
+  "deleteNode.clean": "Alexen-i serwerden hem aýyr",
+  "deleteNode.cleanHelp": "SSH arkaly: konteýnerleri, gorag diwary düzgünleri (preroute / VPN), tuneller we faýllar. Serwerdäki beýleki paneller (3x-ui, …) degilmeýär, portlary ýene boşaýar.",
+  "deleteNode.cleanManual": "Bu düwün üçin VPS girişi ýazylmadyk: Alexen-i serwerden aýyrmak üçin serwerde root hökmünde şuny işlediň:",
+  "deleteNode.cleaned": "Alexen serwerden aýryldy",
+  "deleteNode.cleanFailed": "Düwün pozulmady. Diňe panelden pozmak üçin saýlawyň bellisini aýryň.",
+  "activity.do.nodeUninstall": "#{{id}} düwüniň serwerinden Alexen aýryldy"
 }

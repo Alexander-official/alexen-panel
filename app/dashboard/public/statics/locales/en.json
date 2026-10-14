@@ -1355,5 +1355,13 @@
   "outb.routeApply": "Apply (then save)",
   "outb.notConnected": "This server isn't connected to the panel ({{status}}): its exit setting can't reach it, so it still uses its old one. Connect it first.",
   "outb.connectViaSsh": "Connect through SSH",
-  "outb.sshSwitched": "Connecting through SSH… this takes up to a minute"
+  "outb.sshSwitched": "Connecting through SSH… this takes up to a minute",
+  "coreEditors.realIp": "Behind a CDN: take the real IP from the header",
+  "coreEditors.realIpHelp": "Through Cloudflare (or another CDN) every connection comes from the CDN's servers, so a user shows dozens of IPs and the IP limit cuts them. On: Xray uses the client's address the CDN sends (CF-Connecting-IP / X-Forwarded-For). Only for inbounds users reach through the CDN: someone connecting directly could fake the header.",
+  "deleteNode.clean": "Also remove Alexen from the server",
+  "deleteNode.cleanHelp": "Over SSH: its containers, firewall rules (preroute / VPN), tunnels and files. Other panels on the server (3x-ui, …) stay untouched, so their ports are free again.",
+  "deleteNode.cleanManual": "No VPS login saved for this node: to remove Alexen from the server, run this on it as root:",
+  "deleteNode.cleaned": "Alexen removed from the server",
+  "deleteNode.cleanFailed": "The node was NOT deleted. Untick the option to delete it from the panel only.",
+  "activity.do.nodeUninstall": "Removed Alexen from the server of node #{{id}}"
 }

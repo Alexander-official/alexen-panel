@@ -1355,5 +1355,13 @@
   "outb.routeApply": "Uygula (sonra kaydet)",
   "outb.notConnected": "Bu sunucu panele bağlı değil ({{status}}): çıkış ayarı ona ulaşamıyor, hâlâ eskisini kullanıyor. Önce bağlayın.",
   "outb.connectViaSsh": "SSH üzerinden bağla",
-  "outb.sshSwitched": "SSH üzerinden bağlanıyor… bir dakika kadar sürebilir"
+  "outb.sshSwitched": "SSH üzerinden bağlanıyor… bir dakika kadar sürebilir",
+  "coreEditors.realIp": "CDN arkasında: gerçek IP'yi başlıktan al",
+  "coreEditors.realIpHelp": "Cloudflare (veya başka bir CDN) üzerinden her bağlantı CDN'in sunucularından gelir; kullanıcı onlarca IP ile görünür ve IP limiti onu keser. Açık: Xray, CDN'in gönderdiği istemci adresini (CF-Connecting-IP / X-Forwarded-For) kullanır. Sadece kullanıcıların CDN üzerinden bağlandığı inbound'lar için: doğrudan bağlanan biri başlığı taklit edebilir.",
+  "deleteNode.clean": "Alexen'i sunucudan da kaldır",
+  "deleteNode.cleanHelp": "SSH ile: konteynerleri, güvenlik duvarı kuralları (preroute / VPN), tüneller ve dosyalar. Sunucudaki diğer paneller (3x-ui, …) olduğu gibi kalır, portları yeniden boşalır.",
+  "deleteNode.cleanManual": "Bu node için VPS girişi kayıtlı değil: Alexen'i sunucudan kaldırmak için sunucuda root olarak bunu çalıştırın:",
+  "deleteNode.cleaned": "Alexen sunucudan kaldırıldı",
+  "deleteNode.cleanFailed": "Node silinmedi. Sadece panelden silmek için seçeneğin işaretini kaldırın.",
+  "activity.do.nodeUninstall": "Node #{{id}} sunucusundan Alexen kaldırıldı"
 }

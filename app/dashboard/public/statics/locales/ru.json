@@ -1362,5 +1362,13 @@
   "outb.routeApply": "Применить (потом сохранить)",
   "outb.notConnected": "Сервер не подключён к панели ({{status}}): настройка выхода до него не доходит, он работает по-старому. Сначала подключите его.",
   "outb.connectViaSsh": "Подключить через SSH",
-  "outb.sshSwitched": "Подключение через SSH… до минуты"
+  "outb.sshSwitched": "Подключение через SSH… до минуты",
+  "coreEditors.realIp": "За CDN: брать реальный IP из заголовка",
+  "coreEditors.realIpHelp": "Через Cloudflare (или другой CDN) все соединения идут с серверов CDN, пользователь видится с десятками IP, и лимит IP его отключает. Вкл.: Xray берёт адрес клиента из заголовка CDN (CF-Connecting-IP / X-Forwarded-For). Только для inbound'ов, куда ходят через CDN: подключившийся напрямую может подделать заголовок.",
+  "deleteNode.clean": "Также удалить Alexen с сервера",
+  "deleteNode.cleanHelp": "По SSH: контейнеры, правила файрвола (preroute / VPN), туннели и файлы. Другие панели на сервере (3x-ui, …) не трогаются, их порты освобождаются.",
+  "deleteNode.cleanManual": "Для этой ноды не сохранён вход VPS: чтобы удалить Alexen с сервера, выполните на нём от root:",
+  "deleteNode.cleaned": "Alexen удалён с сервера",
+  "deleteNode.cleanFailed": "Нода НЕ удалена. Снимите галочку, чтобы удалить её только из панели.",
+  "activity.do.nodeUninstall": "Удалил Alexen с сервера ноды #{{id}}"
 }

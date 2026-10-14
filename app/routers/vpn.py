@@ -187,6 +187,12 @@ def agent_install_script():
         return PlainTextResponse(f.read(), media_type="text/x-shellscript")
 
 
+@files_router.get("/vpn-agent/uninstall.sh")
+def agent_uninstall_script():
+    with open(os.path.join(AGENT_DIR, "uninstall.sh")) as f:
+        return PlainTextResponse(f.read(), media_type="text/x-shellscript")
+
+
 @files_router.get("/vpn-agent/agent.tar.gz")
 def agent_bundle():
     buf = io.BytesIO()

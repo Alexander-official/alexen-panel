@@ -251,6 +251,11 @@ def install(job: dict, *, host: str, port: int, username: str, password: str, ke
         s.run("docker compose version >/dev/null 2>&1 || command -v docker-compose >/dev/null 2>&1 || "
               "(command -v apt-get >/dev/null && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq docker-compose-plugin) || true",
               check=False)
+        # QUIC / Hysteria drop packets with Linux's default 208 KB UDP buffers (unstable speed, cut
+        # connections): 16 MB, kept across reboots
+        s.run("printf 'net.core.rmem_max = 16777216\\nnet.core.wmem_max = 16777216\\nnet.core.rmem_default = 1048576\\n"
+              "net.core.wmem_default = 1048576\\n' > /etc/sysctl.d/99-alexen-udp.conf && sysctl -q -p /etc/sysctl.d/99-alexen-udp.conf || true",
+              check=False, quiet=True)
         step("firewall", "opening the ports in the firewall")
         ports = sorted(set(open_ports) | ({(int(node["port"]), "tcp"), (int(node["api_port"]), "tcp")} if node else set())
                        | ({(62060, "tcp")} if agent else set()))

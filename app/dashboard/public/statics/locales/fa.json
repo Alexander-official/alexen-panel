@@ -1357,5 +1357,13 @@
   "outb.routeApply": "اعمال (سپس ذخیره)",
   "outb.notConnected": "این سرور به پنل وصل نیست ({{status}}): تنظیم خروجی به آن نمی‌رسد و هنوز از تنظیم قبلی استفاده می‌کند. اول وصلش کنید.",
   "outb.connectViaSsh": "اتصال از طریق SSH",
-  "outb.sshSwitched": "در حال اتصال از طریق SSH… تا یک دقیقه طول می‌کشد"
+  "outb.sshSwitched": "در حال اتصال از طریق SSH… تا یک دقیقه طول می‌کشد",
+  "coreEditors.realIp": "پشت CDN: IP واقعی را از هدر بگیر",
+  "coreEditors.realIpHelp": "از طریق Cloudflare (یا CDN دیگر) همه اتصال‌ها از سرورهای CDN می‌آیند؛ کاربر با ده‌ها IP دیده می‌شود و محدودیت IP قطعش می‌کند. روشن: Xray آدرس کلاینت را از هدر CDN (CF-Connecting-IP / X-Forwarded-For) می‌گیرد. فقط برای inboundهایی که کاربران از طریق CDN به آن وصل می‌شوند: کسی که مستقیم وصل شود می‌تواند هدر را جعل کند.",
+  "deleteNode.clean": "Alexen را از سرور هم حذف کن",
+  "deleteNode.cleanHelp": "از طریق SSH: کانتینرها، قوانین فایروال (preroute / VPN)، تونل‌ها و فایل‌ها. پنل‌های دیگر روی سرور (3x-ui و …) دست نمی‌خورند و پورت‌هایشان دوباره آزاد می‌شود.",
+  "deleteNode.cleanManual": "ورود VPS برای این نود ذخیره نشده: برای حذف Alexen از سرور، این را روی آن با root اجرا کنید:",
+  "deleteNode.cleaned": "Alexen از سرور حذف شد",
+  "deleteNode.cleanFailed": "نود حذف نشد. برای حذف فقط از پنل، تیک گزینه را بردارید.",
+  "activity.do.nodeUninstall": "Alexen را از سرور نود #{{id}} حذف کرد"
 }

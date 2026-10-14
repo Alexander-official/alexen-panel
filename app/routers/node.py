@@ -373,6 +373,36 @@ def update_node_xray(dbnode: NodeResponse = Depends(get_node), _: Admin = Depend
     return {"version": version}
 
 
+@router.post("/node/{node_id}/uninstall")
+def uninstall_node(dbnode: NodeResponse = Depends(get_node), _: Admin = Depends(Admin.check_sudo_admin)):
+    """remove everything Alexen put on the node's server (containers, firewall rules, tunnels, files)
+    over SSH; other panels on it stay untouched"""
+    import shlex
+    from app import node_install, outbound_tools
+    try:
+        client, Session = outbound_tools.ssh_session(dbnode.id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    try:
+        with GetDB() as db:
+            lg = node_extras.get(db, dbnode.id).ssh
+        s = Session(client, lg.username, node_extras.decrypt(lg.secret) if lg.auth == "password" else "", lambda _: None)
+        with open(os.path.join(node_install.AGENT_DIR, "uninstall.sh"), "rb") as f:
+            s.upload(f.read(), "/tmp/alexen-uninstall.sh", 0o755)
+        out = s.run("bash /tmp/alexen-uninstall.sh; rc=$?; rm -f /tmp/alexen-uninstall.sh; exit $rc", check=False, quiet=True)
+    except node_install.InstallError as e:
+        raise HTTPException(400, str(e))
+    finally:
+        try:
+            client.close()
+        except Exception:
+            pass
+    lines = [l for l in out.splitlines() if l.strip()]
+    if any("!! an Alexen container is still running" in l for l in lines):
+        raise HTTPException(400, "Alexen couldn't be fully removed: " + " / ".join(lines[-3:]))
+    return {"log": lines[-40:]}
+
+
 class InstallIn(BaseModel):
     ssh: _Optional[SSHIn] = None   # empty: the saved login
     save: bool = False             # keep this login for later

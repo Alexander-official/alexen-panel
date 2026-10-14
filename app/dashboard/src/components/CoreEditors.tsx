@@ -18,6 +18,7 @@ import {
   ModalOverlay,
   Select,
   SimpleGrid,
+  Switch,
   Text,
   Textarea,
   Tooltip,
@@ -128,6 +129,21 @@ const inboundSummary = (i: any) => {
   return parts.join(" · ");
 };
 
+// transports that can sit behind a CDN (Cloudflare & co.): the client's real IP
+// then only comes in a header, Xray must be told to trust it
+const CDN_NETWORKS = new Set(["ws", "xhttp", "splithttp", "httpupgrade", "grpc", "h2", "http"]);
+const REAL_IP_HEADERS = ["CF-Connecting-IP", "X-Real-IP", "X-Forwarded-For"];
+const withRealIp = (inbound: any, on: boolean) => {
+  const next = clone(inbound);
+  next.streamSettings = next.streamSettings || {};
+  const sockopt = { ...(next.streamSettings.sockopt || {}) };
+  if (on) sockopt.trustedXForwardedFor = REAL_IP_HEADERS;
+  else delete sockopt.trustedXForwardedFor;
+  if (Object.keys(sockopt).length) next.streamSettings.sockopt = sockopt;
+  else delete next.streamSettings.sockopt;
+  return next;
+};
+
 export const InboundsEditor: FC<EditorProps> = ({ config, onChange }) => {
   const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
@@ -189,6 +205,21 @@ export const InboundsEditor: FC<EditorProps> = ({ config, onChange }) => {
               <Text fontSize="xs" color="gray.500" noOfLines={1}>
                 {inboundSummary(i)}
               </Text>
+              {CDN_NETWORKS.has(i.streamSettings?.network) && (
+                <HStack spacing={2} mt={1}>
+                  <Switch
+                    size="sm"
+                    colorScheme="primary"
+                    isChecked={!!i.streamSettings?.sockopt?.trustedXForwardedFor?.length}
+                    onChange={(e) => update(inbounds.map((x, n) => (n === index ? withRealIp(x, e.target.checked) : x)))}
+                  />
+                  <Tooltip label={t("coreEditors.realIpHelp")} hasArrow>
+                    <Text fontSize="2xs" color="gray.500" cursor="help">
+                      {t("coreEditors.realIp")}
+                    </Text>
+                  </Tooltip>
+                </HStack>
+              )}
             </Box>
             <HStack spacing={0}>
               <MoveButtons index={index} count={inbounds.length} onMove={(to) => update(move(inbounds, index, to))} />

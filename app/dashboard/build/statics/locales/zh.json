@@ -1353,5 +1353,13 @@
   "outb.routeApply": "应用（然后保存）",
   "outb.notConnected": "此服务器未连接到面板（{{status}}）：出口设置无法下发，它仍在使用旧设置。请先连接。",
   "outb.connectViaSsh": "通过 SSH 连接",
-  "outb.sshSwitched": "正在通过 SSH 连接……最多需要一分钟"
+  "outb.sshSwitched": "正在通过 SSH 连接……最多需要一分钟",
+  "coreEditors.realIp": "在 CDN 后面：从请求头取真实 IP",
+  "coreEditors.realIpHelp": "经 Cloudflare（或其他 CDN）时，所有连接都来自 CDN 的服务器，用户会显示几十个 IP，并被 IP 限制断开。开启：Xray 使用 CDN 传来的客户端地址（CF-Connecting-IP / X-Forwarded-For）。仅用于用户经 CDN 连接的入站：直连者可以伪造该请求头。",
+  "deleteNode.clean": "同时从服务器上移除 Alexen",
+  "deleteNode.cleanHelp": "通过 SSH：容器、防火墙规则（preroute / VPN）、隧道和文件。服务器上的其他面板（3x-ui 等）不受影响，端口重新空出。",
+  "deleteNode.cleanManual": "此节点未保存 VPS 登录：要从服务器移除 Alexen，请在服务器上以 root 运行：",
+  "deleteNode.cleaned": "已从服务器移除 Alexen",
+  "deleteNode.cleanFailed": "节点未被删除。取消勾选即可只从面板删除。",
+  "activity.do.nodeUninstall": "从节点 #{{id}} 的服务器移除了 Alexen"
 }

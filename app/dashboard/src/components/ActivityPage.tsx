@@ -73,6 +73,7 @@ const RULES: [string, RegExp, string, string[]][] = [
   ["PUT", /^\/api\/node\/(\d+)\/extra$/, "nodeExtra", ["id"]],
   ["POST", /^\/api\/node\/(\d+)\/restart$/, "nodeRestart", ["id"]],
   ["POST", /^\/api\/node\/(\d+)\/update-xray$/, "nodeXray", ["id"]],
+  ["POST", /^\/api\/node\/(\d+)\/uninstall$/, "nodeUninstall", ["id"]],
   ["PUT", /^\/api\/chain\/([^/]+)\/exit$/, "serverExit", ["id"]],
   ["PUT", /^\/api\/chain\/([^/]+)$/, "serverExit", ["id"]],
   ["POST", /^\/api\/outbounds\/traffic\/reset$/, "outboundTraffic", []],
