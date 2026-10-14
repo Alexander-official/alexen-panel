@@ -156,8 +156,9 @@ create_creator() {
         pass=$(ask_secret "Password for $user (min. 8 characters): ")
         [ ${#pass} -ge 8 ] || { echo "${Y}too short${N}" >&2; pass=""; [ -r /dev/tty ] || fail "set ALEXEN_PASSWORD"; }
     done
-    docker exec -e MARZBAN_ADMIN_PASSWORD="$pass" $APP marzban-cli admin create --sudo --creator -u "$user" -tg "" -dc "" >/dev/null \
-        || fail "couldn't create $user (it may exist already: alexen cli admin update -u $user)"
+    docker exec -e MARZBAN_ADMIN_PASSWORD="$pass" $APP marzban-cli admin create --sudo --creator -u "$user" -tg "" -dc "" \
+        >/tmp/$APP-admin.log 2>&1 && grep -q "created successfully" /tmp/$APP-admin.log \
+        || { tail -5 /tmp/$APP-admin.log >&2; fail "couldn't create $user (it may exist already: alexen cli admin update -u $user)"; }
     ADMIN_USER=$user
 }
 
@@ -181,7 +182,7 @@ cmd_install() {
     write_config "$host" "$port"
     install_cli
     say "starting"
-    dc up -d >/dev/null
+    dc up -d >/dev/null 2>&1 || { dc up -d; fail "the panel didn't start"; }
     wait_up "$port"
     open_port "$port"
     # installed again over kept data: its creator is still there
