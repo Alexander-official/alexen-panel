@@ -524,9 +524,11 @@ export const StatsHistory: FC = () => {
     <VStack align="stretch" spacing={4}>
       <HStack justifyContent="space-between" flexWrap="wrap" rowGap={2}>
         <Text fontWeight="semibold">{t("overview.history")}</Text>
-        <HStack spacing={2}>
+        <HStack spacing={2} minW={0} maxW="100%" flexWrap="wrap" rowGap={2} justifyContent="flex-end">
           <KindToggle value={kind} options={TIME_KINDS} onChange={setKind} />
-          <PeriodPicker value={range} onChange={setRange} size="xs" />
+          <Box minW={0} maxW="100%">
+            <PeriodPicker value={range} onChange={setRange} size="xs" />
+          </Box>
         </HStack>
       </HStack>
       <Card title={t("overview.trafficIn", { period: periodLabel(t, range) }) + " · " + formatBytes(data.traffic.total, 1)}>

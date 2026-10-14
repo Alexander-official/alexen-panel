@@ -2,6 +2,7 @@ import {
   Badge,
   Box,
   Button,
+  ButtonGroup,
   Checkbox,
   FormControl,
   FormLabel,
@@ -31,6 +32,7 @@ import { serverMessage } from "utils/serverMessage";
 import { AdminSubProfile } from "./AdminSubProfile";
 import { useQuery } from "react-query";
 import { formatBytes } from "utils/formatByte";
+import useGetUser from "hooks/useGetUser";
 
 const EditIcon = chakra(PencilIcon, { baseStyle: { w: 4, h: 4 } });
 const DeleteIcon = chakra(TrashIcon, { baseStyle: { w: 4, h: 4 } });
@@ -39,6 +41,7 @@ const AddIcon = chakra(PlusIcon, { baseStyle: { w: 4, h: 4 } });
 type AdminItem = {
   username: string;
   is_sudo: boolean;
+  is_creator?: boolean;
   users_usage: number;
   users_limit: number | null;
   traffic_limit: number | null;
@@ -52,6 +55,7 @@ type FormState = {
   username: string;
   password: string;
   is_sudo: boolean;
+  is_creator: boolean;
   users_limit: string;
   traffic_limit: string; // in GB
   expire_date: string; // yyyy-mm-dd
@@ -64,6 +68,7 @@ const emptyForm: FormState = {
   username: "",
   password: "",
   is_sudo: false,
+  is_creator: false,
   users_limit: "",
   traffic_limit: "",
   expire_date: "",
@@ -104,6 +109,13 @@ export const AdminsModal: FC = () => {
     }
   }, [isManagingAdmins]);
 
+  const { userData: me } = useGetUser();
+  const iAmCreator = !!(me as any)?.is_creator;
+  const myName = (me as any)?.username;
+  // a sudo / creator account: only the creator changes it (and everyone their own)
+  const canManage = (a: AdminItem) => !(a.is_sudo || a.is_creator) || iAmCreator || a.username === myName;
+  const role = form.is_creator ? "creator" : form.is_sudo ? "sudo" : "admin";
+
   const startCreate = () => {
     setForm(emptyForm);
     setEditing(null);
@@ -116,6 +128,7 @@ export const AdminsModal: FC = () => {
       username: admin.username,
       password: "",
       is_sudo: admin.is_sudo,
+      is_creator: !!admin.is_creator,
       users_limit: admin.users_limit ? String(admin.users_limit) : "",
       traffic_limit: admin.traffic_limit
         ? String(admin.traffic_limit / 1073741824)
@@ -135,7 +148,9 @@ export const AdminsModal: FC = () => {
 
   const submit = () => {
     const body: any = {
-      is_sudo: form.is_sudo,
+      is_sudo: form.is_sudo || form.is_creator,
+      // roles above sudo are the creator's to give (the server checks it too)
+      ...(iAmCreator ? { is_creator: form.is_creator } : {}),
       users_limit: form.users_limit ? parseInt(form.users_limit) : 0,
       traffic_limit: form.traffic_limit
         ? Math.round(parseFloat(form.traffic_limit) * 1073741824)
@@ -242,14 +257,26 @@ export const AdminsModal: FC = () => {
                   }
                 />
               </FormControl>
-              <Checkbox
-                isChecked={form.is_sudo}
-                onChange={(e) =>
-                  setForm({ ...form, is_sudo: e.target.checked })
-                }
-              >
-                {t("admins.isSudo")}
-              </Checkbox>
+              <FormControl>
+                <FormLabel fontSize="sm">{t("admins.role")}</FormLabel>
+                <ButtonGroup size="sm" isAttached variant="outline" w="full">
+                  {(["admin", "sudo", "creator"] as const).map((r) => (
+                    <Button
+                      key={r}
+                      flex="1"
+                      colorScheme={role === r ? "primary" : undefined}
+                      variant={role === r ? "solid" : "outline"}
+                      isDisabled={r !== "admin" && !iAmCreator && role !== r}
+                      onClick={() => setForm({ ...form, is_sudo: r !== "admin", is_creator: r === "creator" })}
+                    >
+                      {t(`admins.roleName.${r}`)}
+                    </Button>
+                  ))}
+                </ButtonGroup>
+                <Text fontSize="2xs" color="gray.500" mt={1}>
+                  {iAmCreator ? t(`admins.roleHelp.${role}`) : t("admins.onlyCreatorRoles")}
+                </Text>
+              </FormControl>
               {!form.is_sudo && (
                 <>
                   <HStack>
@@ -392,14 +419,21 @@ export const AdminsModal: FC = () => {
                   py={2}
                   _dark={{ borderColor: "gray.600" }}
                 >
-                  <HStack justifyContent="space-between">
-                    <VStack align="flex-start" spacing={0}>
-                      <HStack>
+                  <HStack justifyContent="space-between" flexWrap="wrap" rowGap={2}>
+                    <VStack align="flex-start" spacing={0} minW={0} flex="1">
+                      <HStack flexWrap="wrap" rowGap={1}>
                         <Text fontSize="sm" fontWeight="medium">
                           {admin.username}
                         </Text>
-                        {admin.is_sudo && (
-                          <Badge colorScheme="purple">{t("admins.sudo")}</Badge>
+                        {admin.is_creator ? (
+                          <Badge colorScheme="yellow">{t("admins.roleName.creator")}</Badge>
+                        ) : (
+                          admin.is_sudo && <Badge colorScheme="purple">{t("admins.sudo")}</Badge>
+                        )}
+                        {admin.username === myName && (
+                          <Badge variant="outline" fontSize="2xs">
+                            {t("admins.you")}
+                          </Badge>
                         )}
                       </HStack>
                       {!admin.is_sudo && (
@@ -437,22 +471,23 @@ export const AdminsModal: FC = () => {
                         );
                       })()}
                     </VStack>
-                    <HStack>
+                    <HStack flexShrink={0} ml="auto">
                       {!admin.is_sudo && (
                         <Button size="xs" variant="outline" colorScheme="primary" onClick={() => startEdit(admin, true)}>
                           {t("adminSub.button")}
                         </Button>
                       )}
-                      <Tooltip label={t("admins.edit")}>
+                      <Tooltip label={canManage(admin) ? t("admins.edit") : t("admins.onlyCreatorEdit")}>
                         <IconButton
                           aria-label="edit"
                           size="xs"
                           variant="ghost"
                           icon={<EditIcon />}
+                          isDisabled={!canManage(admin)}
                           onClick={() => startEdit(admin)}
                         />
                       </Tooltip>
-                      {!admin.is_sudo && (
+                      {(!admin.is_sudo || (iAmCreator && admin.username !== myName)) && (
                         <Tooltip label={t("admins.delete")}>
                           <IconButton
                             aria-label="delete"

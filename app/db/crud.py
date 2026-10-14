@@ -969,7 +969,8 @@ def create_admin(db: Session, admin: AdminCreate) -> Admin:
     dbadmin = Admin(
         username=admin.username,
         hashed_password=admin.hashed_password,
-        is_sudo=admin.is_sudo,
+        is_sudo=admin.is_sudo or admin.is_creator,
+        is_creator=admin.is_creator,
         telegram_id=admin.telegram_id if admin.telegram_id else None,
         discord_webhook=admin.discord_webhook if admin.discord_webhook else None,
         users_limit=admin.users_limit or None,
@@ -998,9 +999,14 @@ def update_admin(db: Session, dbadmin: Admin, modified_admin: AdminModify) -> Ad
         Admin: The updated admin object.
     """
     dbadmin.is_sudo = modified_admin.is_sudo
+    if modified_admin.is_creator is not None:
+        dbadmin.is_creator = modified_admin.is_creator
+    if dbadmin.is_creator:
+        dbadmin.is_sudo = True   # a creator is always sudo too
     if modified_admin.password is not None and dbadmin.hashed_password != modified_admin.hashed_password:
         dbadmin.hashed_password = modified_admin.hashed_password
-        dbadmin.password_reset_at = datetime.utcnow()
+        # whole seconds, like the tokens' "iat": a token issued in the same second stays valid
+        dbadmin.password_reset_at = datetime.utcnow().replace(microsecond=0)
     if modified_admin.telegram_id:
         dbadmin.telegram_id = modified_admin.telegram_id
     if modified_admin.discord_webhook:
@@ -1034,7 +1040,8 @@ def partial_update_admin(db: Session, dbadmin: Admin, modified_admin: AdminParti
         dbadmin.is_sudo = modified_admin.is_sudo
     if modified_admin.password is not None and dbadmin.hashed_password != modified_admin.hashed_password:
         dbadmin.hashed_password = modified_admin.hashed_password
-        dbadmin.password_reset_at = datetime.utcnow()
+        # whole seconds, like the tokens' "iat": a token issued in the same second stays valid
+        dbadmin.password_reset_at = datetime.utcnow().replace(microsecond=0)
     if modified_admin.telegram_id is not None:
         dbadmin.telegram_id = modified_admin.telegram_id
     if modified_admin.discord_webhook is not None:

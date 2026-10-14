@@ -1365,5 +1365,21 @@
   "deleteNode.cleanManual": "ورود VPS برای این نود ذخیره نشده: برای حذف Alexen از سرور، این را روی آن با root اجرا کنید:",
   "deleteNode.cleaned": "Alexen از سرور حذف شد",
   "deleteNode.cleanFailed": "نود حذف نشد. برای حذف فقط از پنل، تیک گزینه را بردارید.",
-  "activity.do.nodeUninstall": "Alexen را از سرور نود #{{id}} حذف کرد"
+  "activity.do.nodeUninstall": "Alexen را از سرور نود #{{id}} حذف کرد",
+  "admins.role": "نقش",
+  "admins.roleName.admin": "ادمین",
+  "admins.roleName.sudo": "سودو",
+  "admins.roleName.creator": "سازنده",
+  "admins.roleHelp.admin": "فقط کاربران خودش را، در محدوده زیر مدیریت می‌کند.",
+  "admins.roleHelp.sudo": "دسترسی کامل به پنل (سرورها، هسته‌ها، همه کاربران، ادمین‌های عادی). نمی‌تواند سودوهای دیگر را اضافه یا تغییر دهد.",
+  "admins.roleHelp.creator": "هر کاری که سودو می‌کند، به‌علاوه مدیریت سودوها: افزودن، تغییر، حذف، ارتقا / تنزل. پنل همیشه حداقل یک سازنده دارد.",
+  "admins.onlyCreatorRoles": "نقش سودو و سازنده را فقط سازنده می‌دهد.",
+  "admins.onlyCreatorEdit": "فقط سازنده می‌تواند سودوها را تغییر دهد",
+  "admins.you": "شما",
+  "serverMsg.onlyCreatorAdd": "فقط سازنده می‌تواند سودو اضافه کند",
+  "serverMsg.onlyCreatorChange": "فقط سازنده می‌تواند سودوی دیگر را تغییر دهد",
+  "serverMsg.onlyCreatorMake": "فقط سازنده می‌تواند سودو کند",
+  "serverMsg.onlyCreatorDelete": "فقط سازنده می‌تواند سودو را حذف کند",
+  "serverMsg.needCreator": "پنل باید حداقل یک سازنده داشته باشد: اول یکی دیگر را سازنده کنید",
+  "serverMsg.noSelfDelete": "نمی‌توانید حساب خودتان را حذف کنید"
 }

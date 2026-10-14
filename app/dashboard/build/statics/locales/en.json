@@ -1363,5 +1363,21 @@
   "deleteNode.cleanManual": "No VPS login saved for this node: to remove Alexen from the server, run this on it as root:",
   "deleteNode.cleaned": "Alexen removed from the server",
   "deleteNode.cleanFailed": "The node was NOT deleted. Untick the option to delete it from the panel only.",
-  "activity.do.nodeUninstall": "Removed Alexen from the server of node #{{id}}"
+  "activity.do.nodeUninstall": "Removed Alexen from the server of node #{{id}}",
+  "admins.role": "Role",
+  "admins.roleName.admin": "Admin",
+  "admins.roleName.sudo": "Sudo",
+  "admins.roleName.creator": "Creator",
+  "admins.roleHelp.admin": "Manages only their own users, within the limits below.",
+  "admins.roleHelp.sudo": "Full panel access (servers, cores, all users, regular admins). Can't add or change other sudo admins.",
+  "admins.roleHelp.creator": "Everything sudo can, and manages the sudo admins: add, change, remove, promote / demote. The panel always keeps at least one creator.",
+  "admins.onlyCreatorRoles": "Only the creator can give the sudo and creator roles.",
+  "admins.onlyCreatorEdit": "Only the creator can change sudo admins",
+  "admins.you": "you",
+  "serverMsg.onlyCreatorAdd": "Only the creator can add sudo admins",
+  "serverMsg.onlyCreatorChange": "Only the creator can change another sudo admin",
+  "serverMsg.onlyCreatorMake": "Only the creator can make sudo admins",
+  "serverMsg.onlyCreatorDelete": "Only the creator can delete sudo admins",
+  "serverMsg.needCreator": "The panel needs at least one creator: make another one first",
+  "serverMsg.noSelfDelete": "You can't delete your own account"
 }

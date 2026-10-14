@@ -1363,5 +1363,21 @@
   "deleteNode.cleanManual": "Bu düwün üçin VPS girişi ýazylmadyk: Alexen-i serwerden aýyrmak üçin serwerde root hökmünde şuny işlediň:",
   "deleteNode.cleaned": "Alexen serwerden aýryldy",
   "deleteNode.cleanFailed": "Düwün pozulmady. Diňe panelden pozmak üçin saýlawyň bellisini aýryň.",
-  "activity.do.nodeUninstall": "#{{id}} düwüniň serwerinden Alexen aýryldy"
+  "activity.do.nodeUninstall": "#{{id}} düwüniň serwerinden Alexen aýryldy",
+  "admins.role": "Roly",
+  "admins.roleName.admin": "Admin",
+  "admins.roleName.sudo": "Sudo",
+  "admins.roleName.creator": "Creator",
+  "admins.roleHelp.admin": "Diňe öz ulanyjylaryny, aşakdaky çäkleriň içinde dolandyrýar.",
+  "admins.roleHelp.sudo": "Paneliň hemmesi (serwerler, ýadrolar, ähli ulanyjylar, adaty adminler). Başga sudo admin goşup ýa-da üýtgedip bilmeýär.",
+  "admins.roleHelp.creator": "Sudo-nyň edip bilýän ähli zady, şeýle hem sudo adminleri dolandyrýar: goşýar, üýtgedýär, pozýar, ýokarlandyrýar / peseldýär. Panelde elmydama azyndan bir creator galýar.",
+  "admins.onlyCreatorRoles": "Sudo we creator rollaryny diňe creator berip bilýär.",
+  "admins.onlyCreatorEdit": "Sudo adminleri diňe creator üýtgedip bilýär",
+  "admins.you": "sen",
+  "serverMsg.onlyCreatorAdd": "Sudo admini diňe creator goşup bilýär",
+  "serverMsg.onlyCreatorChange": "Başga sudo admini diňe creator üýtgedip bilýär",
+  "serverMsg.onlyCreatorMake": "Sudo admini diňe creator edip bilýär",
+  "serverMsg.onlyCreatorDelete": "Sudo admini diňe creator pozup bilýär",
+  "serverMsg.needCreator": "Panelde azyndan bir creator bolmaly: ilki başga birini creator ediň",
+  "serverMsg.noSelfDelete": "Öz hasabyňyzy pozup bilmersiňiz"
 }

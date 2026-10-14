@@ -147,7 +147,7 @@ export const Statistics: FC<BoxProps> = (props) => {
   const { t } = useTranslation();
   return (
     <SimpleGrid
-      columns={{ base: 2, lg: 4 }}
+      columns={{ base: 2, xl: 4 }}
       spacing={{ base: 2, md: 4 }}
       {...props}
     >

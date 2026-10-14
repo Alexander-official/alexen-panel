@@ -1370,5 +1370,21 @@
   "deleteNode.cleanManual": "Для этой ноды не сохранён вход VPS: чтобы удалить Alexen с сервера, выполните на нём от root:",
   "deleteNode.cleaned": "Alexen удалён с сервера",
   "deleteNode.cleanFailed": "Нода НЕ удалена. Снимите галочку, чтобы удалить её только из панели.",
-  "activity.do.nodeUninstall": "Удалил Alexen с сервера ноды #{{id}}"
+  "activity.do.nodeUninstall": "Удалил Alexen с сервера ноды #{{id}}",
+  "admins.role": "Роль",
+  "admins.roleName.admin": "Админ",
+  "admins.roleName.sudo": "Sudo",
+  "admins.roleName.creator": "Создатель",
+  "admins.roleHelp.admin": "Управляет только своими пользователями, в пределах лимитов ниже.",
+  "admins.roleHelp.sudo": "Полный доступ к панели (серверы, ядра, все пользователи, обычные админы). Не может добавлять или менять других sudo.",
+  "admins.roleHelp.creator": "Всё, что может sudo, плюс управляет sudo-админами: добавляет, меняет, удаляет, повышает / понижает. В панели всегда остаётся хотя бы один создатель.",
+  "admins.onlyCreatorRoles": "Роли sudo и создателя выдаёт только создатель.",
+  "admins.onlyCreatorEdit": "Менять sudo-админов может только создатель",
+  "admins.you": "вы",
+  "serverMsg.onlyCreatorAdd": "Добавлять sudo-админов может только создатель",
+  "serverMsg.onlyCreatorChange": "Менять другого sudo-админа может только создатель",
+  "serverMsg.onlyCreatorMake": "Назначать sudo может только создатель",
+  "serverMsg.onlyCreatorDelete": "Удалять sudo-админов может только создатель",
+  "serverMsg.needCreator": "В панели должен остаться создатель: сначала назначьте другого",
+  "serverMsg.noSelfDelete": "Нельзя удалить свою учётную запись"
 }

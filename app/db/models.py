@@ -42,6 +42,8 @@ class Admin(Base):
     users = relationship("User", back_populates="admin")
     created_at = Column(DateTime, default=datetime.utcnow)
     is_sudo = Column(Boolean, default=False)
+    # creator: above sudo, the only one who can add / change / remove sudo admins
+    is_creator = Column(Boolean, default=False, server_default="0", nullable=False)
     password_reset_at = Column(DateTime, nullable=True)
     telegram_id = Column(BigInteger, nullable=True, default=None)
     discord_webhook = Column(String(1024), nullable=True, default=None)

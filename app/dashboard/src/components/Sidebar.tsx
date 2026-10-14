@@ -422,7 +422,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
                 {userData.username}
               </Text>
               <Text fontSize="xs" color="gray.500" isTruncated>
-                {isSudo ? t("sidebar.sudo") : t("sidebar.reseller")}
+                {(userData as any)?.is_creator ? t("admins.roleName.creator") : isSudo ? t("sidebar.sudo") : t("sidebar.reseller")}
               </Text>
             </Box>
           )}

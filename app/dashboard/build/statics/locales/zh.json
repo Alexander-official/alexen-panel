@@ -1361,5 +1361,21 @@
   "deleteNode.cleanManual": "此节点未保存 VPS 登录：要从服务器移除 Alexen，请在服务器上以 root 运行：",
   "deleteNode.cleaned": "已从服务器移除 Alexen",
   "deleteNode.cleanFailed": "节点未被删除。取消勾选即可只从面板删除。",
-  "activity.do.nodeUninstall": "从节点 #{{id}} 的服务器移除了 Alexen"
+  "activity.do.nodeUninstall": "从节点 #{{id}} 的服务器移除了 Alexen",
+  "admins.role": "角色",
+  "admins.roleName.admin": "管理员",
+  "admins.roleName.sudo": "Sudo",
+  "admins.roleName.creator": "创建者",
+  "admins.roleHelp.admin": "只管理自己的用户，受下面的限制。",
+  "admins.roleHelp.sudo": "完整面板权限（服务器、核心、所有用户、普通管理员）。不能添加或修改其他 sudo。",
+  "admins.roleHelp.creator": "拥有 sudo 的一切权限，并管理 sudo 管理员：添加、修改、删除、升级 / 降级。面板始终至少保留一个创建者。",
+  "admins.onlyCreatorRoles": "只有创建者可以授予 sudo 和创建者角色。",
+  "admins.onlyCreatorEdit": "只有创建者可以修改 sudo 管理员",
+  "admins.you": "你",
+  "serverMsg.onlyCreatorAdd": "只有创建者可以添加 sudo 管理员",
+  "serverMsg.onlyCreatorChange": "只有创建者可以修改其他 sudo 管理员",
+  "serverMsg.onlyCreatorMake": "只有创建者可以设为 sudo",
+  "serverMsg.onlyCreatorDelete": "只有创建者可以删除 sudo 管理员",
+  "serverMsg.needCreator": "面板至少需要一个创建者：请先设置另一个",
+  "serverMsg.noSelfDelete": "不能删除自己的账号"
 }

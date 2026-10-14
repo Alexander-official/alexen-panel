@@ -39,7 +39,7 @@ import classNames from "classnames";
 import { resetStrategy, statusColors } from "constants/UserSettings";
 import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { t } from "i18next";
-import { FC, Fragment, useEffect, useState, memo } from "react";
+import { FC, Fragment, useEffect, useRef, useState, memo } from "react";
 import CopyToClipboard from "react-copy-to-clipboard";
 import { useTranslation } from "react-i18next";
 import { User } from "types/User";
@@ -255,7 +255,22 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
   // the filters bar scrolls away with the page (no sticky band over the
   // themed background), so the table header sticks to the very top
   const top = "0px";
-  const useTable = useBreakpointValue({ base: false, md: true });
+  // the full table needs ~960 px of room; with the sidebar open (and on phones in
+  // "desktop site" mode) the page can be wider than that while the table's own
+  // space isn't, so the choice follows the width actually available
+  const box = useRef<HTMLDivElement>(null);
+  const [roomy, setRoomy] = useState<boolean | null>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const check = () => setRoomy(el.clientWidth >= 1040);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const breakpointTable = useBreakpointValue({ base: false, md: true });
+  const useTable = roomy === null ? breakpointTable : roomy;
 
 
 
@@ -287,10 +302,10 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
   };
 
   return (
-    <Box id="users-table" overflowX={{ base: "unset", md: "unset" }}>
+    <Box id="users-table" ref={box} overflowX={{ base: "unset", md: "unset" }}>
       <Accordion
         allowMultiple
-        display={{ base: "block", md: "none" }}
+        display={useTable ? "none" : "block"}
         index={selectedRow}
       >
         <Table orientation="vertical" zIndex="docked" {...props}>
@@ -554,7 +569,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
       </Accordion>
       <Table
         orientation="vertical"
-        display={{ base: "none", md: "table" }}
+        display={useTable ? "table" : "none"}
         sx={{ "th, td": { px: { md: 3, xl: 5 } } }}
         {...props}
       >

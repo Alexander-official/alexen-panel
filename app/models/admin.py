@@ -22,6 +22,8 @@ class Token(BaseModel):
 class Admin(BaseModel):
     username: str
     is_sudo: bool
+    # above sudo: manages the sudo admins (add, change, remove, promote / demote)
+    is_creator: bool = False
     telegram_id: Optional[int] = None
     discord_webhook: Optional[str] = None
     users_usage: Optional[int] = None
@@ -56,7 +58,8 @@ class Admin(BaseModel):
             return
 
         if payload['username'] in SUDOERS and payload['is_sudo'] is True:
-            return cls(username=payload['username'], is_sudo=True)
+            # the .env admin is the server owner's own way in
+            return cls(username=payload['username'], is_sudo=True, is_creator=True)
 
         dbadmin = crud.get_admin(db, payload['username'])
         if not dbadmin:
@@ -122,6 +125,7 @@ class AdminCreate(Admin):
 class AdminModify(BaseModel):
     password: Optional[str] = None
     is_sudo: bool
+    is_creator: Optional[bool] = None
     telegram_id: Optional[int] = None
     discord_webhook: Optional[str] = None
     users_limit: Optional[int] = Field(None, ge=0)

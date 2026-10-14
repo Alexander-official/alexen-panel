@@ -133,13 +133,19 @@ export const Pagination: FC = () => {
         </HStack>
       </Box>
 
-      <ButtonGroup size="sm" isAttached variant="outline" order={{ base: 1, md: 2 }}>
+      {/* on a phone only the arrows; many pages scroll inside the row instead of the page */}
+      <Box order={{ base: 1, md: 2 }} maxW="100%" overflowX="auto" sx={{ scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" } }}>
+      <ButtonGroup size="sm" isAttached variant="outline">
         <Button
           leftIcon={<PrevIcon />}
+          iconSpacing={{ base: 0, md: 2 }}
+          aria-label={t("previous")}
           onClick={changePage.bind(null, page - 1)}
           isDisabled={page === 0 || noPages === 0}
         >
-          {t("previous")}
+          <Box as="span" display={{ base: "none", md: "inline" }}>
+            {t("previous")}
+          </Box>
         </Button>
         {pages.map((pageIndex) => {
           if (typeof pageIndex === "string")
@@ -157,12 +163,17 @@ export const Pagination: FC = () => {
 
         <Button
           rightIcon={<NextIcon />}
+          iconSpacing={{ base: 0, md: 2 }}
+          aria-label={t("next")}
           onClick={changePage.bind(null, page + 1)}
           isDisabled={page + 1 === noPages || noPages === 0}
         >
-          {t("next")}
+          <Box as="span" display={{ base: "none", md: "inline" }}>
+            {t("next")}
+          </Box>
         </Button>
       </ButtonGroup>
+      </Box>
     </HStack>
   );
 };

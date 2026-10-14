@@ -1363,5 +1363,21 @@
   "deleteNode.cleanManual": "Bu node için VPS girişi kayıtlı değil: Alexen'i sunucudan kaldırmak için sunucuda root olarak bunu çalıştırın:",
   "deleteNode.cleaned": "Alexen sunucudan kaldırıldı",
   "deleteNode.cleanFailed": "Node silinmedi. Sadece panelden silmek için seçeneğin işaretini kaldırın.",
-  "activity.do.nodeUninstall": "Node #{{id}} sunucusundan Alexen kaldırıldı"
+  "activity.do.nodeUninstall": "Node #{{id}} sunucusundan Alexen kaldırıldı",
+  "admins.role": "Rol",
+  "admins.roleName.admin": "Admin",
+  "admins.roleName.sudo": "Sudo",
+  "admins.roleName.creator": "Creator",
+  "admins.roleHelp.admin": "Sadece kendi kullanıcılarını, aşağıdaki limitler içinde yönetir.",
+  "admins.roleHelp.sudo": "Panelin tamamı (sunucular, çekirdekler, tüm kullanıcılar, normal adminler). Başka sudo admin ekleyemez, değiştiremez.",
+  "admins.roleHelp.creator": "Sudo'nun yapabildiği her şey, ayrıca sudo adminleri yönetir: ekler, değiştirir, siler, yükseltir / düşürür. Panelde her zaman en az bir creator kalır.",
+  "admins.onlyCreatorRoles": "Sudo ve creator rollerini sadece creator verebilir.",
+  "admins.onlyCreatorEdit": "Sudo adminleri sadece creator değiştirebilir",
+  "admins.you": "sen",
+  "serverMsg.onlyCreatorAdd": "Sudo admini sadece creator ekleyebilir",
+  "serverMsg.onlyCreatorChange": "Başka bir sudo admini sadece creator değiştirebilir",
+  "serverMsg.onlyCreatorMake": "Sudo admini sadece creator yapabilir",
+  "serverMsg.onlyCreatorDelete": "Sudo admini sadece creator silebilir",
+  "serverMsg.needCreator": "Panelde en az bir creator olmalı: önce başka birini creator yapın",
+  "serverMsg.noSelfDelete": "Kendi hesabınızı silemezsiniz"
 }

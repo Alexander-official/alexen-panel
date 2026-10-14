@@ -100,6 +100,7 @@ def delete_admin(
 def create_admin(
     username: str = typer.Option(..., *utils.FLAGS["username"], show_default=False, prompt=True),
     is_sudo: bool = typer.Option(False, *utils.FLAGS["is_sudo"], prompt=True),
+    is_creator: bool = typer.Option(False, "--creator", help="The panel's owner: also manages the sudo admins"),
     password: str = typer.Option(..., prompt=True, confirmation_prompt=True,
                                  hide_input=True, hidden=True, envvar=utils.PASSWORD_ENVIRON_NAME),
     telegram_id: str = typer.Option('', *utils.FLAGS["telegram_id"], prompt="Telegram ID",
@@ -116,7 +117,8 @@ def create_admin(
         try:
             crud.create_admin(db, AdminCreate(username=username,
                                               password=password,
-                                              is_sudo=is_sudo,
+                                              is_sudo=is_sudo or is_creator,
+                                              is_creator=is_creator,
                                               telegram_id=telegram_id,
                                               discord_webhook=discord_webhook))
             utils.success(f'Admin "{username}" created successfully.')
