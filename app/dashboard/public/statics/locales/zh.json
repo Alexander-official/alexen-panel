@@ -1344,5 +1344,14 @@
   "serverMsg.notBackup": "这不是 Alexen 备份（.zip）",
   "serverMsg.backupDamaged": "备份中的数据库已损坏",
   "serverMsg.backupNewer": "此备份来自更新版本的面板：请先更新面板",
-  "serverMsg.backupUnsafe": "备份中包含不应有的文件：已拒绝"
+  "serverMsg.backupUnsafe": "备份中包含不应有的文件：已拒绝",
+  "outb.unused": "未使用",
+  "outb.unusedHelp": "还没有流量走这里：出站只有在有流量被导向它时才生效。用 ⇄ 按钮把入站导向这里、在上方选为某服务器的出口、放进负载均衡，或设为默认（★）。",
+  "outb.routeInbounds": "把入站导向这里",
+  "outb.routeTitle": "经 {{tag}} 出去的入站",
+  "outb.routeHelp": "打开的入站的全部流量，在运行此核心的每台服务器上都经此出站出去（屏蔽规则和上方按网站的规则仍然优先）。若只想让某一个主机配置有独立出口，该主机需要有自己的入站（另一个端口）：同一入站的所有主机都会进入同一个入站，Xray 无法区分。不同服务器的不同出口请在上方「服务器出口」中设置。",
+  "outb.routeApply": "应用（然后保存）",
+  "outb.notConnected": "此服务器未连接到面板（{{status}}）：出口设置无法下发，它仍在使用旧设置。请先连接。",
+  "outb.connectViaSsh": "通过 SSH 连接",
+  "outb.sshSwitched": "正在通过 SSH 连接……最多需要一分钟"
 }

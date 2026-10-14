@@ -7,6 +7,7 @@ from pathlib import PosixPath
 from typing import Union
 
 import commentjson
+from app.utils import jsonc
 from sqlalchemy import func
 
 from app.db import GetDB
@@ -44,15 +45,15 @@ class XRayConfig(dict):
         if isinstance(config, str):
             try:
                 # considering string as json
-                config = commentjson.loads(config)
+                config = jsonc.loads(config)
             except (json.JSONDecodeError, ValueError):
                 # considering string as file path
                 with open(config, 'r') as file:
-                    config = commentjson.loads(file.read())
+                    config = jsonc.loads(file.read())
 
         if isinstance(config, PosixPath):
             with open(config, 'r') as file:
-                config = commentjson.loads(file.read())
+                config = jsonc.loads(file.read())
 
         if isinstance(config, dict):
             config = deepcopy(config)

@@ -1346,5 +1346,14 @@
   "serverMsg.notBackup": "Bu bir Alexen yedeği (.zip) değil",
   "serverMsg.backupDamaged": "Yedeğin veritabanı bozuk",
   "serverMsg.backupNewer": "Bu yedek daha yeni bir panel sürümünden: önce paneli güncelleyin",
-  "serverMsg.backupUnsafe": "Yedekte olmaması gereken dosyalar var: reddedildi"
+  "serverMsg.backupUnsafe": "Yedekte olmaması gereken dosyalar var: reddedildi",
+  "outb.unused": "kullanılmıyor",
+  "outb.unusedHelp": "Buraya henüz hiç trafik gitmiyor: bir çıkış ancak ona trafik gönderen bir şey olursa çalışır. ⇄ düğmesiyle inbound'ları buraya yönlendirin, yukarıda bir sunucunun çıkışı olarak seçin, bir dengeleyiciye koyun veya varsayılan yapın (★).",
+  "outb.routeInbounds": "Inbound'ları buraya yönlendir",
+  "outb.routeTitle": "{{tag}} üzerinden çıkacak inbound'lar",
+  "outb.routeHelp": "Açtığınız inbound'ların tüm trafiği, bu çekirdeği çalıştıran her sunucuda bu çıkıştan gider (engel kuralları ve üstteki siteye göre kurallar yine önce gelir). Sadece tek bir host profiline ayrı çıkış vermek için o host'un kendi inbound'u (ayrı bir port) olmalı: bir inbound'un bütün hostları aynı inbound'a gelir, Xray onları ayırt edemez. Farklı sunuculara farklı çıkışı yukarıdaki Sunucu çıkışları'ndan verebilirsiniz.",
+  "outb.routeApply": "Uygula (sonra kaydet)",
+  "outb.notConnected": "Bu sunucu panele bağlı değil ({{status}}): çıkış ayarı ona ulaşamıyor, hâlâ eskisini kullanıyor. Önce bağlayın.",
+  "outb.connectViaSsh": "SSH üzerinden bağla",
+  "outb.sshSwitched": "SSH üzerinden bağlanıyor… bir dakika kadar sürebilir"
 }

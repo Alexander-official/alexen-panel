@@ -52,6 +52,8 @@ def _state(db: Session) -> dict:
     names = vpn.server_keys(db)
     s = chain.load(db)
     extras = node_extras.load(db).nodes
+    from app.db.models import Node
+    status = {str(n.id): getattr(n.status, "value", n.status) for n in db.query(Node).all()}
     servers = []
     for key, name in names.items():
         link = s.links.get(key)
@@ -65,6 +67,9 @@ def _state(db: Session) -> dict:
             "key": key, "name": name,
             "flag": ex.flag if ex else "",
             "can_test": key == chain.MASTER or bool(ex and ex.ssh and ex.ssh.secret),
+            # a node the panel can't reach doesn't get its exit setting until it connects
+            "status": "connected" if key == chain.MASTER else status.get(key, ""),
+            "transport": "direct" if key == chain.MASTER or not ex else ex.transport,
             "exit_tag": s.exits.get(key, ""),
             "default_out": {"tag": first.get("tag", ""), "protocol": first.get("protocol", "")},
             "choices": choices,

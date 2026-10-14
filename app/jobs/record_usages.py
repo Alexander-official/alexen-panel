@@ -173,8 +173,11 @@ def record_user_usages():
 
     for node_id, node in list(xray.nodes.items()):
         if node.connected and node.started:
-            api_instances[node_id] = node.api
-            usage_coefficient[node_id] = node.usage_coefficient  # fetch the usage coefficient
+            try:  # it can stop between the check and here (reconnect): skip it this round
+                api_instances[node_id] = node.api
+                usage_coefficient[node_id] = node.usage_coefficient  # fetch the usage coefficient
+            except ConnectionError:
+                continue
 
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {node_id: executor.submit(get_users_stats, api) for node_id, api in api_instances.items()}
@@ -268,7 +271,10 @@ def record_node_usages():
     api_instances = {None: xray.api}
     for node_id, node in list(xray.nodes.items()):
         if node.connected and node.started:
-            api_instances[node_id] = node.api
+            try:
+                api_instances[node_id] = node.api
+            except ConnectionError:
+                continue
 
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {node_id: executor.submit(get_outbounds_stats, api, "master" if node_id is None else str(node_id))

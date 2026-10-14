@@ -1346,5 +1346,14 @@
   "serverMsg.notBackup": "Bu Alexen ätiýaçlygy (.zip) däl",
   "serverMsg.backupDamaged": "Ätiýaçlygyň maglumatlar binýady zaýalanan",
   "serverMsg.backupNewer": "Bu ätiýaçlyk has täze panel wersiýasyndan: ilki paneli täzeläň",
-  "serverMsg.backupUnsafe": "Ätiýaçlykda bolmaly däl faýllar bar: ret edildi"
+  "serverMsg.backupUnsafe": "Ätiýaçlykda bolmaly däl faýllar bar: ret edildi",
+  "outb.unused": "ulanylmaýar",
+  "outb.unusedHelp": "Bu ýere entek hiç trafik gitmeýär: çykyş diňe oňa trafik iberýän bir zat bolsa işleýär. ⇄ düwmesi bilen inboundlary şu ýere ugrukdyryň, ýokarda serweriň çykyşy hökmünde saýlaň, deňleýjä goşuň ýa-da adaty ediň (★).",
+  "outb.routeInbounds": "Inboundlary şu ýere ugrukdyr",
+  "outb.routeTitle": "{{tag}} arkaly çykjak inboundlar",
+  "outb.routeHelp": "Açan inboundlaryňyzyň ähli trafigi şu ýadrony işledýän her serwerde şu çykyşdan gidýär (blok düzgünleri we ýokardaky saýta görä düzgünler ýene ilki gelýär). Diňe bir host profiline aýratyn çykyş bermek üçin şol hostuň öz inboundy (başga port) bolmaly: bir inboundyň ähli hostlary şol bir inbounda gelýär, Xray olary tapawutlandyryp bilmeýär. Dürli serwerlere dürli çykyşy ýokardaky Serwer çykyşlaryndan berip bilersiňiz.",
+  "outb.routeApply": "Ulan (soňra ýazdyr)",
+  "outb.notConnected": "Bu serwer panele birikmedik ({{status}}): çykyş sazlamasy oňa ýetip bilmeýär, ol henizem könesini ulanýar. Ilki birikdiriň.",
+  "outb.connectViaSsh": "SSH arkaly birikdir",
+  "outb.sshSwitched": "SSH arkaly birikýär… bir minuta çenli dowam edip biler"
 }

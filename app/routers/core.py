@@ -5,6 +5,7 @@ import time
 from typing import List, Optional
 
 import commentjson
+from app.utils import jsonc
 from fastapi import APIRouter, Depends, HTTPException, WebSocket
 from pydantic import BaseModel, Field
 from starlette.websockets import WebSocketDisconnect
@@ -138,7 +139,7 @@ def restart_core(admin: Admin = Depends(Admin.check_sudo_admin)):
 def get_core_config(admin: Admin = Depends(Admin.check_sudo_admin)) -> dict:
     """Get the current core configuration."""
     with open(XRAY_JSON, "r") as f:
-        config = commentjson.loads(f.read())
+        config = jsonc.loads(f.read())
 
     return config
 

@@ -49,15 +49,15 @@ import { InboundsEditor, JsonToolbar, RoutingEditor } from "./CoreEditors";
 import { OutboundsBoard } from "./OutboundsPage";
 import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import debounce from "lodash.debounce";
-import { FC, useCallback, useEffect, useRef, useState } from "react";
+import { FC, lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "react-query";
 import { ReadyState } from "react-use-websocket";
 import { useWebSocket } from "react-use-websocket/dist/lib/use-websocket";
 import { getAuthToken } from "utils/authStorage";
 import { Icon } from "./Icon";
-import { JsonEditor } from "./JsonEditor";
-import "./JsonEditor/themes.js";
+// the JSON editor is a big library: only loaded when the JSON tab is opened
+const JsonEditor = lazy(() => import("./JsonEditor").then((m) => ({ default: m.JsonEditor })));
 import { useNodesQuery } from "contexts/NodesContext";
 
 export const MAX_NUMBER_OF_LOGS = 500;
@@ -449,7 +449,9 @@ const CoreSettingModalContent: FC = () => {
                   />
                 )}
                 <Box position="relative" ref={editorRef} h="520px">
-                  <JsonEditor json={editorJson} onChange={changeFromJson} onReady={(e) => (jsonApi.current = e)} />
+                  <Suspense fallback={<Box h="400px" borderRadius="md" bg="var(--tier-2)" />}>
+                    <JsonEditor json={editorJson} onChange={changeFromJson} onReady={(e: any) => (jsonApi.current = e)} />
+                  </Suspense>
                   <IconButton
                     size="xs"
                     aria-label="full screen"

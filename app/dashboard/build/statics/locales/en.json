@@ -1346,5 +1346,14 @@
   "serverMsg.notBackup": "This isn't an Alexen backup (.zip)",
   "serverMsg.backupDamaged": "The backup's database is damaged",
   "serverMsg.backupNewer": "This backup comes from a newer panel version: update the panel first",
-  "serverMsg.backupUnsafe": "The backup contains files it shouldn't: refused"
+  "serverMsg.backupUnsafe": "The backup contains files it shouldn't: refused",
+  "outb.unused": "not used",
+  "outb.unusedHelp": "No traffic goes here yet: an outbound only works when something sends traffic to it. Use the ⇄ button to route inbounds here, pick it as a server's exit above, put it in a balancer, or make it the default (★).",
+  "outb.routeInbounds": "Route inbounds here",
+  "outb.routeTitle": "Inbounds that leave through {{tag}}",
+  "outb.routeHelp": "All traffic of the switched-on inbounds goes out through this outbound, on every server running this core (block rules and per-site rules above it still come first). To give only one host profile its own exit, that host needs its own inbound (another port): every host of an inbound arrives at the same inbound, so Xray can't tell them apart. Different servers can have different exits in Server exits above.",
+  "outb.routeApply": "Apply (then save)",
+  "outb.notConnected": "This server isn't connected to the panel ({{status}}): its exit setting can't reach it, so it still uses its old one. Connect it first.",
+  "outb.connectViaSsh": "Connect through SSH",
+  "outb.sshSwitched": "Connecting through SSH… this takes up to a minute"
 }

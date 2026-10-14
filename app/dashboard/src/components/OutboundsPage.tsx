@@ -61,6 +61,8 @@ type ChainServer = {
   choices: { tag: string; kind: "outbound" | "balancer"; protocol: string }[];
   link: null | { exit: string; exit_name: string; port: number; address: string; default_address: string; sni: string };
   relays: string[];
+  status?: string;
+  transport?: string;
 };
 type Traffic = { since: number; servers: Record<string, Record<string, { up: number; down: number }>> };
 
@@ -86,7 +88,7 @@ const PROTO_COLOR: Record<string, string> = {
 const UNTESTABLE = new Set(["blackhole", "dns", "loopback"]);
 
 export const useChainServers = () =>
-  useQuery<{ servers: ChainServer[] }>({ queryKey: "chain-servers", queryFn: () => fetch("/chain"), staleTime: 10000 });
+  useQuery<{ servers: ChainServer[] }>({ queryKey: "chain-servers", queryFn: () => fetch("/chain"), staleTime: 10000, refetchInterval: 15000 });
 
 const delayColor = (ms: number) => (ms < 300 ? "green" : ms < 800 ? "yellow" : "red");
 
@@ -180,6 +182,78 @@ const ProtoBadge: FC<{ p: string }> = ({ p }) => (
 
 // ------------------------------------------------------------------ outbounds
 
+// "send these inbounds' traffic out through this outbound": one rule on top
+const RouteInbounds: FC<{ config: any; tag: string; onClose: () => void; onApply: (c: any) => void }> = ({ config, tag, onClose, onApply }) => {
+  const { t } = useTranslation();
+  const apiTag = config?.api?.tag;
+  const inbounds: any[] = (config?.inbounds || []).filter((i: any) => i.tag && i.tag !== apiTag && i.tag !== "API_INBOUND");
+  const rules: any[] = config?.routing?.rules || [];
+  const already = new Set(rules.filter((r) => r.outboundTag === tag).flatMap((r) => r.inboundTag || []));
+  const [picked, setPicked] = useState<string[]>([...already]);
+  const apply = () => {
+    const next = clone(config);
+    // drop this outbound's plain inbound rules, then put one rule with the picked inbounds first
+    let list: any[] = (next.routing?.rules || []).filter(
+      (r: any) => !(r.outboundTag === tag && r.inboundTag && Object.keys(r).every((k) => ["type", "inboundTag", "outboundTag"].includes(k)))
+    );
+    // these inbounds can't keep going elsewhere through another plain inbound rule
+    list = list
+      .map((r: any) =>
+        r.inboundTag && Object.keys(r).every((k) => ["type", "inboundTag", "outboundTag", "balancerTag"].includes(k))
+          ? { ...r, inboundTag: r.inboundTag.filter((x: string) => !picked.includes(x)) }
+          : r
+      )
+      .filter((r: any) => !r.inboundTag || r.inboundTag.length);
+    if (picked.length) {
+      const at = list.findIndex((r: any) => !(r.inboundTag || []).includes(apiTag || "API_INBOUND"));
+      list.splice(at < 0 ? list.length : at, 0, { type: "field", inboundTag: picked, outboundTag: tag });
+    }
+    next.routing = { ...(next.routing || {}), rules: list };
+    onApply(next);
+  };
+  return (
+    <Modal isOpen onClose={onClose} size="lg">
+      <ModalOverlay />
+      <ModalContent mx={3}>
+        <ModalHeader fontSize="md">{t("outb.routeTitle", { tag })}</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb={5}>
+          <Text fontSize="xs" color="gray.500" mb={3}>
+            {t("outb.routeHelp")}
+          </Text>
+          <VStack align="stretch" spacing={1.5}>
+            {inbounds.map((i) => (
+              <HStack key={i.tag} px={3} py={2} borderRadius="10px" bg="var(--tier-item)" justifyContent="space-between">
+                <Box minW={0}>
+                  <Text fontSize="sm" fontWeight="medium">
+                    {i.tag}
+                  </Text>
+                  <Text fontSize="2xs" color="gray.500">
+                    {i.protocol} · {i.port}
+                  </Text>
+                </Box>
+                <Switch
+                  colorScheme="primary"
+                  isChecked={picked.includes(i.tag)}
+                  onChange={(e) => setPicked(e.target.checked ? [...picked, i.tag] : picked.filter((x) => x !== i.tag))}
+                />
+              </HStack>
+            ))}
+          </VStack>
+          <HStack justifyContent="flex-end" mt={4}>
+            <Button size="sm" variant="ghost" onClick={onClose}>
+              {t("cancel")}
+            </Button>
+            <Button size="sm" colorScheme="primary" onClick={apply}>
+              {t("outb.routeApply")}
+            </Button>
+          </HStack>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  );
+};
+
 export const OutboundsBoard: FC<{ config: any; onChange: (c: any) => void }> = ({ config, onChange }) => {
   const { t } = useTranslation();
   const toast = useToast();
@@ -188,6 +262,7 @@ export const OutboundsBoard: FC<{ config: any; onChange: (c: any) => void }> = (
   const { data: traffic } = useQuery<Traffic>({ queryKey: "outbound-traffic", queryFn: () => fetch("/outbounds/traffic"), refetchInterval: 30000 });
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
+  const [routing, setRouting] = useState<number | null>(null);
   const [server, setServer] = useState("master");
   const [url, setUrl] = useState("");
   const [sites, setSites] = useState(true);
@@ -315,6 +390,13 @@ export const OutboundsBoard: FC<{ config: any; onChange: (c: any) => void }> = (
                       {t("outb.exitOf", { name: n })}
                     </Badge>
                   ))}
+                  {index > 0 && !u.rules && !u.balancers && !u.exits.length && !UNTESTABLE.has(o.protocol) && (
+                    <Tooltip label={t("outb.unusedHelp")} hasArrow>
+                      <Badge fontSize="2xs" colorScheme="orange" variant="subtle" cursor="help">
+                        {t("outb.unused")}
+                      </Badge>
+                    </Tooltip>
+                  )}
                 </HStack>
                 <Text fontSize="xs" color="gray.500" noOfLines={1} wordBreak="break-all">
                   {outboundSummary(o) || o.protocol}
@@ -358,6 +440,9 @@ export const OutboundsBoard: FC<{ config: any; onChange: (c: any) => void }> = (
                       update(next);
                     }}
                   />
+                </Tooltip>
+                <Tooltip label={t("outb.routeInbounds")} hasArrow>
+                  <IconButton aria-label="route" icon={<ArrowsRightLeftIcon width={15} />} isDisabled={UNTESTABLE.has(o.protocol)} onClick={() => setRouting(index)} />
                 </Tooltip>
                 <Tooltip label={t("outb.makeDefault")} hasArrow>
                   <IconButton
@@ -403,6 +488,17 @@ export const OutboundsBoard: FC<{ config: any; onChange: (c: any) => void }> = (
         </HStack>
       )}
 
+      {routing != null && outbounds[routing] && (
+        <RouteInbounds
+          config={config}
+          tag={outbounds[routing].tag}
+          onClose={() => setRouting(null)}
+          onApply={(next) => {
+            onChange(next);
+            setRouting(null);
+          }}
+        />
+      )}
       <Modal isOpen={editingOb != null} onClose={() => setEditing(null)} size="2xl" scrollBehavior="inside">
         <ModalOverlay />
         <ModalContent mx={3}>
@@ -458,6 +554,16 @@ const ServerExitRow: FC<{ s: ChainServer; all: ChainServer[]; dirty: boolean }> 
       queryClient.invalidateQueries("chain-servers");
       setSaving(false);
     }
+  };
+  const viaSsh = () => {
+    setSaving(true);
+    fetch(`/node/${s.key}/extra`, { method: "PUT", body: { flag: s.flag || "", transport: "ssh" } })
+      .then(() => toast({ status: "info", title: t("outb.sshSwitched"), position: "top", duration: 4000 }))
+      .catch((e: any) => toast({ status: "error", title: errText(t, e), position: "top", duration: 6000 }))
+      .finally(() => {
+        setSaving(false);
+        [3000, 15000, 40000].forEach((ms) => setTimeout(() => queryClient.invalidateQueries("chain-servers"), ms));
+      });
   };
   const runCheck = () => {
     setChecking(true);
@@ -517,6 +623,18 @@ const ServerExitRow: FC<{ s: ChainServer; all: ChainServer[]; dirty: boolean }> 
         <Text fontSize="2xs" color="gray.500" mt={1.5}>
           {t("outb.linkInfo", { port: s.link.port, address: s.link.address || s.link.default_address })}
         </Text>
+      )}
+      {s.key !== "master" && s.status && s.status !== "connected" && (
+        <HStack mt={2} p={2.5} borderRadius="10px" bg="color-mix(in srgb, var(--chakra-colors-red-500) 12%, transparent)" spacing={3} flexWrap="wrap" rowGap={2}>
+          <Text fontSize="xs" color="red.400" flex="1" minW="220px">
+            {t("outb.notConnected", { status: t(`nodeConn.status.${s.status}`) })}
+          </Text>
+          {s.transport !== "ssh" && s.can_test && s.status !== "disabled" && (
+            <Button size="xs" colorScheme="red" variant="outline" isLoading={saving} onClick={viaSsh}>
+              {t("outb.connectViaSsh")}
+            </Button>
+          )}
+        </HStack>
       )}
       {check && (
         <VStack align="stretch" spacing={1} mt={2}>

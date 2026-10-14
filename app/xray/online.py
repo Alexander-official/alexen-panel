@@ -38,7 +38,10 @@ def refresh():
     apis = {MASTER_NAME: xray.api}
     for node_id, node in list(xray.nodes.items()):
         if node.connected and node.started:
-            apis[node_names.get(node_id, f"node {node_id}")] = node.api
+            try:  # it can stop between the check and here (reconnect): skip it this round
+                apis[node_names.get(node_id, f"node {node_id}")] = node.api
+            except ConnectionError:
+                continue
 
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {name: executor.submit(_fetch, api) for name, api in apis.items()}
