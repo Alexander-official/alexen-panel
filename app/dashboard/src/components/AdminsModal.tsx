@@ -112,8 +112,8 @@ export const AdminsModal: FC = () => {
   const { userData: me } = useGetUser();
   const iAmCreator = !!(me as any)?.is_creator;
   const myName = (me as any)?.username;
-  // a sudo / creator account: only the creator changes it (and everyone their own)
-  const canManage = (a: AdminItem) => !(a.is_sudo || a.is_creator) || iAmCreator || a.username === myName;
+  // a creator account: only a creator changes it (the server doesn't even list it for the others)
+  const canManage = (a: AdminItem) => !a.is_creator || iAmCreator || a.username === myName;
   const role = form.is_creator ? "creator" : form.is_sudo ? "sudo" : "admin";
   // same rules as the server (app/models/admin.py)
   const nameError =
@@ -287,13 +287,12 @@ export const AdminsModal: FC = () => {
               <FormControl>
                 <FormLabel fontSize="sm">{t("admins.role")}</FormLabel>
                 <ButtonGroup size="sm" isAttached variant="outline" w="full">
-                  {(["admin", "sudo", "creator"] as const).map((r) => (
+                  {(iAmCreator ? (["admin", "sudo", "creator"] as const) : (["admin", "sudo"] as const)).map((r) => (
                     <Button
                       key={r}
                       flex="1"
                       colorScheme={role === r ? "primary" : undefined}
                       variant={role === r ? "solid" : "outline"}
-                      isDisabled={r !== "admin" && !iAmCreator && role !== r}
                       onClick={() => setForm({ ...form, is_sudo: r !== "admin", is_creator: r === "creator" })}
                     >
                       {t(`admins.roleName.${r}`)}
@@ -301,7 +300,7 @@ export const AdminsModal: FC = () => {
                   ))}
                 </ButtonGroup>
                 <Text fontSize="2xs" color="gray.500" mt={1}>
-                  {iAmCreator ? t(`admins.roleHelp.${role}`) : t("admins.onlyCreatorRoles")}
+                  {t(`admins.roleHelp.${role}`)}
                 </Text>
               </FormControl>
               {!form.is_sudo && (
@@ -514,7 +513,7 @@ export const AdminsModal: FC = () => {
                           onClick={() => startEdit(admin)}
                         />
                       </Tooltip>
-                      {(!admin.is_sudo || (iAmCreator && admin.username !== myName)) && (
+                      {admin.username !== myName && canManage(admin) && (
                         <Tooltip label={t("admins.delete")}>
                           <IconButton
                             aria-label="delete"

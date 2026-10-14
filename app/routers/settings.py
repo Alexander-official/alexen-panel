@@ -371,7 +371,7 @@ class AdminSubProfile(BaseModel):
 
 
 def _profile_access(db: Session, name: str, admin: Admin):
-    """a creator's profile is hidden from the sudo admins, another sudo's is read only for them"""
+    """a creator's profile is hidden from the sudo admins"""
     from app.db.models import Admin as DBAdmin
     target = db.query(DBAdmin).filter(DBAdmin.username == name).first()
     if not target or target.username == admin.username or admin.is_creator:
@@ -409,9 +409,7 @@ def read_admin_sub_profile(name: str, db: Session = Depends(get_db),
 @router.put("/admin/{name}/sub-profile", response_model=AdminSubProfile)
 def update_admin_sub_profile(name: str, body: AdminSubProfile, db: Session = Depends(get_db),
                              admin: Admin = Depends(Admin.check_sudo_admin)):
-    target = _profile_access(db, name, admin)
-    if target is not None and target.is_sudo and not admin.is_creator and target.username != admin.username:
-        raise HTTPException(403, "Only the creator can change another sudo admin")
+    _profile_access(db, name, admin)
     # domain
     try:
         own = _domain.AdminDomain(url_prefix=body.url_prefix, suffix=body.suffix)

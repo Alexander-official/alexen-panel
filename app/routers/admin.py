@@ -85,9 +85,9 @@ def create_admin(
     db: Session = Depends(get_db),
     admin: Admin = Depends(Admin.check_sudo_admin),
 ):
-    """Create a new admin if the current admin has sudo privileges (a sudo / creator one: creator only)."""
-    if (new_admin.is_sudo or new_admin.is_creator) and not admin.is_creator:
-        raise HTTPException(status_code=403, detail="Only the creator can add sudo admins")
+    """Create a new admin if the current admin has sudo privileges (a creator one: creator only)."""
+    if new_admin.is_creator and not admin.is_creator:
+        raise HTTPException(status_code=403, detail="You're not allowed")
     try:
         dbadmin = crud.create_admin(db, new_admin)
     except IntegrityError:
@@ -108,15 +108,13 @@ def modify_admin(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(Admin.check_sudo_admin),
 ):
-    """Modify an existing admin's details. Sudo admins change regular admins (and themselves);
-    sudo / creator accounts and roles are the creator's."""
-    target_privileged = dbadmin.is_sudo or getattr(dbadmin, "is_creator", False)
-    self_edit = dbadmin.username == current_admin.username
+    """Modify an existing admin's details. Sudo admins change every admin they can see (regular
+    and sudo ones); the creator accounts and the creator role are the creator's."""
     if not current_admin.is_creator:
-        if target_privileged and not self_edit:
-            raise HTTPException(status_code=403, detail="Only the creator can change another sudo admin")
-        if modified_admin.is_creator or (modified_admin.is_sudo and not dbadmin.is_sudo):
-            raise HTTPException(status_code=403, detail="Only the creator can make sudo admins")
+        if modified_admin.is_creator:
+            raise HTTPException(status_code=403, detail="You're not allowed")
+        # a sudo doesn't send is_creator: leave the role as it is (the creator, editing itself)
+        modified_admin.is_creator = None
     elif getattr(dbadmin, "is_creator", False) and (modified_admin.is_creator is False or not modified_admin.is_sudo) \
             and _creators(db) <= 1:
         raise HTTPException(status_code=400, detail="The panel needs at least one creator: make another one first")
@@ -135,14 +133,11 @@ def remove_admin(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(Admin.check_sudo_admin),
 ):
-    """Remove an admin from the database (a sudo / creator one: creator only)."""
+    """Remove an admin from the database (a creator one: creator only, it is hidden from the others)."""
     if dbadmin.username == current_admin.username:
         raise HTTPException(status_code=400, detail="You can't delete your own account")
-    if dbadmin.is_sudo or getattr(dbadmin, "is_creator", False):
-        if not current_admin.is_creator:
-            raise HTTPException(status_code=403, detail="Only the creator can delete sudo admins")
-        if getattr(dbadmin, "is_creator", False) and _creators(db) <= 1:
-            raise HTTPException(status_code=400, detail="The panel needs at least one creator: make another one first")
+    if getattr(dbadmin, "is_creator", False) and _creators(db) <= 1:
+        raise HTTPException(status_code=400, detail="The panel needs at least one creator: make another one first")
 
     crud.remove_admin(db, dbadmin)
     return {"detail": "Admin removed successfully"}
@@ -177,9 +172,6 @@ def disable_all_active_users(
     db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)
 ):
     """Disable all active users under a specific admin"""
-    if (dbadmin.is_sudo or getattr(dbadmin, "is_creator", False)) and not admin.is_creator \
-            and dbadmin.username != admin.username:
-        raise HTTPException(status_code=403, detail="Only the creator can change another sudo admin")
     crud.disable_all_active_users(db=db, admin=dbadmin)
     startup_config = xray.config.include_db_users()
     xray.core.restart(startup_config)
@@ -195,9 +187,6 @@ def activate_all_disabled_users(
     db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)
 ):
     """Activate all disabled users under a specific admin"""
-    if (dbadmin.is_sudo or getattr(dbadmin, "is_creator", False)) and not admin.is_creator \
-            and dbadmin.username != admin.username:
-        raise HTTPException(status_code=403, detail="Only the creator can change another sudo admin")
     crud.activate_all_disabled_users(db=db, admin=dbadmin)
     startup_config = xray.config.include_db_users()
     xray.core.restart(startup_config)
