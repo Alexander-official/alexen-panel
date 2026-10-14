@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import List, Optional
 
@@ -12,6 +13,19 @@ from config import SUDOERS
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/admin/token")  # Admin view url
+
+
+# 3-32 letters, digits and _ . @ - (it goes in URLs: /api/admin/{username})
+ADMIN_USERNAME_RE = re.compile(r"^[A-Za-z0-9_.@-]{3,32}$")
+ADMIN_PASSWORD_MIN = 6
+
+
+def _check_password(v: Optional[str]) -> Optional[str]:
+    if v is None:
+        return v
+    if len(v) < ADMIN_PASSWORD_MIN or not v.strip():
+        raise ValueError(f"Password must be at least {ADMIN_PASSWORD_MIN} characters")
+    return v
 
 
 class Token(BaseModel):
@@ -114,6 +128,19 @@ class AdminCreate(Admin):
     def hashed_password(self):
         return pwd_context.hash(self.password)
 
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, v: str):
+        v = (v or "").strip()
+        if not ADMIN_USERNAME_RE.match(v):
+            raise ValueError("Admin username must be 3-32 characters: letters, digits and _ . @ -")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str):
+        return _check_password(v)
+
     @field_validator("discord_webhook")
     @classmethod
     def validate_discord_webhook(cls, value):
@@ -139,6 +166,12 @@ class AdminModify(BaseModel):
     def hashed_password(self):
         if self.password:
             return pwd_context.hash(self.password)
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def validate_password(cls, v):
+        # empty: keep the current password
+        return _check_password(v or None)
 
     @field_validator("discord_webhook")
     @classmethod

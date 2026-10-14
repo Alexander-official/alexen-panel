@@ -20,6 +20,18 @@ def _creators(db) -> int:
 router = APIRouter(tags=["Admin"], prefix="/api", responses={401: responses._401})
 
 
+def get_visible_admin(
+    dbadmin: Admin = Depends(get_admin_by_username),
+    current_admin: Admin = Depends(Admin.check_sudo_admin),
+):
+    """The admin in the path, as far as the caller may see it: the creator accounts
+    are hidden from the sudo admins (like the sudo ones are from the regular admins)."""
+    if getattr(dbadmin, "is_creator", False) and not current_admin.is_creator \
+            and dbadmin.username != current_admin.username:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return dbadmin
+
+
 def get_client_ip(request: Request) -> str:
     """The client's IP; X-Forwarded-For only counts when a trusted proxy sent it (app/login_guard.py)."""
     from app import login_guard
@@ -92,7 +104,7 @@ def create_admin(
 )
 def modify_admin(
     modified_admin: AdminModify,
-    dbadmin: Admin = Depends(get_admin_by_username),
+    dbadmin: Admin = Depends(get_visible_admin),
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(Admin.check_sudo_admin),
 ):
@@ -119,7 +131,7 @@ def modify_admin(
     responses={403: responses._403},
 )
 def remove_admin(
-    dbadmin: Admin = Depends(get_admin_by_username),
+    dbadmin: Admin = Depends(get_visible_admin),
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(Admin.check_sudo_admin),
 ):
@@ -154,13 +166,14 @@ def get_admins(
     db: Session = Depends(get_db),
     admin: Admin = Depends(Admin.check_sudo_admin),
 ):
-    """Fetch a list of admins with optional filters for pagination and username."""
-    return crud.get_admins(db, offset, limit, username)
+    """Fetch a list of admins with optional filters for pagination and username
+    (the creator accounts only for a creator)."""
+    return crud.get_admins(db, offset, limit, username, with_creators=admin.is_creator)
 
 
 @router.post("/admin/{username}/users/disable", responses={403: responses._403, 404: responses._404})
 def disable_all_active_users(
-    dbadmin: Admin = Depends(get_admin_by_username),
+    dbadmin: Admin = Depends(get_visible_admin),
     db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)
 ):
     """Disable all active users under a specific admin"""
@@ -178,7 +191,7 @@ def disable_all_active_users(
 
 @router.post("/admin/{username}/users/activate", responses={403: responses._403, 404: responses._404})
 def activate_all_disabled_users(
-    dbadmin: Admin = Depends(get_admin_by_username),
+    dbadmin: Admin = Depends(get_visible_admin),
     db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)
 ):
     """Activate all disabled users under a specific admin"""
@@ -200,7 +213,7 @@ def activate_all_disabled_users(
     responses={403: responses._403},
 )
 def reset_admin_usage(
-    dbadmin: Admin = Depends(get_admin_by_username),
+    dbadmin: Admin = Depends(get_visible_admin),
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(Admin.check_sudo_admin)
 ):
@@ -214,7 +227,7 @@ def reset_admin_usage(
     responses={403: responses._403},
 )
 def get_admin_usage(
-    dbadmin: Admin = Depends(get_admin_by_username),
+    dbadmin: Admin = Depends(get_visible_admin),
     current_admin: Admin = Depends(Admin.check_sudo_admin)
 ):
     """Retrieve the usage of given admin."""

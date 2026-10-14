@@ -1377,5 +1377,7 @@
   "serverMsg.onlyCreatorMake": "只有创建者可以设为 sudo",
   "serverMsg.onlyCreatorDelete": "只有创建者可以删除 sudo 管理员",
   "serverMsg.needCreator": "面板至少需要一个创建者：请先设置另一个",
-  "serverMsg.noSelfDelete": "不能删除自己的账号"
+  "serverMsg.noSelfDelete": "不能删除自己的账号",
+  "admins.usernameRule": "3-32 个字符：字母、数字和 _ . @ -",
+  "admins.passwordRule": "至少 6 个字符"
 }

@@ -1111,7 +1111,8 @@ def get_admin_by_telegram_id(db: Session, telegram_id: int) -> Admin:
 def get_admins(db: Session,
                offset: Optional[int] = None,
                limit: Optional[int] = None,
-               username: Optional[str] = None) -> List[Admin]:
+               username: Optional[str] = None,
+               with_creators: bool = True) -> List[Admin]:
     """
     Retrieves a list of admins with optional filters and pagination.
 
@@ -1120,11 +1121,14 @@ def get_admins(db: Session,
         offset (Optional[int]): The number of records to skip (for pagination).
         limit (Optional[int]): The maximum number of records to return.
         username (Optional[str]): The username to filter by.
+        with_creators (bool): False leaves out the creator accounts (a sudo admin's view).
 
     Returns:
         List[Admin]: A list of admin objects.
     """
     query = db.query(Admin)
+    if not with_creators:
+        query = query.filter(Admin.is_creator.is_(False))
     if username:
         query = query.filter(Admin.username.ilike(f'%{username}%'))
     if offset:

@@ -115,6 +115,7 @@ def on_startup():
     from app.db import repair
     repair.users_without_proxies()
     repair.out_of_range_values()
+    repair.blank_admins()
     scheduler.start()
 
 

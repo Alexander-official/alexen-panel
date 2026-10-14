@@ -54,3 +54,25 @@ def out_of_range_values() -> None:
             db.commit()
     except Exception as e:
         logger.error(f"clamping out-of-range user values failed: {e}")
+
+
+def blank_admins() -> None:
+    """an admin with an empty name (possible before AdminCreate checked it) can't be opened,
+    changed or removed through the API (/api/admin/{username}): one without users is removed,
+    one with users gets a name"""
+    try:
+        from app.db import GetDB
+        from app.db.models import Admin, User
+        with GetDB() as db:
+            for dbadmin in db.query(Admin).all():
+                if (dbadmin.username or "").strip():
+                    continue
+                if db.query(User).filter(User.admin_id == dbadmin.id).count():
+                    dbadmin.username = f"admin{dbadmin.id}"
+                    logger.warning(f'An admin had an empty name: renamed to "{dbadmin.username}"')
+                else:
+                    db.delete(dbadmin)
+                    logger.warning(f"Removed an admin with an empty name (id {dbadmin.id}, no users)")
+            db.commit()
+    except Exception as e:
+        logger.error(f"repairing admins with an empty name failed: {e}")

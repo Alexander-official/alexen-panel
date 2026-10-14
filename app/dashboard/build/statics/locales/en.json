@@ -1379,5 +1379,7 @@
   "serverMsg.onlyCreatorMake": "Only the creator can make sudo admins",
   "serverMsg.onlyCreatorDelete": "Only the creator can delete sudo admins",
   "serverMsg.needCreator": "The panel needs at least one creator: make another one first",
-  "serverMsg.noSelfDelete": "You can't delete your own account"
+  "serverMsg.noSelfDelete": "You can't delete your own account",
+  "admins.usernameRule": "3-32 characters: letters, digits and _ . @ -",
+  "admins.passwordRule": "At least 6 characters"
 }

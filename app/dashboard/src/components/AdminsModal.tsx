@@ -115,6 +115,14 @@ export const AdminsModal: FC = () => {
   // a sudo / creator account: only the creator changes it (and everyone their own)
   const canManage = (a: AdminItem) => !(a.is_sudo || a.is_creator) || iAmCreator || a.username === myName;
   const role = form.is_creator ? "creator" : form.is_sudo ? "sudo" : "admin";
+  // same rules as the server (app/models/admin.py)
+  const nameError =
+    !editing && form.username.length > 0 && !/^[A-Za-z0-9_.@-]{3,32}$/.test(form.username.trim());
+  const passError =
+    form.password.length > 0 && (form.password.length < 6 || !form.password.trim());
+  const canSave =
+    (!!editing || (/^[A-Za-z0-9_.@-]{3,32}$/.test(form.username.trim()) && form.password.length >= 6)) &&
+    !nameError && !passError;
 
   const startCreate = () => {
     setForm(emptyForm);
@@ -146,11 +154,20 @@ export const AdminsModal: FC = () => {
     setShowForm(true);
   };
 
+  // a 422 lists the fields: show the first message
+  const errorText = (e: any) => {
+    const d = e?.response?._data?.detail;
+    if (Array.isArray(d)) return String(d[0]?.msg || "").replace(/^Value error, /, "");
+    return serverMessage(t, d);
+  };
+
   const submit = () => {
+    if (!canSave) return;
     const body: any = {
       is_sudo: form.is_sudo || form.is_creator,
       // roles above sudo are the creator's to give (the server checks it too)
       ...(iAmCreator ? { is_creator: form.is_creator } : {}),
+      ...(editing && form.password ? { password: form.password } : {}),
       users_limit: form.users_limit ? parseInt(form.users_limit) : 0,
       traffic_limit: form.traffic_limit
         ? Math.round(parseFloat(form.traffic_limit) * 1073741824)
@@ -173,10 +190,10 @@ export const AdminsModal: FC = () => {
       ? fetch(`/admin/${editing}`, { method: "PUT", body })
       : fetch("/admin", {
           method: "POST",
-          body: { ...body, username: form.username, password: form.password },
+          body: { ...body, username: form.username.trim(), password: form.password },
         });
     req
-      .then(() => (!form.is_sudo && profileSave.current ? profileSave.current(editing || form.username) : null))
+      .then(() => (!form.is_sudo && profileSave.current ? profileSave.current(editing || form.username.trim()) : null))
       .then(() => {
         toast({ status: "success", title: t("admins.saved"), duration: 2000 });
         setShowForm(false);
@@ -186,7 +203,7 @@ export const AdminsModal: FC = () => {
       .catch((e) =>
         toast({
           status: "error",
-          title: serverMessage(t, e?.response?._data?.detail) || t("admins.error"),
+          title: errorText(e) || t("admins.error"),
           duration: 4000,
         })
       );
@@ -228,7 +245,7 @@ export const AdminsModal: FC = () => {
         <ModalBody pb={6}>
           {showForm ? (
             <VStack spacing={3} align="stretch">
-              <FormControl>
+              <FormControl isInvalid={nameError} isRequired={!editing}>
                 <FormLabel fontSize="sm">{t("username")}</FormLabel>
                 <Input
                   size="sm"
@@ -238,8 +255,13 @@ export const AdminsModal: FC = () => {
                     setForm({ ...form, username: e.target.value })
                   }
                 />
+                {!editing && (
+                  <Text fontSize="xs" color={nameError ? "red.400" : "gray.500"} mt={1}>
+                    {t("admins.usernameRule")}
+                  </Text>
+                )}
               </FormControl>
-              <FormControl>
+              <FormControl isInvalid={passError} isRequired={!editing}>
                 <FormLabel fontSize="sm">
                   {t("password")}{" "}
                   {editing && (
@@ -256,6 +278,11 @@ export const AdminsModal: FC = () => {
                     setForm({ ...form, password: e.target.value })
                   }
                 />
+                {passError && (
+                  <Text fontSize="xs" color="red.400" mt={1}>
+                    {t("admins.passwordRule")}
+                  </Text>
+                )}
               </FormControl>
               <FormControl>
                 <FormLabel fontSize="sm">{t("admins.role")}</FormLabel>
@@ -403,7 +430,7 @@ export const AdminsModal: FC = () => {
                 <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>
                   {t("cancel")}
                 </Button>
-                <Button size="sm" colorScheme="primary" onClick={submit}>
+                <Button size="sm" colorScheme="primary" onClick={submit} isDisabled={!canSave}>
                   {t("admins.save")}
                 </Button>
               </HStack>

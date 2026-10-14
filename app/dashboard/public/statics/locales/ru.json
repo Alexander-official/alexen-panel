@@ -1386,5 +1386,7 @@
   "serverMsg.onlyCreatorMake": "Назначать sudo может только создатель",
   "serverMsg.onlyCreatorDelete": "Удалять sudo-админов может только создатель",
   "serverMsg.needCreator": "В панели должен остаться создатель: сначала назначьте другого",
-  "serverMsg.noSelfDelete": "Нельзя удалить свою учётную запись"
+  "serverMsg.noSelfDelete": "Нельзя удалить свою учётную запись",
+  "admins.usernameRule": "3-32 символа: буквы, цифры и _ . @ -",
+  "admins.passwordRule": "Не меньше 6 символов"
 }

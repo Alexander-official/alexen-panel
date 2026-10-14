@@ -370,6 +370,17 @@ class AdminSubProfile(BaseModel):
     example: str = ""                          # read only
 
 
+def _profile_access(db: Session, name: str, admin: Admin):
+    """a creator's profile is hidden from the sudo admins, another sudo's is read only for them"""
+    from app.db.models import Admin as DBAdmin
+    target = db.query(DBAdmin).filter(DBAdmin.username == name).first()
+    if not target or target.username == admin.username or admin.is_creator:
+        return target
+    if target.is_creator:
+        raise HTTPException(404, "Admin not found")
+    return target
+
+
 def _profile(db: Session, name: str) -> AdminSubProfile:
     from app.db.models import Admin as DBAdmin, User
     from app.utils.jwt import create_subscription_token
@@ -391,12 +402,16 @@ def _profile(db: Session, name: str) -> AdminSubProfile:
 def read_admin_sub_profile(name: str, db: Session = Depends(get_db),
                            admin: Admin = Depends(Admin.check_sudo_admin)):
     """an admin's own subscription domain, texts and external configs"""
+    _profile_access(db, name, admin)
     return _profile(db, name)
 
 
 @router.put("/admin/{name}/sub-profile", response_model=AdminSubProfile)
 def update_admin_sub_profile(name: str, body: AdminSubProfile, db: Session = Depends(get_db),
                              admin: Admin = Depends(Admin.check_sudo_admin)):
+    target = _profile_access(db, name, admin)
+    if target is not None and target.is_sudo and not admin.is_creator and target.username != admin.username:
+        raise HTTPException(403, "Only the creator can change another sudo admin")
     # domain
     try:
         own = _domain.AdminDomain(url_prefix=body.url_prefix, suffix=body.suffix)

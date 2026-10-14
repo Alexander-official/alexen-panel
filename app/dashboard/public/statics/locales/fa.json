@@ -1381,5 +1381,7 @@
   "serverMsg.onlyCreatorMake": "فقط سازنده می‌تواند سودو کند",
   "serverMsg.onlyCreatorDelete": "فقط سازنده می‌تواند سودو را حذف کند",
   "serverMsg.needCreator": "پنل باید حداقل یک سازنده داشته باشد: اول یکی دیگر را سازنده کنید",
-  "serverMsg.noSelfDelete": "نمی‌توانید حساب خودتان را حذف کنید"
+  "serverMsg.noSelfDelete": "نمی‌توانید حساب خودتان را حذف کنید",
+  "admins.usernameRule": "۳ تا ۳۲ نویسه: حروف، ارقام و _ . @ -",
+  "admins.passwordRule": "حداقل ۶ نویسه"
 }

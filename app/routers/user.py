@@ -420,7 +420,8 @@ def set_owner(
 ):
     """Set a new owner (admin) for a user."""
     new_admin = crud.get_admin(db, username=admin_username)
-    if not new_admin:
+    # the creator accounts are hidden from the sudo admins
+    if not new_admin or (new_admin.is_creator and not admin.is_creator and new_admin.username != admin.username):
         raise HTTPException(status_code=404, detail="Admin not found")
 
     dbuser = crud.set_owner(db, dbuser, new_admin)

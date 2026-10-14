@@ -1379,5 +1379,7 @@
   "serverMsg.onlyCreatorMake": "Sudo admini sadece creator yapabilir",
   "serverMsg.onlyCreatorDelete": "Sudo admini sadece creator silebilir",
   "serverMsg.needCreator": "Panelde en az bir creator olmalı: önce başka birini creator yapın",
-  "serverMsg.noSelfDelete": "Kendi hesabınızı silemezsiniz"
+  "serverMsg.noSelfDelete": "Kendi hesabınızı silemezsiniz",
+  "admins.usernameRule": "3-32 karakter: harf, rakam ve _ . @ -",
+  "admins.passwordRule": "En az 6 karakter"
 }
