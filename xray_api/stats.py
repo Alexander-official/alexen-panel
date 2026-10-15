@@ -59,14 +59,39 @@ class OnlineUserResponse:
 
 class Stats(XRayBase):
     def get_online_users(self, timeout: int = None) -> typing.List[OnlineUserResponse]:
-        """Users with at least one open connection and their IPs (needs Xray v25.x+ GetUsersStats)"""
+        """Users with at least one open connection and their IPs.
+
+        GetUsersStats answers it in one call, but not every core has it (Xray 26.3.27 doesn't):
+        then GetAllOnlineUsers and each one's GetStatsOnlineIpList, which every core with
+        statsUserOnline has. The answer is remembered per core."""
+        stub = command_pb2_grpc.StatsServiceStub(self._channel)
+        if not getattr(self, "_no_users_stats", False):
+            try:
+                r = stub.GetUsersStats(command_pb2.GetUsersStatsRequest(include_traffic=False), timeout=timeout)
+                return [OnlineUserResponse(email=u.email, ips={i.ip: i.last_seen for i in u.ips}) for u in r.users]
+            except grpc.RpcError as e:
+                if e.code() != grpc.StatusCode.UNIMPLEMENTED:
+                    raise RelatedError(e)
+                self._no_users_stats = True
         try:
-            stub = command_pb2_grpc.StatsServiceStub(self._channel)
-            r = stub.GetUsersStats(command_pb2.GetUsersStatsRequest(include_traffic=False), timeout=timeout)
+            names = list(stub.GetAllOnlineUsers(command_pb2.GetAllOnlineUsersRequest(), timeout=timeout).users)
         except grpc.RpcError as e:
             raise RelatedError(e)
-
-        return [OnlineUserResponse(email=u.email, ips={i.ip: i.last_seen for i in u.ips}) for u in r.users]
+        out = []
+        for name in names:
+            # "user>>>{email}>>>online"
+            parts = name.split(">>>")
+            if len(parts) < 3:
+                continue
+            try:
+                r = stub.GetStatsOnlineIpList(command_pb2.GetStatsRequest(name=name), timeout=timeout)
+            except grpc.RpcError as e:
+                if e.code() == grpc.StatusCode.NOT_FOUND:   # gone since the list
+                    continue
+                raise RelatedError(e)
+            if r.ips:
+                out.append(OnlineUserResponse(email=">>>".join(parts[1:-1]), ips=dict(r.ips)))
+        return out
 
     def get_sys_stats(self, timeout: int = None) -> SysStatsResponse:
         try:
