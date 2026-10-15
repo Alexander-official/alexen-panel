@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Alexen panel: installer and command line (Alexander LLC)
 #
-# Install (as root):
-#   bash <(curl -fsSL https://raw.githubusercontent.com/Alexander-official/alexen-panel/main/scripts/alexen.sh) install
+# Install (as root), with a license key from the seller:
+#   bash <(curl -fsSL https://admin.alexateam.ru/install.sh) install
 #
 # It asks for a domain (Let's Encrypt certificate, renewed by itself) or uses a
 # self-signed certificate for the server's IP, and for the creator account.
 # Without questions:  ALEXEN_DOMAIN=panel.example.com ALEXEN_EMAIL=me@example.com \
-#                     ALEXEN_ADMIN=owner ALEXEN_PASSWORD='...' bash alexen.sh install
+#                     ALEXEN_ADMIN=owner ALEXEN_PASSWORD='...' ALEXEN_LICENSE=ALX-... bash alexen.sh install
 # Then:  alexen (a menu) or alexen help: status, doctor, logs, update, backup, restore, env, core, cert, passwd ...
 #
 # Updates also run from the panel (Settings > Update): the panel writes a request into
@@ -16,9 +16,9 @@
 set -euo pipefail
 
 APP=alexen
-REPO="${ALEXEN_REPO:-https://github.com/Alexander-official/alexen-panel.git}"
-BRANCH="${ALEXEN_BRANCH:-main}"
-RAW="https://raw.githubusercontent.com/Alexander-official/alexen-panel/$BRANCH/scripts/alexen.sh"
+# the panel comes from the license server (licensed servers only); a local folder for testing
+LICENSE_SERVER="${ALEXEN_LICENSE_SERVER:-https://admin.alexateam.ru}"
+REPO="${ALEXEN_REPO:-}"
 APP_DIR=/opt/$APP
 SRC_DIR=$APP_DIR/src
 DATA_DIR=/var/lib/$APP
@@ -32,8 +32,15 @@ PROJECT=$APP
 CONF=${ALEXEN_CONF:-/etc/$APP.conf}
 # shellcheck source=/dev/null
 [ -f "$CONF" ] && . "$CONF"
+LICENSE_SERVER=${LICENSE_SERVER%/}
+RAW="$LICENSE_SERVER/install.sh"
 UPD_DIR=$DATA_DIR/update
 UPD_LOG=$UPD_DIR/update.log
+LIC_DIR=$DATA_DIR/license
+# the license server's signing key: a release it didn't sign isn't installed
+LIC_PUBKEY='-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAme9Yq1wS0MRKqsRdM7lAOQV2W3yP3C2L+Yr+ovnkp6I=
+-----END PUBLIC KEY-----'
 
 R=$'\e[91m'; G=$'\e[92m'; B=$'\e[94m'; Y=$'\e[93m'; N=$'\e[0m'
 say()  { echo "${2:-$B}==> $1${N}"; }
@@ -56,7 +63,7 @@ pkg_install() {
 }
 
 install_deps() {
-    for c in curl git openssl; do command -v $c >/dev/null || { say "installing $c"; pkg_install $c; }; done
+    for c in curl tar openssl; do command -v $c >/dev/null || { say "installing $c"; pkg_install $c; }; done
     if ! command -v docker >/dev/null; then
         say "installing Docker"
         curl -fsSL https://get.docker.com | sh >/dev/null
@@ -69,14 +76,106 @@ install_deps() {
 
 public_ip() { curl -fsS -m 8 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}'; }
 
+# ---------------- the license (the panel checks it; here only for downloads)
+lic_key() { cat "$LIC_DIR/key" 2>/dev/null | tr -dc 'A-Z0-9-' || true; }
+lic_install() {
+    if [ ! -s "$LIC_DIR/install_id" ]; then
+        mkdir -p "$LIC_DIR"
+        cat /proc/sys/kernel/random/uuid > "$LIC_DIR/install_id" 2>/dev/null || openssl rand -hex 16 > "$LIC_DIR/install_id"
+        chmod 644 "$LIC_DIR/install_id"
+    fi
+    tr -dc 'A-Za-z0-9-' < "$LIC_DIR/install_id"
+}
+# a key as the seller wrote it (spaces, small letters): ALX-XXXXX-XXXXX-XXXXX-XXXXX, or nothing
+norm_key() {
+    local k; k=$(printf '%s' "$1" | tr 'a-z' 'A-Z' | tr -dc 'A-Z0-9')
+    [ "${k:0:3}" = ALX ] && [ ${#k} -eq 23 ] && k=${k:3}
+    [ ${#k} -eq 20 ] || return 0
+    echo "ALX-${k:0:5}-${k:5:5}-${k:10:5}-${k:15:5}"
+}
+# the license server the panel uses: its .env can name another one (testing)
+license_server() {
+    local e=""
+    [ -n "${ALEXEN_LICENSE_SERVER:-}" ] || e=$(env_get ALEXEN_LICENSE_SERVER 2>/dev/null)
+    e=${e%/}
+    echo "${e:-$LICENSE_SERVER}"
+}
+# GET from the license server with this server's license: LS_CODE, the body in $2 (or LS_BODY)
+LS_CODE=""; LS_BODY=""
+ls_get() {
+    local path="$1" out="${2:-}" tmp log=/dev/null
+    tmp=$(mktemp)
+    # curl's own errors in the update log, once there is one (not on a new install)
+    [ -d "$UPD_DIR" ] && log=$UPD_LOG
+    LS_CODE=$(curl -sS -m "${LS_TIMEOUT:-60}" -o "$tmp" -w '%{http_code}' -H "X-License-Key: $(lic_key)" \
+        -H "X-Install-Id: $(lic_install)" -H "User-Agent: Alexen-updater" "$(license_server)$path" 2>>"$log") || LS_CODE=000
+    if [ -n "$out" ] && [ "$LS_CODE" = 200 ]; then mv "$tmp" "$out"; LS_BODY=""
+    else LS_BODY=$(head -c 4000 "$tmp"); rm -f "$tmp"; fi
+}
+# the server's reason in an error answer ({"detail": "..."})
+ls_error() {
+    case "$LS_CODE" in
+        000) echo "couldn't reach the license server" ;;
+        *)  local d; d=$(printf '%s' "$LS_BODY" | grep -o '"detail": *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+            echo "${d:-the license server answered $LS_CODE}" ;;
+    esac
+}
+# openssl 3 checks Ed25519 signatures; an older one leaves it to HTTPS and the checksum
+verify_sig() {
+    local msg="$1" sig="$2" d; d=$(mktemp -d)
+    openssl pkeyutl -help 2>&1 | grep -q rawin || { rm -rf "$d"; return 0; }
+    printf '%s' "$LIC_PUBKEY" > "$d/pub.pem"; printf '%s' "$msg" > "$d/msg"
+    printf '%s' "$sig" | base64 -d > "$d/sig" 2>/dev/null
+    openssl pkeyutl -verify -pubin -inkey "$d/pub.pem" -rawin -in "$d/msg" -sigfile "$d/sig" >/dev/null 2>&1
+    local r=$?; rm -rf "$d"; return $r
+}
+# the latest release, checked, unpacked into $1: R_VERSION is its version; R_ERROR why not
+R_VERSION=""; R_ERROR=""
+fetch_release() {
+    local dest="$1" info sha sig tar; R_ERROR=""
+    ls_get /api/v1/update
+    [ "$LS_CODE" = 200 ] || { R_ERROR=$(ls_error); return 1; }
+    info=$LS_BODY
+    R_VERSION=$(printf '%s\n' "$info" | sed -n 's/^VERSION=//p'); sha=$(printf '%s\n' "$info" | sed -n 's/^SHA256=//p')
+    sig=$(printf '%s\n' "$info" | sed -n 's/^SIG=//p')
+    [[ "$R_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || { R_ERROR="the license server's answer isn't right"; return 1; }
+    verify_sig "alexen-release:$R_VERSION:$sha" "$sig" || { R_ERROR="the release isn't signed by the license server: not installed"; return 1; }
+    tar=$(mktemp --suffix=.tar.gz)
+    LS_TIMEOUT=900 ls_get "/api/v1/download?version=$R_VERSION" "$tar"
+    [ "$LS_CODE" = 200 ] || { rm -f "$tar"; R_ERROR=$(ls_error); return 1; }
+    [ "$(sha256sum "$tar" | cut -d' ' -f1)" = "$sha" ] || { rm -f "$tar"; R_ERROR="the download is damaged (checksum): try again"; return 1; }
+    rm -rf "$dest"; mkdir -p "$dest"
+    tar -xzf "$tar" -C "$dest" --strip-components=1 --no-same-owner || { rm -f "$tar"; rm -rf "$dest"; R_ERROR="couldn't unpack the release"; return 1; }
+    rm -f "$tar"
+    [ -f "$dest/Dockerfile" ] && [ -f "$dest/app/__init__.py" ] || { rm -rf "$dest"; R_ERROR="the release is incomplete"; return 1; }
+}
+
+# the key for a new install: asked, checked with the license server, kept in the data folder
+ask_license() {
+    local k="${ALEXEN_LICENSE:-}" n
+    while true; do
+        [ -n "$k" ] || k=$(ask "License key (from the seller, ALX-...): " "")
+        n=$(norm_key "$k")
+        [ -n "$n" ] || { has_tty && [ -z "${ALEXEN_LICENSE:-}" ] && { echo "${Y}that isn't a license key (ALX-XXXXX-XXXXX-XXXXX-XXXXX)${N}" >&2; k=""; continue; }; fail "a license key is needed (ALEXEN_LICENSE=ALX-...)"; }
+        mkdir -p "$LIC_DIR"; chmod 755 "$LIC_DIR"
+        ( umask 077; printf '%s' "$n" > "$LIC_DIR/key" )
+        lic_install >/dev/null
+        ls_get /api/v1/precheck
+        if [ "$LS_CODE" = 200 ]; then say "license OK" "$G"; return 0; fi
+        local why; why=$(ls_error)
+        rm -f "$LIC_DIR/key"
+        if has_tty && [ -z "${ALEXEN_LICENSE:-}" ] && [ "$LS_CODE" != 000 ]; then echo "${Y}$why${N}" >&2; k=""; continue; fi
+        fail "$why"
+    done
+}
+
 fetch_source() {
     mkdir -p "$APP_DIR"
-    if [ -d "$REPO" ]; then                       # a local copy (testing)
+    if [ -n "$REPO" ] && [ -d "$REPO" ]; then     # a local copy (testing)
         rm -rf "$SRC_DIR"; cp -a "$REPO" "$SRC_DIR"
-    elif [ -d "$SRC_DIR/.git" ]; then
-        git -C "$SRC_DIR" fetch -q origin "$BRANCH" && git -C "$SRC_DIR" reset -q --hard "origin/$BRANCH"
     else
-        git clone -q --depth 1 -b "$BRANCH" "$REPO" "$SRC_DIR"
+        fetch_release "$SRC_DIR.new" || fail "$R_ERROR"
+        rm -rf "$SRC_DIR"; mv "$SRC_DIR.new" "$SRC_DIR"
     fi
 }
 
@@ -133,6 +232,8 @@ XRAY_JSON = "/var/lib/marzban/xray_config.json"
 SQLALCHEMY_DATABASE_URL = "sqlite:////var/lib/marzban/db.sqlite3"
 XRAY_SUBSCRIPTION_URL_PREFIX = "https://$host:$port"
 EOF
+        # another license server (testing): the panel asks the same one
+        [ "$LICENSE_SERVER" = https://admin.alexateam.ru ] || printf 'ALEXEN_LICENSE_SERVER = "%s"\n' "$LICENSE_SERVER" >> "$ENV_FILE"
         chmod 600 "$ENV_FILE"
     fi
     cat > "$COMPOSE" <<EOF
@@ -202,6 +303,7 @@ cmd_install() {
     [ "$domain" = "__ask__" ] && domain=$(ask "Panel domain (empty: use the server IP with a self-signed certificate): " "")
     if [ -n "$domain" ] && [ -z "$email" ]; then email=$(ask "E-mail for Let's Encrypt [admin@$domain]: " "admin@$domain"); fi
     install_deps
+    ask_license
     say "downloading Alexen"
     fetch_source
     build_image
@@ -219,10 +321,15 @@ with GetDB() as db: a = db.query(Admin).filter(Admin.is_creator == True).first()
     if [ -n "$ADMIN_USER" ]; then say "keeping the existing creator: $ADMIN_USER"
     else create_creator "${ALEXEN_ADMIN:-}" "${ALEXEN_PASSWORD:-}"; fi
     install_updater
+    local lst; lst=$(license_wait)
     echo
     say "Alexen is ready" "$G"
     echo "    Panel:    ${G}https://$host:$port/dashboard/${N}"
     echo "    Creator:  ${ADMIN_USER}"
+    case "$lst" in
+        active|grace) echo "    License:  ${G}active${N}" ;;
+        *) echo "    License:  ${Y}not active yet ($(license_text "$lst")): enter the key in the panel${N}" ;;
+    esac
     [ -z "$domain" ] && echo "    ${Y}Self-signed certificate: the browser asks once; for a real one: alexen uninstall, then install with a domain${N}"
     echo "    Commands: alexen status | logs | restart | update | backup | admin | uninstall"
 }
@@ -271,14 +378,44 @@ step() { U_STEP="$1"; save_state; ulog "$2"; }
 version_of() { sed -n 's/^__version__ = "\(.*\)"/\1/p'; }
 running_version() { docker exec "$CONTAINER" sed -n 's/^__version__ = "\(.*\)"/\1/p' /code/app/__init__.py 2>/dev/null || true; }
 
-# the latest version on GitHub, and its changelog; the source itself stays as it is
+# the latest version on the license server, and its changelog (FETCH_ERROR: why not)
+FETCH_ERROR=""
 fetch_latest() {
-    [ -d "$SRC_DIR/.git" ] || git clone -q --depth 1 -b "$BRANCH" "$REPO" "$SRC_DIR" 2>>"$UPD_LOG" || return 1
-    git -C "$SRC_DIR" fetch -q --depth 1 origin "$BRANCH" 2>>"$UPD_LOG" || return 1
-    U_LATEST=$(git -C "$SRC_DIR" show FETCH_HEAD:app/__init__.py 2>/dev/null | version_of)
-    git -C "$SRC_DIR" show FETCH_HEAD:app/changelog.json > "$UPD_DIR/.changelog.tmp" 2>/dev/null || echo "[]" > "$UPD_DIR/.changelog.tmp"
-    mv "$UPD_DIR/.changelog.tmp" "$UPD_DIR/changelog.json"
-    [ -n "$U_LATEST" ]
+    FETCH_ERROR=""
+    [ -n "$(lic_key)" ] || { FETCH_ERROR="no license key on this server: enter it in the panel"; return 1; }
+    ls_get /api/v1/update
+    [ "$LS_CODE" = 200 ] || { FETCH_ERROR=$(ls_error); return 1; }
+    local v; v=$(printf '%s\n' "$LS_BODY" | sed -n 's/^VERSION=//p')
+    [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { FETCH_ERROR="the license server's answer isn't right"; return 1; }
+    U_LATEST=$v
+    ls_get /api/v1/changelog "$UPD_DIR/.changelog.tmp"
+    if [ "$LS_CODE" = 200 ] && head -c1 "$UPD_DIR/.changelog.tmp" | grep -q '\['; then mv "$UPD_DIR/.changelog.tmp" "$UPD_DIR/changelog.json"
+    else rm -f "$UPD_DIR/.changelog.tmp"; fi
+    return 0
+}
+
+# the panel's license as it sees it (active, grace, expired, unlicensed, ...)
+license_state() {
+    docker exec "$CONTAINER" python3 -c "from app import license; print(license.status(fresh=True)['status'])" 2>/dev/null | tail -1
+}
+license_text() {
+    case "$1" in
+        active) echo "active" ;; grace) echo "ended, still working for a few days: renew it" ;;
+        expired) echo "expired" ;; unlicensed) echo "no license entered" ;; suspended) echo "suspended" ;;
+        revoked) echo "cancelled" ;; moved) echo "in use on another server" ;; invalid) echo "not valid for this server" ;;
+        "") echo "unknown (the panel isn't running)" ;; *) echo "$1" ;;
+    esac
+}
+# after an install: the panel activates the key itself in its first seconds
+license_wait() {
+    local st=""
+    for i in $(seq 1 30); do
+        st=$(license_state)
+        case "$st" in active|grace|invalid|moved|revoked|suspended|expired) break;; esac
+        [ -s "$LIC_DIR/key" ] || break
+        sleep 2
+    done
+    echo "$st"
 }
 
 upd_check() {
@@ -292,7 +429,7 @@ upd_check() {
     [ "$was" = failed ] && keep=$U_ERROR
     U_STATE=checking; U_ERROR=$keep; save_state
     U_STATE=$was
-    fetch_latest || { [ "$was" = failed ] || U_ERROR="couldn't reach the update server"; }
+    fetch_latest || { [ "$was" = failed ] || U_ERROR="$FETCH_ERROR"; }
     U_CHECKED=$(date +%s); save_state
     [ -t 1 ] && echo "running: $(running_version)  latest: ${U_LATEST:-?}" || true
 }
@@ -316,6 +453,12 @@ restore_data() {
     return 0
 }
 
+# the source as it was before the update (a failed one)
+src_back() {
+    [ -d "$1" ] || return 0
+    rm -rf "$SRC_DIR"; mv "$1" "$SRC_DIR"
+}
+
 upd_fail() {
     U_STATE=failed; U_ERROR="$1"; U_FINISHED=$(date +%s); U_STEP=""; save_state; ulog "FAILED: $1"
     [ -t 1 ] && echo "${R}!! $1 (log: $UPD_LOG)${N}" >&2 || true
@@ -329,7 +472,7 @@ upd_update() {
     load_state
     : > "$UPD_LOG"
     U_STATE=updating; U_STARTED=$(date +%s); U_FINISHED=""; U_ERROR=""
-    local port old_commit old_version prev="${IMAGE%:*}:previous"
+    local port old_version prev="${IMAGE%:*}:previous" old_src="$SRC_DIR.old"
     port=$(panel_port); old_version=$(running_version)
     ulog "updating from ${old_version:-?}"
 
@@ -339,16 +482,20 @@ upd_update() {
     snapshot_data || { upd_fail "the backup failed: nothing was changed"; return 1; }
 
     step download "downloading the latest version"
-    fetch_latest || { upd_fail "couldn't download the update: nothing was changed"; return 1; }
-    old_commit=$(git -C "$SRC_DIR" rev-parse HEAD 2>/dev/null || echo "")
-    git -C "$SRC_DIR" reset -q --hard FETCH_HEAD 2>>"$UPD_LOG" || { upd_fail "couldn't download the update: nothing was changed"; return 1; }
+    fetch_latest || { upd_fail "couldn't download the update ($FETCH_ERROR): nothing was changed"; return 1; }
+    fetch_release "$SRC_DIR.new" || { upd_fail "couldn't download the update ($R_ERROR): nothing was changed"; return 1; }
+    U_LATEST=$R_VERSION
+    # the source before stays next to it until the new version runs
+    rm -rf "$old_src"
+    [ -d "$SRC_DIR" ] && mv "$SRC_DIR" "$old_src"
+    mv "$SRC_DIR.new" "$SRC_DIR"
     ulog "version ${U_LATEST}"
 
     step build "building (a few minutes)"
     docker image inspect "$IMAGE" >/dev/null 2>&1 && docker tag "$IMAGE" "$prev"
     if ! try_build; then
         cat /tmp/$APP-build.log >> "$UPD_LOG" 2>/dev/null
-        [ -n "$old_commit" ] && git -C "$SRC_DIR" reset -q --hard "$old_commit" 2>/dev/null
+        src_back "$old_src"
         upd_fail "the new version didn't build: the panel keeps running the old one"; return 1
     fi
 
@@ -365,7 +512,7 @@ upd_update() {
             dc stop >>"$UPD_LOG" 2>&1 || true
             restore_data
             docker tag "$prev" "$IMAGE"
-            [ -n "$old_commit" ] && git -C "$SRC_DIR" reset -q --hard "$old_commit" 2>/dev/null
+            src_back "$old_src"
             dc up -d --force-recreate >>"$UPD_LOG" 2>&1 || true
             if is_up "$port"; then upd_fail "the new version didn't start: back on ${old_version:-the old version}, data as before the update"
             else upd_fail "the new version didn't start and the old one didn't either: see the log"; fi
@@ -375,6 +522,7 @@ upd_update() {
         return 1
     fi
 
+    rm -rf "$old_src"
     install_cli
     install_updater quiet
     docker image prune -f >/dev/null 2>&1 || true
@@ -402,8 +550,6 @@ install_updater() {
     if [ ! -f "$CONF" ]; then
         cat > "$CONF" <<EOF
 # Alexen: where this panel lives (read by the alexen command and the updater)
-REPO="$REPO"
-BRANCH="$BRANCH"
 EOF
     fi
     cat > /etc/systemd/system/$APP-updater.service <<EOF
@@ -635,6 +781,11 @@ cmd_status() {
         ver_gt "$latest" "$(running_version)" && row "Update" "${G}$latest available${N} (alexen update)"
     fi
     row "Address" "$(panel_url)"
+    if container_up; then
+        local ls; ls=$(license_state)
+        case "$ls" in active) row "License" "${G}active${N} $(license_days)";; grace) row "License" "${Y}$(license_text grace)${N}";;
+            *) row "License" "${R}$(license_text "$ls")${N} (alexen license)";; esac
+    fi
     container_up && row "Xray" "$(core_version)"
     local days; if days=$(cert_days); then
         if [ "$days" -lt 7 ]; then row "Certificate" "${R}$days days left${N}"; else row "Certificate" "$days days left"; fi
@@ -665,6 +816,16 @@ cmd_doctor() {
     if curl -fsk -m 8 -o /dev/null "https://127.0.0.1:$port/dashboard/"; then ok "the panel answers on port $port"
     else bad "the panel doesn't answer on port $port"; problems=$((problems+1)); fi
     if pgrep -x xray >/dev/null 2>&1; then ok "Xray core runs ($(core_version))"; else bad "Xray core isn't running (alexen logs)"; problems=$((problems+1)); fi
+    if container_up; then
+        local ls; ls=$(license_state)
+        case "$ls" in
+            active) ok "the license is active $(license_days)" ;;
+            grace) warn "the license has ended: it still works a few days, renew it" ;;
+            *) bad "the license: $(license_text "$ls") (alexen license KEY)"; problems=$((problems+1)) ;;
+        esac
+        local le; le=$(docker exec "$CONTAINER" python3 -c "from app import license; print(license.status()['last_error'])" 2>/dev/null | tail -1)
+        [ "$le" = unreachable ] && warn "the license server couldn't be reached at the last check (the panel keeps working)"
+    fi
     local days; if days=$(cert_days); then
         if [ "$days" -lt 0 ]; then bad "the certificate has expired"; problems=$((problems+1))
         elif [ "$days" -lt 14 ]; then warn "the certificate ends in $days days (alexen cert renew)"
@@ -840,6 +1001,44 @@ cmd_cert() {
     esac
 }
 
+license_days() {
+    docker exec "$CONTAINER" python3 -c "
+from app import license; s = license.status()
+print('(no end date)' if not s['expires'] else '(%s days left)' % s['days_left'] if s['days_left'] >= 0 else '')" 2>/dev/null | tail -1
+}
+
+cmd_license() {
+    need_root
+    container_up || fail "the panel isn't running (alexen up)"
+    local key="${1:-}"
+    if [ -n "$key" ]; then
+        local n; n=$(norm_key "$key")
+        [ -n "$n" ] || fail "that isn't a license key (ALX-XXXXX-XXXXX-XXXXX-XXXXX)"
+        local r; r=$(docker exec -e K="$n" "$CONTAINER" python3 -c "
+import os; from app import license
+try: license.activate(os.environ['K']); print('OK')
+except license.LicenseError as e: print('ERR', e)" 2>&1 | tail -1)
+        case "$r" in OK) say "the license is active" "$G";; ERR*) fail "${r#ERR }";; *) fail "couldn't activate: $r";; esac
+    else
+        docker exec "$CONTAINER" python3 -c "from app import license; license.check()" >/dev/null 2>&1 || true
+    fi
+    docker exec "$CONTAINER" python3 -c "
+import time; from app import license
+s = license.status(fresh=True); k = license.stored_key()
+def d(t): return time.strftime('%Y-%m-%d', time.localtime(t)) if t else '-'
+lim = lambda v: str(v) if v else 'no limit'
+u = license._usage()
+print('  %-16s %s' % ('Status', s['status']))
+if k: print('  %-16s %s' % ('Key', k[:9] + '...' + k[-5:]))
+if s['customer']: print('  %-16s %s' % ('For', s['customer']))
+if s['activated']: print('  %-16s %s' % ('Active since', d(s['activated'])))
+if s['activated']: print('  %-16s %s' % ('Ends', d(s['expires']) + ('  (%s days left)' % s['days_left'] if s['expires'] and s['days_left'] >= 0 else '') if s['expires'] else 'no end date'))
+for n in ('users', 'admins', 'nodes'):
+    if s['activated']: print('  %-16s %s / %s' % (n.capitalize(), u.get(n), lim(s['limits'][n])))
+print('  %-16s %s' % ('Last check', time.strftime('%Y-%m-%d %H:%M', time.localtime(s['last_check'])) if s['last_check'] else 'never') + ('  (last try: ' + s['last_error'] + ')' if s['last_error'] else ''))
+" 2>/dev/null
+}
+
 cmd_completion() {
     need_root
     cat > /etc/bash_completion.d/$APP <<'EOF'
@@ -851,7 +1050,7 @@ _alexen() {
         core) COMPREPLY=($(compgen -W "list latest reset" -- "$cur")); return;;
         cert) COMPREPLY=($(compgen -W "renew" -- "$cur")); return;;
     esac
-    [ "$COMP_CWORD" -eq 1 ] && COMPREPLY=($(compgen -W "status doctor logs restart up down update check-update backup restore env edit core passwd admins admin cert cli version uninstall help" -- "$cur"))
+    [ "$COMP_CWORD" -eq 1 ] && COMPREPLY=($(compgen -W "status doctor logs restart up down update check-update backup restore env edit core passwd admins admin cert license cli version uninstall help" -- "$cur"))
 }
 complete -F _alexen alexen
 EOF
@@ -876,6 +1075,7 @@ ${B}Alexen${N} $(running_version 2>/dev/null || true) — the panel's command li
   ${G}env${N} [list|get|set|unset]   the panel's settings (.env); ${G}edit${N} opens it in an editor
   ${G}core${N} [list|latest|VERSION|reset]   the Xray core version
   ${G}cert${N} [renew]           the certificate
+  ${G}license${N} [KEY]          the license (with a key: activate it on this server)
 
   ${G}admins${N}                 the admin accounts
   ${G}admin${N} [NAME]           add a creator (owner) account
@@ -891,7 +1091,7 @@ EOF
 }
 
 cmd_menu() {
-    local items=("status" "doctor" "logs" "restart" "update" "backup" "backup list" "restore" "env list" "edit" "core" "admins" "passwd" "cert" "help")
+    local items=("status" "doctor" "logs" "restart" "update" "backup" "backup list" "restore" "env list" "edit" "core" "admins" "passwd" "cert" "license" "help")
     while true; do
         echo
         echo "${B}Alexen${N} $(running_version 2>/dev/null || true)"
@@ -938,6 +1138,7 @@ main() {
         admins)    need_root; docker exec $(tty_flags) "$CONTAINER" marzban-cli admin list ;;
         admin)     need_root; create_creator "${1:-}" "${ALEXEN_PASSWORD:-}"; say "creator ${ADMIN_USER} added" "$G" ;;
         cert|ssl)  cmd_cert "$@" ;;
+        license|licence) cmd_license "$@" ;;
         cli)       need_root; docker exec $(tty_flags) "$CONTAINER" marzban-cli "$@" ;;
         check-update)     need_root; upd_check ;;
         updater-install)  need_root; install_updater ;;

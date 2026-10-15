@@ -23,6 +23,8 @@ export const fetcher = <T = any>(
     // loads only: a failed save already shows its own message where it happened
     const aborted = err?.name === "AbortError" || err?.cause?.name === "AbortError";
     if (method === "GET" && !aborted && (!status || status >= 500)) notifyLoadError(status);
+    // the license stopped being active while the panel was open: the lock screen shows
+    if (status === 403 && err?.response?._data?.license) window.dispatchEvent(new Event("alexen-license-locked"));
     throw err;
   }) as Promise<T>;
 };

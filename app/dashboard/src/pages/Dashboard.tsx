@@ -14,6 +14,7 @@ import { fetchInbounds, useDashboard } from "contexts/DashboardContext";
 import { FC, ReactNode, Suspense, useEffect, useState } from "react";
 import { Statistics } from "../components/Statistics";
 import { Outlet } from "react-router-dom";
+import { LicenseGate } from "components/LicensePage";
 
 // the users list, the default page
 export const UsersView: FC = () => (
@@ -64,7 +65,9 @@ export const Dashboard: FC = () => {
       >
         <Box w="full">
           <Header />
-          <Outlet />
+          <LicenseGate>
+            <Outlet />
+          </LicenseGate>
           <UserDialog />
           <DeleteUserModal />
           <ResetUserUsageModal />

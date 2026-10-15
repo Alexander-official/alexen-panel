@@ -122,6 +122,13 @@ export const SECTIONS: Section[] = [
     Component: named(() => import("components/TelegramPage"), "TelegramPage"),
   },
   {
+    path: "license",
+    title: "lic.title",
+    sudo: true,
+    creator: true,
+    Component: named(() => import("components/LicensePage"), "LicensePage"),
+  },
+  {
     path: "update",
     title: "update.title",
     sudo: true,

@@ -39,6 +39,7 @@ const formatBytes = (v: number, d = 2) => String(rawFormatBytes(v, d));
 import { flagEmoji } from "utils/flags";
 
 import { StableChart as Chart } from "./StableChart";
+import { LicenseCard } from "./LicensePage";
 
 type Series = number[];
 type Overview = {
@@ -309,6 +310,8 @@ export const OverviewPage: FC = () => {
         </Text>
         <PeriodPicker value={range} onChange={setRange} />
       </HStack>
+
+      <LicenseCard />
 
       <SimpleGrid columns={{ base: 2, md: 3, "2xl": 6 }} spacing={3}>
         <Stat icon={UsersIcon} label={t("overview.users")} value={data.users.total} sub={t("overview.activeOf", { n: by.active || 0 })} />

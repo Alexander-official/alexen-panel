@@ -212,7 +212,7 @@ export const UpdatePage: FC = () => {
             </Text>
             {data.error && data.state !== "failed" && (
               <Text fontSize="xs" color="orange.400" mt={1}>
-                {t("update.checkFailed")}
+                {data.error === "couldn't reach the update server" ? t("update.checkFailed") : serverMessage(t, data.error)}
               </Text>
             )}
           </>

@@ -11,7 +11,7 @@ from fastapi.routing import APIRoute
 
 from config import ALLOWED_ORIGINS, DOCS, XRAY_SUBSCRIPTION_PATH
 
-__version__ = "1.7.0"
+__version__ = "1.8.0"
 
 app = FastAPI(
     title="AlexenAPI",
@@ -84,6 +84,33 @@ class SubPathMiddleware:
 
 app.add_middleware(SubPathMiddleware)
 
+
+class LicenseMiddleware:
+    """without a valid license the management is locked: the API answers 403 except for
+    logging in, the license itself and updates. The VPN isn't touched: subscription links,
+    Xray and the nodes work as before (app/license.py)"""
+    OPEN = ("/api/license", "/api/update")
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope.get("method") != "OPTIONS":
+            path = scope.get("path", "")
+            if path.startswith("/api/") or path == "/api":
+                from app import license as _lic
+                free = (path == "/api/admin/token" or (path == "/api/admin" and scope.get("method") == "GET")
+                        or any(path == p or path.startswith(p + "/") for p in self.OPEN))
+                if not free and _lic.locked():
+                    st = _lic.status()
+                    resp = JSONResponse(status_code=status.HTTP_403_FORBIDDEN,
+                                        content={"detail": "The panel's license isn't active", "license": st["status"]})
+                    return await resp(scope, receive, send)
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(LicenseMiddleware)
+
 from app.activity import ActivityMiddleware  # noqa: E402
 
 app.add_middleware(ActivityMiddleware)
@@ -117,6 +144,10 @@ def on_startup():
     repair.out_of_range_values()
     repair.blank_admins()
     scheduler.start()
+    # the license: asked again now (and every few hours, app/jobs/license_check.py)
+    from app import license as _lic
+    _lic.install_id()
+    _lic.check_soon(5)
     # the panel's Telegram bot (Settings > Telegram); a failure there never stops the panel
     try:
         from app import tgbot
@@ -128,6 +159,14 @@ def on_startup():
 @app.on_event("shutdown")
 def on_shutdown():
     scheduler.shutdown()
+
+
+from app.license import LicenseLimitError  # noqa: E402
+
+
+@app.exception_handler(LicenseLimitError)
+def license_limit_handler(request: Request, exc: LicenseLimitError):
+    return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": str(exc)})
 
 
 from sqlalchemy.orm.exc import ObjectDeletedError, StaleDataError  # noqa: E402

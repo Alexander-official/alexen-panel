@@ -31,6 +31,7 @@ from app.db.models import (
     UserTemplate,
     UserUsageResetLogs,
 )
+from app import license as _license
 from app.models.admin import AdminCreate, AdminModify, AdminPartialModify
 from app.models.node import NodeCreate, NodeModify, NodeStatus, NodeUsageResponse
 from app.models.proxy import ProxyHost as ProxyHostModify
@@ -369,6 +370,7 @@ def get_users_count(db: Session, status: UserStatus = None, admin: Admin = None)
     return query.count()
 
 
+@_license.limited("users")
 def create_user(db: Session, user: UserCreate, admin: Admin = None) -> User:
     """
     Creates a new user with provided details.
@@ -955,6 +957,7 @@ def get_admin(db: Session, username: str) -> Admin:
     return db.query(Admin).filter(Admin.username == username).first()
 
 
+@_license.limited("admins")
 def create_admin(db: Session, admin: AdminCreate) -> Admin:
     """
     Creates a new admin in the database.
@@ -1382,6 +1385,7 @@ def get_nodes_usage(db: Session, start: datetime, end: datetime) -> List[NodeUsa
     return list(usages.values())
 
 
+@_license.limited("nodes")
 def create_node(db: Session, node: NodeCreate) -> Node:
     """
     Creates a new node in the database.

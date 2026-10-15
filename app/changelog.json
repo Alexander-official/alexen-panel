@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.8.0",
+    "date": "2026-10-15",
+    "tr": [
+      "Lisans: panel bir lisans anahtarıyla etkinleşir; Ayarlar > Lisans sayfası ve Genel Bakış'ta kalan gün, etkinlik tarihi ve kullanıcı / admin / node sınırları",
+      "Lisans sınırları: aynı anda en fazla kullanıcı, admin ve node sayısı; dolunca yenisi eklenmez",
+      "Lisans sunucusuna ulaşılamazsa panel kayıtlı lisansla çalışmaya devam eder; bitişten sonra 7 gün tolerans",
+      "Lisans geçerli değilse yalnızca yönetim kilitlenir: VPN kullanıcıları, node'lar ve abonelik linkleri çalışmaya devam eder",
+      "Kurulum ve güncellemeler artık lisans sunucusundan iner (imzalı ve doğrulanmış); alexen license komutu"
+    ],
+    "en": [
+      "License: the panel is activated with a license key; Settings > License and the overview show the days left, since when it's active and the user / admin / node limits",
+      "License limits: users, admins and nodes at once; when full, no new ones",
+      "When the license server can't be reached the panel keeps working on its saved license; 7 grace days after the end date",
+      "Without a valid license only the management is locked: the VPN users, nodes and subscription links keep working",
+      "Installs and updates now come from the license server (signed and checked); the alexen license command"
+    ]
+  },
+  {
     "version": "1.7.0",
     "date": "2026-10-15",
     "tr": [

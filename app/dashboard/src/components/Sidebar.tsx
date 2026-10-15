@@ -19,6 +19,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import {
+  KeyIcon,
   ArchiveBoxArrowDownIcon,
   ArrowTopRightOnSquareIcon,
   ArrowLeftOnRectangleIcon,
@@ -249,6 +250,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
                     { title: t("backup.title"), path: "backup", icon: ic(ArchiveBoxArrowDownIcon) },
                     { title: t("tg.title"), path: "telegram", icon: ic(ChatBubbleOvalLeftEllipsisIcon) },
                     { title: t("update.title"), path: "update", icon: ic(CloudArrowDownIcon), badge: update?.available ? 1 : 0 },
+                    { title: t("lic.title"), path: "license", icon: ic(KeyIcon) },
                   ]
                 : []),
               {

@@ -109,6 +109,8 @@ export const fetchInbounds = () => {
         inbounds: new Map(Object.entries(inbounds)) as Inbounds,
       });
     })
+    // no inbounds yet (e.g. the license isn't active): the page asks again later
+    .catch(() => {})
     .finally(() => {
       useDashboard.setState({ loading: false });
     });
