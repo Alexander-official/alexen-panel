@@ -7,7 +7,13 @@ import { theme } from "../../chakra.config";
 export const { ToastContainer, toast } = createStandaloneToast({ theme });
 
 let last = 0;
+// a panel update restarts the panel: its pages say nothing about it meanwhile
+let quietUntil = 0;
+export const quietLoadErrors = (ms: number) => {
+  quietUntil = Math.max(quietUntil, Date.now() + ms);
+};
 export const notifyLoadError = (status?: number) => {
+  if (Date.now() < quietUntil) return;
   if (Date.now() - last < 5000) return;
   last = Date.now();
   const key = !status ? "errors.network" : status === 503 ? "serverMsg.dbBusy" : "errors.loadFailed";

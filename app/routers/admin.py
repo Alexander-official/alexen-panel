@@ -139,7 +139,9 @@ def remove_admin(
     if getattr(dbadmin, "is_creator", False) and _creators(db) <= 1:
         raise HTTPException(status_code=400, detail="The panel needs at least one creator: make another one first")
 
-    crud.remove_admin(db, dbadmin)
+    # a removed creator's users go to the creator removing it (they stay hidden from the sudo admins)
+    heir = crud.get_admin(db, current_admin.username) if getattr(dbadmin, "is_creator", False) else None
+    crud.remove_admin(db, dbadmin, heir)
     return {"detail": "Admin removed successfully"}
 
 

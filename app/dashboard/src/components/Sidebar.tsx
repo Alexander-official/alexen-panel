@@ -49,6 +49,7 @@ import {
   SwatchIcon,
   BellAlertIcon,
   ChatBubbleLeftRightIcon,
+  CloudArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import { BRAND_NAME } from "constants/Project";
 import { useDashboard } from "contexts/DashboardContext";
@@ -167,6 +168,15 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
   const { userData, getUserIsSuccess } = useGetUser();
   const isSudo = getUserIsSuccess && userData.is_sudo;
   const version = useDashboard((s) => s.version);
+  // the version for the header on any page (the users page sets it too, with its stats)
+  useQuery({
+    queryKey: "panel-version",
+    queryFn: () => fetch("/system"),
+    enabled: getUserIsSuccess && !version,
+    staleTime: Infinity,
+    retry: false,
+    onSuccess: (d: any) => d?.version && useDashboard.setState({ version: d.version }),
+  });
   const onResetAllUsage = useDashboard((s) => s.onResetAllUsage);
   const { colorMode, toggleColorMode } = useColorMode();
   const toggleCollapsed = useSidebar((s) => s.toggleCollapsed);
@@ -187,6 +197,16 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
   });
 
   const { data: counts } = useNotifyCounts(getUserIsSuccess);
+  // the server owner's parts: backups and panel updates (a new version shows a badge)
+  const isCreator = getUserIsSuccess && !!(userData as any).is_creator;
+  const { data: update } = useQuery<{ available: boolean }>({
+    queryKey: "update-state",
+    queryFn: () => fetch("/update"),
+    enabled: isCreator,
+    retry: false,
+    staleTime: 5 * 60000,
+    refetchInterval: 30 * 60000,
+  });
   const nav: NavNode[] = [
     { title: t("overview.title"), path: "overview", icon: ic(Squares2X2Icon) },
     { title: t("users"), path: "", icon: ic(UsersIcon) },
@@ -223,7 +243,12 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
               { title: t("header.subSettings"), path: "sub", icon: ic(DocumentTextIcon) },
               { title: t("domain.title"), path: "domain", icon: ic(LinkIcon) },
               { title: t("external.title"), path: "external", icon: ic(GlobeAltIcon) },
-              { title: t("backup.title"), path: "backup", icon: ic(ArchiveBoxArrowDownIcon) },
+              ...(isCreator
+                ? [
+                    { title: t("backup.title"), path: "backup", icon: ic(ArchiveBoxArrowDownIcon) },
+                    { title: t("update.title"), path: "update", icon: ic(CloudArrowDownIcon), badge: update?.available ? 1 : 0 },
+                  ]
+                : []),
               {
                 title: t("resetAllUsage"),
                 icon: ic(ArrowPathIcon),
@@ -341,6 +366,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
                   icon={n.icon}
                   label={n.title}
                   collapsed={collapsed}
+                  badge={isOpen && !collapsed ? 0 : n.items.reduce((a, i) => a + (i.badge || 0), 0)}
                   active={collapsed && childActive}
                   right={
                     <Chevron
@@ -372,6 +398,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
                           icon={i.icon}
                           label={i.title}
                           danger={i.danger}
+                          badge={i.badge}
                           active={!!i.path && here === i.path}
                           onClick={() => (i.action ? i.action() : go(i.path!))}
                         />

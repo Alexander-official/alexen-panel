@@ -1,0 +1,66 @@
+[
+  {
+    "version": "1.5.0",
+    "date": "2026-10-15",
+    "tr": [
+      "Panel artık panelden güncelleniyor: yeni sürümü denetle, değişiklikleri gör, tek tıkla güncelle (önce yedek alınır, sorun olursa eski sürüme geri dönülür)",
+      "Creator'ın kullanıcıları, istatistikleri, işlemleri ve ayarları sudo adminlerden gizlendi",
+      "Yedekleme ve geri yükleme sadece creator'da",
+      "Alexen sürüm numaraları ve Telegram destek bağlantısı (@alexvpns)"
+    ],
+    "en": [
+      "The panel updates itself from the panel: check for a new version, see what changed, update with one click (a backup first, back to the old version if something goes wrong)",
+      "The creator's users, stats, activity and settings are hidden from sudo admins",
+      "Backup and restore are the creator's only",
+      "Alexen version numbers and the Telegram support link (@alexvpns)"
+    ]
+  },
+  {
+    "version": "1.4.3",
+    "date": "2026-10-14",
+    "tr": ["Sudo adminler sudo ekleyip değiştirebilir; creator rolünü sadece creator verir ve sudo'lar onu görmez"],
+    "en": ["Sudo admins add and change sudo admins; only a creator gives the creator role, and sudo admins don't see it"]
+  },
+  {
+    "version": "1.4.2",
+    "date": "2026-10-14",
+    "tr": ["Creator hesapları sudo'lardan gizlendi; admin adı ve şifresi kontrol ediliyor (boş admin oluşturulamaz)"],
+    "en": ["Creator accounts hidden from sudo admins; admin names and passwords are checked (no empty admins)"]
+  },
+  {
+    "version": "1.4.1",
+    "date": "2026-10-14",
+    "tr": ["Kurulum scripti: sade çıktı, creator oluşturulamazsa açık hata"],
+    "en": ["Installer: quiet output, a clear error when the creator can't be made"]
+  },
+  {
+    "version": "1.4.0",
+    "date": "2026-10-14",
+    "tr": ["Creator rolü", "Çalışan kurulum scripti (Let's Encrypt veya kendinden imzalı sertifika)", "Telefon ve tablet görünüm düzeltmeleri"],
+    "en": ["Creator role", "Working installer (Let's Encrypt or self-signed certificate)", "Phone and tablet layout fixes"]
+  },
+  {
+    "version": "1.3.0",
+    "date": "2026-10-14",
+    "tr": ["CDN arkasında gerçek IP", "Daha kararlı Hysteria", "Sunucudan temiz kaldırma", "Daha hızlı yükleme"],
+    "en": ["Real IP behind a CDN", "Steadier Hysteria", "Clean removal from a server", "Faster loading"]
+  },
+  {
+    "version": "1.2.0",
+    "date": "2026-10-14",
+    "tr": ["Outbound'lar: kullanılmıyor rozeti, inbound'ları outbound'a yönlendirme, ulaşılamayan çıkış uyarısı", "Daha hızlı sayfalar"],
+    "en": ["Outbounds: unused badge, route inbounds to an outbound, a warning when an exit can't be reached", "Faster pages"]
+  },
+  {
+    "version": "1.1.0",
+    "date": "2026-10-09",
+    "tr": ["Güvenlik ve veri bütünlüğü düzeltmeleri", "Yedekleme / geri yükleme", "Daha hızlı kullanıcı listeleri", "Karanlık giriş sayfası"],
+    "en": ["Security and data-integrity fixes", "Backup / restore", "Faster user lists", "Dark login page"]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-10-08",
+    "tr": ["İlk Alexen sürümü"],
+    "en": ["The first Alexen release"]
+  }
+]

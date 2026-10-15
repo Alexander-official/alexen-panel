@@ -44,11 +44,33 @@ def get_subscription_settings(db: Session) -> SubscriptionSettings:
     return SubscriptionSettings(**(crud.get_setting(db, SUB_SETTINGS_KEY) or {}))
 
 
+def _hidden(db: Session) -> set:
+    """the creator names a sudo admin mustn't see (app/db/visibility.py), empty for the others"""
+    from app.db import visibility
+    return visibility.hidden_names(db)
+
+
+def _shown(model, db: Session):
+    """a copy of a settings model without the hidden admins' entries"""
+    hidden = _hidden(db)
+    if not hidden or not getattr(model, "admins", None):
+        return model
+    return model.model_copy(update={"admins": {k: v for k, v in model.admins.items() if k not in hidden}})
+
+
+def _keep_hidden(sent, stored, db: Session) -> None:
+    """a save from a sudo admin keeps the hidden admins' entries as they are"""
+    hidden = _hidden(db)
+    if hidden:
+        sent.admins = {**{k: v for k, v in (sent.admins or {}).items() if k not in hidden},
+                       **{k: v for k, v in (stored or {}).items() if k in hidden}}
+
+
 @router.get("/sub-settings", response_model=SubscriptionSettings)
 def read_sub_settings(db: Session = Depends(get_db),
                       admin: Admin = Depends(Admin.check_sudo_admin)):
     """Subscription page settings: announcement, profile title and per-state metadata"""
-    return get_subscription_settings(db)
+    return _shown(get_subscription_settings(db), db)
 
 
 @router.put("/sub-settings", response_model=SubscriptionSettings)
@@ -57,6 +79,8 @@ def update_sub_settings(settings: SubscriptionSettings,
                         admin: Admin = Depends(Admin.check_sudo_admin)):
     if "admins" not in settings.model_fields_set:
         settings.admins = get_subscription_settings(db).admins
+    else:
+        _keep_hidden(settings, get_subscription_settings(db).admins, db)
     crud.set_setting(db, SUB_SETTINGS_KEY, settings.model_dump())
     return settings
 
@@ -105,7 +129,7 @@ def _check_external(settings: "_external.ExternalSettings"):
 def read_external_configs(db: Session = Depends(get_db),
                           admin: Admin = Depends(Admin.check_sudo_admin)):
     """Extra config links added to every link-based subscription, and the order of links"""
-    return _external.load(db)
+    return _shown(_external.load(db), db)
 
 
 @router.put("/external-configs", response_model=_external.ExternalSettings)
@@ -114,11 +138,13 @@ def update_external_configs(settings: _external.ExternalSettings,
                             admin: Admin = Depends(Admin.check_sudo_admin)):
     if "admins" not in settings.model_fields_set:
         settings.admins = _external.load(db).admins
+    else:
+        _keep_hidden(settings, _external.load(db).admins, db)
     _check_external(settings)
     saved = _external.save(db, settings)
     from app.subscription import external_sources
     external_sources.forget([c.id for c in saved.all_configs()])
-    return saved
+    return _shown(saved, db)
 
 
 @router.post("/external-configs/preview", response_model=ExternalPreview)
@@ -151,6 +177,13 @@ def preview_external_configs(settings: _external.ExternalSettings,
 def _visible_configs(admin: Admin):
     """what this admin may look at: everything for sudo, else its own list (if allowed)"""
     s = _external.load()
+    if admin.is_sudo and not admin.is_creator:
+        # not the creators' own lists (hidden from the sudo admins, app/db/visibility.py)
+        from app.db import GetDB, visibility
+        with GetDB() as db:
+            visibility.hide_creators(db)
+            hidden = visibility.hidden_names(db)
+        return list(s.configs) + [c for name, a in s.admins.items() if name not in hidden for c in a.configs]
     if admin.is_sudo:
         return s.all_configs()
     mine = s.admins.get(admin.username)
@@ -339,7 +372,7 @@ def _domain_state(db: Session, s: _domain.DomainSettings) -> DomainState:
 @router.get("/sub-domain", response_model=DomainState)
 def read_sub_domain(db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)):
     """Which address, path and last part the subscription links use"""
-    return _domain_state(db, _domain.get())
+    return _domain_state(db, _shown(_domain.get(), db))
 
 
 @router.put("/sub-domain", response_model=DomainState)
@@ -347,7 +380,9 @@ def update_sub_domain(settings: _domain.DomainSettings, db: Session = Depends(ge
                       admin: Admin = Depends(Admin.check_sudo_admin)):
     if "admins" not in settings.model_fields_set:
         settings.admins = _domain.get().admins   # the page edits the general part only
-    return _domain_state(db, _domain.save(db, settings))
+    else:
+        _keep_hidden(settings, _domain.get().admins, db)
+    return _domain_state(db, _shown(_domain.save(db, settings), db))
 
 
 @router.post("/sub-domain/example", response_model=DomainState)
@@ -371,12 +406,13 @@ class AdminSubProfile(BaseModel):
 
 
 def _profile_access(db: Session, name: str, admin: Admin):
-    """a creator's profile is hidden from the sudo admins"""
+    """a creator's profile is hidden from the sudo admins: for them the query doesn't find it
+    (app/db/visibility.py); a removed creator's name answers the same"""
     from app.db.models import Admin as DBAdmin
     target = db.query(DBAdmin).filter(DBAdmin.username == name).first()
-    if not target or target.username == admin.username or admin.is_creator:
-        return target
-    if target.is_creator:
+    if target is None and name in _hidden(db):
+        raise HTTPException(404, "Admin not found")
+    if target is not None and target.is_creator and not admin.is_creator and target.username != admin.username:
         raise HTTPException(404, "Admin not found")
     return target
 
@@ -446,7 +482,7 @@ def admins_sub_profiles(db: Session = Depends(get_db), admin: Admin = Depends(Ad
     texts = get_subscription_settings(db).admins
     ext = _external.load(db).admins
     out = {}
-    for name in set(doms) | set(texts) | set(ext):
+    for name in (set(doms) | set(texts) | set(ext)) - _hidden(db):
         e = ext.get(name)
         out[name] = {
             "domain": doms[name].url_prefix if name in doms else "",

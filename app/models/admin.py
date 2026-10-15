@@ -85,6 +85,10 @@ class Admin(BaseModel):
             if dbadmin.password_reset_at > payload.get("created_at"):
                 return
 
+        if dbadmin.is_sudo and not getattr(dbadmin, "is_creator", False):
+            # from here on this request doesn't see the creators and their users (app/db/visibility.py)
+            from app.db.visibility import hide_creators
+            hide_creators(db)
         return cls.model_validate(dbadmin)
 
     @classmethod
@@ -112,6 +116,20 @@ class Admin(BaseModel):
                 headers={"WWW-Authenticate": "Bearer"},
             )
         if not admin.is_sudo:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You're not allowed"
+            )
+        return admin
+
+
+    @classmethod
+    def check_creator_admin(cls,
+                            db: Session = Depends(get_db),
+                            token: str = Depends(oauth2_scheme)):
+        """the server owner's parts (backups, updates): a creator only"""
+        admin = cls.check_sudo_admin(db, token)
+        if not admin.is_creator:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You're not allowed"

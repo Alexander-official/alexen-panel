@@ -1,5 +1,5 @@
 import { BoxProps, HStack, Link, Text } from "@chakra-ui/react";
-import { BRAND_NAME, BRAND_VENDOR, REPO_URL } from "constants/Project";
+import { BRAND_NAME, BRAND_VENDOR, SUPPORT_TELEGRAM, SUPPORT_URL } from "constants/Project";
 import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC } from "react";
 
@@ -14,10 +14,11 @@ export const Footer: FC<BoxProps> = (props) => {
         color="gray.500"
         fontSize="xs"
       >
-        <Link color="primary.400" href={REPO_URL}>
-          {BRAND_NAME}
+        {BRAND_NAME}
+        {version ? ` v${version}` : ""} · {BRAND_VENDOR} ·{" "}
+        <Link color="primary.400" href={SUPPORT_URL} isExternal>
+          Telegram {SUPPORT_TELEGRAM}
         </Link>
-        {version ? ` (v${version})` : ""} · {BRAND_VENDOR}
       </Text>
     </HStack>
   );

@@ -21,6 +21,7 @@ from . import (
     notify,
     outbounds,
     backup,
+    update,
 )
 
 api_router = APIRouter()
@@ -48,6 +49,7 @@ routers = [
     notify.router,
     outbounds.router,
     backup.router,
+    update.router,
 ]
 
 for router in routers:

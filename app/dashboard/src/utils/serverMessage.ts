@@ -53,6 +53,8 @@ const RULES: [RegExp, string, string[]][] = [
   [/^This backup comes from a newer panel version.*$/, "backupNewer", []],
   [/^The backup contains an unsafe file path$|^Unexpected file in the backup.*$/, "backupUnsafe", []],
   [/^Incorrect username or password$/, "badLogin", []],
+  [/^The updater isn't set up on this server/, "noUpdater", []],
+  [/^An update is running already$/, "updateRunning", []],
   [/^Only the creator can add sudo admins$/, "onlyCreatorAdd", []],
   [/^Only the creator can change another sudo admin$/, "onlyCreatorChange", []],
   [/^Only the creator can make sudo admins$/, "onlyCreatorMake", []],

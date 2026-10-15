@@ -983,6 +983,8 @@ def create_admin(db: Session, admin: AdminCreate) -> Admin:
     db.add(dbadmin)
     db.commit()
     db.refresh(dbadmin)
+    from app.db.visibility import admin_added
+    admin_added(db, dbadmin)
     return dbadmin
 
 
@@ -1064,17 +1066,29 @@ def partial_update_admin(db: Session, dbadmin: Admin, modified_admin: AdminParti
     return dbadmin
 
 
-def remove_admin(db: Session, dbadmin: Admin) -> Admin:
+def remove_admin(db: Session, dbadmin: Admin, heir: Optional[Admin] = None) -> Admin:
     """
     Removes an admin from the database.
+
+    Its users don't keep pointing at it: a later admin can get the same id (SQLite) and
+    would get them too. They go to heir (a removed creator's: the creator removing it, so
+    they stay hidden from the sudo admins), or have no owner.
 
     Args:
         db (Session): Database session.
         dbadmin (Admin): The admin object to be removed.
+        heir (Optional[Admin]): who gets its users.
 
     Returns:
         Admin: The removed admin object.
     """
+    if getattr(dbadmin, "is_creator", False):
+        from app.db.visibility import creator_removed
+        creator_removed(db, dbadmin)
+        if heir is None:   # the command line: another creator
+            heir = db.query(Admin).filter(Admin.is_creator.is_(True), Admin.id != dbadmin.id).first()
+    db.query(User).filter(User.admin_id == dbadmin.id) \
+        .update({User.admin_id: heir.id if heir is not None else None}, synchronize_session=False)
     db.delete(dbadmin)
     db.commit()
     return dbadmin

@@ -23,6 +23,7 @@ export type Section = {
   path: string;
   title: string; // i18n key
   sudo: boolean;
+  creator?: boolean; // the server owner's parts (backups, updates)
   flag?: Flag;
   Component: FC;
 };
@@ -110,7 +111,15 @@ export const SECTIONS: Section[] = [
     path: "backup",
     title: "backup.title",
     sudo: true,
+    creator: true,
     Component: named(() => import("components/BackupPage"), "BackupPage"),
+  },
+  {
+    path: "update",
+    title: "update.title",
+    sudo: true,
+    creator: true,
+    Component: named(() => import("components/UpdatePage"), "UpdatePage"),
   },
   {
     path: "domain",
@@ -177,6 +186,7 @@ export const SectionPage: FC<{ section: Section }> = ({ section }) => {
   const { userData, getUserIsSuccess } = useGetUser();
   // admins (non-sudo) only get the sections meant for them
   if (section.sudo && getUserIsSuccess && !userData.is_sudo) return <Navigate to="/" replace />;
+  if (section.creator && getUserIsSuccess && !(userData as any).is_creator) return <Navigate to="/" replace />;
   if (section.sudo && !getUserIsSuccess) return null;
   return (
     <Box w="full" mt={{ base: 3, md: 4 }}>

@@ -80,6 +80,15 @@ def _check_thread(db: Session, admin: Admin, thread: str) -> str:
     return thread
 
 
+def _sender(db: Session):
+    """a creator's name is hidden from the sudo admins (app/db/visibility.py): shown as "sudo" """
+    from app.db import visibility
+    hidden = visibility.hidden_names(db)
+    if not hidden:
+        return lambda name: name
+    return lambda name: "sudo" if name in hidden else name
+
+
 @router.get("/messages/threads")
 def message_threads(db: Session = Depends(get_db), admin: Admin = Depends(Admin.get_current)):
     """sudo: one thread per admin; an admin: its own thread with the sudo admins"""
@@ -88,13 +97,14 @@ def message_threads(db: Session = Depends(get_db), admin: Admin = Depends(Admin.
     else:
         names = [admin.username]
     out = []
+    sender = _sender(db)
     for name in names:
         last = db.query(AdminMessage).filter(AdminMessage.thread == name).order_by(AdminMessage.id.desc()).first()
         unread = db.query(func.count(AdminMessage.id)).filter(
             AdminMessage.thread == name, AdminMessage.read.is_(False),
             AdminMessage.from_sudo.is_(not admin.is_sudo)).scalar()
         out.append({"thread": name, "unread": int(unread or 0),
-                    "last": {"text": last.text[:120], "time": ts(last.created_at), "sender": last.sender} if last else None})
+                    "last": {"text": last.text[:120], "time": ts(last.created_at), "sender": sender(last.sender)} if last else None})
     out.sort(key=lambda x: -(x["last"]["time"] if x["last"] else 0))
     return out
 
@@ -110,7 +120,8 @@ def read_messages(thread: str, after: int = 0, db: Session = Depends(get_db),
                                   AdminMessage.from_sudo.is_(not admin.is_sudo)) \
         .update({AdminMessage.read: True}, synchronize_session=False)
     db.commit()
-    return [{"id": m.id, "time": ts(m.created_at), "sender": m.sender, "from_sudo": m.from_sudo, "text": m.text,
+    sender = _sender(db)
+    return [{"id": m.id, "time": ts(m.created_at), "sender": sender(m.sender), "from_sudo": m.from_sudo, "text": m.text,
              "read": m.read} for m in rows]
 
 
