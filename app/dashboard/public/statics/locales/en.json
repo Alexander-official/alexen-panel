@@ -1462,5 +1462,7 @@
   "serverMsg.userLimitReached": "User limit reached ({{n}}): delete a user or ask for a higher limit",
   "serverMsg.trafficQuotaReached": "Your traffic quota is used up: ask the panel owner for more",
   "serverMsg.userExists": "A user with this name exists already",
-  "serverMsg.protocolDisabled": "{{protocol}} is off on this server (no inbound for it)"
+  "serverMsg.protocolDisabled": "{{protocol}} is off on this server (no inbound for it)",
+  "groups.selectAll": "All hosts",
+  "groups.selectedOf": "{{n}} / {{total}}"
 }

@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.7.0",
+    "date": "2026-10-15",
+    "tr": [
+      "Host gruplarında \"Tüm hostlar\": bir tıkla hepsini seç ya da bırak",
+      "Her profil (inbound) için ayrı \"hepsini seç\": o profilin bütün hostları bir tıkla; kısmen seçiliyse yarım işaret ve seçili sayısı görünür"
+    ],
+    "en": [
+      "Host groups: \"All hosts\" picks or drops every host in one click",
+      "A \"select all\" for each profile (inbound): all its hosts in one click; a partly chosen profile shows a half mark and how many are chosen"
+    ]
+  },
+  {
     "version": "1.6.1",
     "date": "2026-10-15",
     "tr": [

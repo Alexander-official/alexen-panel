@@ -14,6 +14,7 @@ import {
 } from "@chakra-ui/react";
 import {
   CheckIcon,
+  MinusIcon,
   PencilSquareIcon,
   PlusIcon,
   RectangleGroupIcon,
@@ -93,6 +94,63 @@ const GroupAvatar: FC<{ name: string }> = ({ name }) => (
   </Box>
 );
 
+// the check box of a row; "some": a part of what it stands for is chosen
+const Tick: FC<{ state: "all" | "some" | "none" }> = ({ state }) => (
+  <Box
+    w="18px"
+    h="18px"
+    borderRadius="8px"
+    borderWidth="1.5px"
+    borderColor={state !== "none" ? "primary.500" : "gray.400"}
+    bg={state === "all" ? "primary.500" : state === "some" ? tint : "transparent"}
+    color={state === "all" ? "white" : "primary.500"}
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+    flexShrink={0}
+  >
+    {state === "all" && <CheckIcon width={12} height={12} strokeWidth={3} />}
+    {state === "some" && <MinusIcon width={12} height={12} strokeWidth={3} />}
+  </Box>
+);
+
+const stateOf = (ids: number[], selected: Set<number>): "all" | "some" | "none" => {
+  const n = ids.filter((id) => selected.has(id)).length;
+  return n === 0 ? "none" : n === ids.length ? "all" : "some";
+};
+
+// "select all" for the whole list or for one profile (an inbound's hosts)
+const SelectAll: FC<{ label: ReactNode; count: string; state: "all" | "some" | "none"; onClick: () => void; strong?: boolean }> = ({
+  label,
+  count,
+  state,
+  onClick,
+  strong,
+}) => (
+  <HStack
+    as="button"
+    type="button"
+    w="full"
+    textAlign="left"
+    spacing={3}
+    px={3}
+    py={strong ? 2.5 : 1.5}
+    borderRadius="10px"
+    bg={strong ? "blackAlpha.50" : "transparent"}
+    _dark={{ bg: strong ? "whiteAlpha.50" : "transparent" }}
+    _hover={{ bg: "blackAlpha.100", _dark: { bg: "whiteAlpha.100" } }}
+    onClick={onClick}
+  >
+    <Tick state={state} />
+    <Text fontSize={strong ? "sm" : "xs"} fontWeight="semibold" color={strong ? undefined : "gray.500"} letterSpacing={strong ? undefined : "wide"} flex={1} isTruncated>
+      {label}
+    </Text>
+    <Text fontSize="xs" color="gray.500" flexShrink={0}>
+      {count}
+    </Text>
+  </HStack>
+);
+
 const HostOption: FC<{ host: GroupHost; selected: boolean; others: string[]; onToggle: () => void }> = ({
   host,
   selected,
@@ -117,21 +175,7 @@ const HostOption: FC<{ host: GroupHost; selected: boolean; others: string[]; onT
       _hover={{ borderColor: "primary.300" }}
       onClick={onToggle}
     >
-      <Box
-        w="18px"
-        h="18px"
-        borderRadius="8px"
-        borderWidth="1.5px"
-        borderColor={selected ? "primary.500" : "gray.400"}
-        bg={selected ? "primary.500" : "transparent"}
-        color="white"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        flexShrink={0}
-      >
-        {selected && <CheckIcon width={12} height={12} strokeWidth={3} />}
-      </Box>
+      <Tick state={selected ? "all" : "none"} />
       <Box minW={0} flex={1}>
         <Text fontSize="sm" isTruncated>
           {host.remark}
@@ -199,6 +243,15 @@ const GroupCard: FC<{ group: Group; hosts: GroupHost[]; vpn: GroupVPN[] }> = ({ 
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  // all of these on, or (when all are on already) all of them off
+  const toggleMany = (ids: number[]) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const on = ids.every((id) => next.has(id));
+      ids.forEach((id) => (on ? next.delete(id) : next.add(id)));
+      return next;
+    });
+  const allIds = hosts.map((h) => h.id);
 
   const members = hosts.filter((h) => group.hosts.includes(h.id));
 
@@ -322,12 +375,24 @@ const GroupCard: FC<{ group: Group; hosts: GroupHost[]; vpn: GroupVPN[] }> = ({ 
               {t("groups.noHosts")}
             </Text>
           )}
+          {allIds.length > 0 && (
+            <SelectAll
+              strong
+              label={t("groups.selectAll")}
+              count={t("groups.selectedOf", { n: allIds.filter((id) => selected.has(id)).length, total: allIds.length })}
+              state={stateOf(allIds, selected)}
+              onClick={() => toggleMany(allIds)}
+            />
+          )}
           {Object.entries(byInbound).map(([tag, list]) => (
             <Box key={tag}>
-              <Text fontSize="xs" fontWeight="semibold" color="gray.500" mb={1.5} letterSpacing="wide">
-                {tag}
-              </Text>
-              <VStack align="stretch" spacing={1.5}>
+              <SelectAll
+                label={tag}
+                count={t("groups.selectedOf", { n: list.filter((h) => selected.has(h.id)).length, total: list.length })}
+                state={stateOf(list.map((h) => h.id), selected)}
+                onClick={() => toggleMany(list.map((h) => h.id))}
+              />
+              <VStack align="stretch" spacing={1.5} mt={1}>
                 {list.map((h) => (
                   <HostOption
                     key={h.id}

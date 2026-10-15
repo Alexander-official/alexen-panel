@@ -1462,5 +1462,7 @@
   "serverMsg.userLimitReached": "Ulanyjy çägine ýetildi ({{n}}): bir ulanyjyny pozuň ýa-da çägi ulaltmagy haýyş ediň",
   "serverMsg.trafficQuotaReached": "Trafik kwotaňyz gutardy: panel eýesinden goşmaça soraň",
   "serverMsg.userExists": "Bu atly ulanyjy eýýäm bar",
-  "serverMsg.protocolDisabled": "{{protocol}} bu serwerde öçük (onuň üçin inbound ýok)"
+  "serverMsg.protocolDisabled": "{{protocol}} bu serwerde öçük (onuň üçin inbound ýok)",
+  "groups.selectAll": "Ähli hostlar",
+  "groups.selectedOf": "{{n}} / {{total}}"
 }

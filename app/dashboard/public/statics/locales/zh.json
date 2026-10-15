@@ -1460,5 +1460,7 @@
   "serverMsg.userLimitReached": "已达到用户上限（{{n}}）：请删除用户或申请提高上限",
   "serverMsg.trafficQuotaReached": "您的流量配额已用完：请向面板所有者申请更多",
   "serverMsg.userExists": "该用户名已存在",
-  "serverMsg.protocolDisabled": "此服务器上 {{protocol}} 已关闭（没有对应的入站）"
+  "serverMsg.protocolDisabled": "此服务器上 {{protocol}} 已关闭（没有对应的入站）",
+  "groups.selectAll": "全部主机",
+  "groups.selectedOf": "{{n}} / {{total}}"
 }

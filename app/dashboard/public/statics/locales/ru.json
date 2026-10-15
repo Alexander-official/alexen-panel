@@ -1469,5 +1469,7 @@
   "serverMsg.userLimitReached": "Достигнут лимит пользователей ({{n}}): удалите пользователя или попросите увеличить лимит",
   "serverMsg.trafficQuotaReached": "Ваша квота трафика исчерпана: попросите владельца панели добавить",
   "serverMsg.userExists": "Пользователь с таким именем уже есть",
-  "serverMsg.protocolDisabled": "{{protocol}} на этом сервере выключен (нет inbound)"
+  "serverMsg.protocolDisabled": "{{protocol}} на этом сервере выключен (нет inbound)",
+  "groups.selectAll": "Все хосты",
+  "groups.selectedOf": "{{n}} / {{total}}"
 }
