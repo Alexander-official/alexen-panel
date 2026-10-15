@@ -9,37 +9,47 @@ with these additions:
 - **Per-user IP limit** — extra IPs are blocked until an earlier one disconnects
 - **Terminate a session** — kick one online IP with a click
 - **Device (HWID) limit** — cap how many devices can use a subscription, manage them per user
-- **Resellers** — non-sudo admins with user-count and traffic quotas, and **host groups** so each reseller only hands out the hosts you allow
+- **Roles** — creator (the owner), sudo admins and resellers with user-count and traffic quotas, and **host groups** so each reseller only hands out the hosts you allow
 - **Per-inbound traffic** — see how much went through each inbound per user
+- **Backups** and **updates from the panel** (a backup first, the old version back if a new one fails)
+
+Support: Telegram [@alexvpns](https://t.me/alexvpns)
 
 ## Install
 
-```bash
-sudo bash -c "$(curl -sL https://raw.githubusercontent.com/alexen-panel/alexen/master/scripts/alexen.sh)" @ install
-```
-
-Then create your owner (super admin):
+On a fresh Debian / Ubuntu server, as root:
 
 ```bash
-alexen cli admin create --sudo
+bash <(curl -fsSL https://raw.githubusercontent.com/Alexander-official/alexen-panel/main/scripts/alexen.sh) install
 ```
 
-Open `http://<server>:8000/dashboard/`. For HTTPS, point
-`UVICORN_SSL_CERTFILE` / `UVICORN_SSL_KEYFILE` in `/opt/alexen/.env` to your
-certificate (e.g. issued with acme.sh into `/var/lib/alexen/certs/`).
+It installs Docker, builds the panel, asks for a domain (a Let's Encrypt
+certificate, renewed by itself) or uses a self-signed certificate for the
+server's IP, and creates the creator (owner) account. Without questions:
+
+```bash
+ALEXEN_DOMAIN=panel.example.com ALEXEN_EMAIL=me@example.com \
+ALEXEN_ADMIN=owner ALEXEN_PASSWORD='a-strong-password' \
+bash <(curl -fsSL https://raw.githubusercontent.com/Alexander-official/alexen-panel/main/scripts/alexen.sh) install
+```
+
+Then open `https://<domain or server IP>:8000/dashboard/`.
 
 ## Manage
 
 ```bash
-alexen up | down | restart | status | logs
-alexen update          # pull the latest image and restart
-alexen core-update     # update the Xray core
-alexen cli ...         # admin CLI
+alexen status | logs | restart
+alexen update          # the latest version (also from the panel: Settings > Update)
+alexen check-update    # look for a new version
+alexen backup          # a backup into /var/lib/alexen/backups
+alexen admin [name]    # add a creator account
+alexen cli ...         # the admin command line
+alexen uninstall       # the data in /var/lib/alexen stays unless you ask
 ```
 
 ## Nodes
 
-Add nodes from the panel (Admins → Nodes). Hysteria2 inbounds need an Xray core
+Add nodes from the panel (Nodes). Hysteria2 inbounds need an Xray core
 **v26.3.27 or newer** on the node; older nodes keep working but skip Hysteria2.
 
 ## License
