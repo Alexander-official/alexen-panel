@@ -1458,5 +1458,11 @@
   "serverMsg.tgTokenBad": "این شبیه توکن ربات نیست (123456789:AA...)",
   "serverMsg.tgTokenRejected": "تلگرام این توکن را نپذیرفت",
   "serverMsg.tgNeedToken": "اول توکن ربات را وارد کنید",
-  "serverMsg.tgNeedAdmin": "حداقل یک شناسه تلگرام ادمین اضافه کنید"
+  "serverMsg.tgNeedAdmin": "حداقل یک شناسه تلگرام ادمین اضافه کنید",
+  "admins.expired": "منقضی",
+  "serverMsg.adminExpired": "حساب ادمین شما منقضی شده: از مالک پنل بخواهید تمدیدش کند",
+  "serverMsg.userLimitReached": "به سقف کاربران رسیدید ({{n}}): یک کاربر حذف کنید یا افزایش سقف را بخواهید",
+  "serverMsg.trafficQuotaReached": "سهمیه ترافیک شما تمام شد: از مالک پنل بیشتر بخواهید",
+  "serverMsg.userExists": "کاربری با این نام از قبل وجود دارد",
+  "serverMsg.protocolDisabled": "{{protocol}} روی این سرور خاموش است (inbound ندارد)"
 }

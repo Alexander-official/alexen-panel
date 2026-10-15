@@ -58,6 +58,7 @@ import {
   UserInbounds,
 } from "types/User";
 import { relativeExpiryDate } from "utils/dateFormatter";
+import { serverMessage } from "utils/serverMessage";
 import { z } from "zod";
 import { DeleteIcon } from "./DeleteUserModal";
 import { Icon } from "./Icon";
@@ -370,9 +371,17 @@ export const UserDialog: FC<UserDialogProps> = () => {
         onClose();
       })
       .catch((err) => {
-        if (err?.response?.status === 409 || err?.response?.status === 400)
-          setError(err?.response?._data?.detail);
-        if (err?.response?.status === 422) {
+        const status = err?.response?.status;
+        const detail = err?.response?._data?.detail;
+        if (status !== 422) {
+          // every other answer is said too (an expired reseller, a full quota, the server
+          // or the network down): a click that does nothing gets clicked again and again
+          setError(
+            (typeof detail === "string" && serverMessage(t, detail)) ||
+              (!status ? t("errors.network") : t("errors.generic"))
+          );
+        }
+        if (status === 422) {
           Object.keys(err.response._data.detail).forEach((key) => {
             setError(err?.response._data.detail[key] as string);
             form.setError(

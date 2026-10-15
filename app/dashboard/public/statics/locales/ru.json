@@ -1463,5 +1463,11 @@
   "serverMsg.tgTokenBad": "Это не похоже на токен бота (123456789:AA...)",
   "serverMsg.tgTokenRejected": "Telegram не принял этот токен",
   "serverMsg.tgNeedToken": "Сначала введите токен бота",
-  "serverMsg.tgNeedAdmin": "Добавьте хотя бы один Telegram ID администратора"
+  "serverMsg.tgNeedAdmin": "Добавьте хотя бы один Telegram ID администратора",
+  "admins.expired": "истёк",
+  "serverMsg.adminExpired": "Срок вашего аккаунта администратора истёк: попросите владельца панели продлить его",
+  "serverMsg.userLimitReached": "Достигнут лимит пользователей ({{n}}): удалите пользователя или попросите увеличить лимит",
+  "serverMsg.trafficQuotaReached": "Ваша квота трафика исчерпана: попросите владельца панели добавить",
+  "serverMsg.userExists": "Пользователь с таким именем уже есть",
+  "serverMsg.protocolDisabled": "{{protocol}} на этом сервере выключен (нет inbound)"
 }

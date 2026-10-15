@@ -77,6 +77,13 @@ const emptyForm: FormState = {
   host_groups: "",
 };
 
+// expire_date comes as UTC without a zone ("2026-10-14T18:59:59")
+const utcDate = (v: string) => new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(v) ? v : v + "Z");
+const localDay = (v: string) => {
+  const d = utcDate(v);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 export const AdminsModal: FC = () => {
   const { data: groupNames } = useQuery<string[]>({
     queryKey: "host-group-names",
@@ -141,7 +148,7 @@ export const AdminsModal: FC = () => {
       traffic_limit: admin.traffic_limit
         ? String(admin.traffic_limit / 1073741824)
         : "",
-      expire_date: admin.expire_date ? admin.expire_date.slice(0, 10) : "",
+      expire_date: admin.expire_date ? localDay(admin.expire_date) : "",
       max_user_ip_limit: admin.max_user_ip_limit
         ? String(admin.max_user_ip_limit)
         : "",
@@ -172,8 +179,9 @@ export const AdminsModal: FC = () => {
       traffic_limit: form.traffic_limit
         ? Math.round(parseFloat(form.traffic_limit) * 1073741824)
         : 0,
+      // the chosen day counts whole: the account works until its end (local time)
       expire_date: form.expire_date
-        ? new Date(form.expire_date + "T00:00:00").toISOString()
+        ? new Date(form.expire_date + "T23:59:59").toISOString()
         : null,
       max_user_ip_limit: form.max_user_ip_limit
         ? parseInt(form.max_user_ip_limit)
@@ -455,6 +463,11 @@ export const AdminsModal: FC = () => {
                           <Badge colorScheme="yellow">{t("admins.roleName.creator")}</Badge>
                         ) : (
                           admin.is_sudo && <Badge colorScheme="purple">{t("admins.sudo")}</Badge>
+                        )}
+                        {!admin.is_sudo && admin.expire_date && utcDate(admin.expire_date) < new Date() && (
+                          <Badge colorScheme="red" fontSize="2xs">
+                            {t("admins.expired")}
+                          </Badge>
                         )}
                         {admin.username === myName && (
                           <Badge variant="outline" fontSize="2xs">

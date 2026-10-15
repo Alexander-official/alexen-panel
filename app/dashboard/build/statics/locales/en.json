@@ -1456,5 +1456,11 @@
   "serverMsg.tgTokenBad": "This doesn't look like a bot token (123456789:AA...)",
   "serverMsg.tgTokenRejected": "Telegram rejected this token",
   "serverMsg.tgNeedToken": "Enter the bot token first",
-  "serverMsg.tgNeedAdmin": "Add at least one admin Telegram ID"
+  "serverMsg.tgNeedAdmin": "Add at least one admin Telegram ID",
+  "admins.expired": "expired",
+  "serverMsg.adminExpired": "Your admin account has expired: ask the panel owner to extend it",
+  "serverMsg.userLimitReached": "User limit reached ({{n}}): delete a user or ask for a higher limit",
+  "serverMsg.trafficQuotaReached": "Your traffic quota is used up: ask the panel owner for more",
+  "serverMsg.userExists": "A user with this name exists already",
+  "serverMsg.protocolDisabled": "{{protocol}} is off on this server (no inbound for it)"
 }

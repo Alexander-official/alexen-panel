@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.6.1",
+    "date": "2026-10-15",
+    "tr": [
+      "IP limiti Xray 26.3.27 ve öncesinde de çalışıyor: engelleme kuralı bu sürümlerin anladığı biçimde gönderiliyor (önceden hiç eşleşmiyordu)",
+      "Engellenen IP 90 saniye engelli kalıyor: önceden birkaç saniyede bir açılıp kapanıyordu; limitte yer açılınca hemen serbest kalıyor",
+      "Kullanıcı oluşturulamadığında sebebi görünüyor (hesap süresi doldu, kullanıcı limiti, trafik kotası, bağlantı yok): önceden hiçbir şey olmuyordu",
+      "Bayi bitiş tarihi seçilen günün sonuna kadar geçerli; süresi dolan bayiler listede işaretli"
+    ],
+    "en": [
+      "The IP limit works with Xray 26.3.27 and older too: the block rule is sent the way those versions read it (before it never matched)",
+      "A blocked IP stays blocked for 90 seconds: before it went on and off every few seconds; it is let in at once when a place frees up",
+      "When a user can't be created the reason shows (account expired, user limit, traffic quota, no connection): before nothing happened",
+      "A reseller's end date lasts until the end of that day; expired resellers are marked in the list"
+    ]
+  },
+  {
     "version": "1.6.0",
     "date": "2026-10-15",
     "tr": [

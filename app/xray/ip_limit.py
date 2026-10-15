@@ -1,13 +1,14 @@
 """Per user IP limit: the first IPs a user connects from keep working, the ones beyond the limit get
 routed to a blackhole on every core (main and nodes) until one of the earlier IPs disconnects."""
 import time
-from typing import Dict, Set, Tuple
+from typing import Dict, Optional, Set, Tuple
 
 from app import logger, xray
 from app.db import GetDB
 from app.db.models import User
 from app.xray.config import IP_LIMIT_OUTBOUND_TAG, user_email
 from xray_api import XRay as XRayAPI
+from xray_api.router import legacy_geoip
 from xray_api import exc as xray_exc
 
 RULE_TAG_PREFIX = "iplimit|"
@@ -21,6 +22,11 @@ applied_rules: Dict[str, Set[str]] = {}
 # core name -> when it answered it has no RoutingService (stock marzban-node), retried every 10 minutes
 unsupported_cores: Dict[str, float] = {}
 UNSUPPORTED_RETRY_SECONDS = 600
+# blocked IPs stay blocked for a while: a blocked connection ends at once, so the IP drops off
+# the online list, and without this it would be let in again on the next round (on and off
+# every few seconds). user id -> ip -> unix time the hold ends (pushed on while it keeps trying)
+held: Dict[int, Dict[str, float]] = {}
+HOLD_SECONDS = 90
 # manual kicks: user id -> ip -> unix time the block expires
 manual_bans: Dict[int, Dict[str, float]] = {}
 MANUAL_BAN_SECONDS = 300
@@ -53,6 +59,25 @@ def _update_first_seen(online_users: Dict[int, Dict[str, dict]]):
             seen.setdefault(ip, now)
 
 
+def _over_limit(user_id: int, limit: int, now: float) -> list:
+    """the IPs of a user to block: the online ones beyond its first `limit`, and the ones
+    still held from before, unless a place is free again (then the longest held gets it)"""
+    seen = first_seen.get(user_id, {})
+    hold = held.setdefault(user_id, {})
+    for ip in [i for i, until in hold.items() if until <= now]:
+        del hold[ip]
+    allowed = [ip for ip in sorted(seen, key=seen.get) if ip not in hold][:limit]
+    while len(allowed) < limit and hold:
+        ip = min(hold, key=hold.get)
+        del hold[ip]
+        if ip in seen:
+            allowed.append(ip)
+    blocked = [ip for ip in seen if ip not in allowed]
+    for ip in blocked:
+        hold[ip] = now + HOLD_SECONDS
+    return blocked + [ip for ip in hold if ip not in seen]
+
+
 def _desired_rules(online_users: Dict[int, Dict[str, dict]]) -> Dict[str, Tuple[list, str]]:
     """rule tag -> (emails of the user on every inbound, ip to block)"""
     if not online_users:
@@ -80,12 +105,11 @@ def _desired_rules(online_users: Dict[int, Dict[str, dict]]) -> Dict[str, Tuple[
 
     rules = {}
     for user_id, username, limit in limits:
-        seen = first_seen.get(user_id, {})
-        ips = sorted(seen, key=seen.get)
-        if len(ips) <= limit:
-            continue
-        for ip in ips[limit:]:
+        for ip in _over_limit(user_id, limit, now):
             rules[_rule_tag(user_id, ip)] = (emails_for(user_id), ip)
+    # holds of users who went offline altogether run out on their own
+    for user_id in [u for u, h in held.items() if not any(t > now for t in h.values())]:
+        del held[user_id]
 
     # manual kicks (expire on their own)
     for user_id in banned_user_ids:
@@ -97,7 +121,20 @@ def _desired_rules(online_users: Dict[int, Dict[str, dict]]) -> Dict[str, Tuple[
     return rules
 
 
-def _sync_core(name: str, api: XRayAPI, rules: Dict[str, Tuple[list, str]]):
+def _core_versions() -> Dict[str, Optional[str]]:
+    """core name -> its Xray version (the main one, and every node as it last said)"""
+    from app.db.models import Node
+    from app.xray.online import MASTER_NAME
+    out: Dict[str, Optional[str]] = {MASTER_NAME: getattr(xray.core, "version", None)}
+    try:
+        with GetDB() as db:
+            out.update({name: ver for name, ver in db.query(Node.name, Node.xray_version).all()})
+    except Exception:
+        pass
+    return out
+
+
+def _sync_core(name: str, api: XRayAPI, rules: Dict[str, Tuple[list, str]], legacy: bool = False):
     if time.time() - unsupported_cores.get(name, 0) < UNSUPPORTED_RETRY_SECONDS:
         return
     applied = applied_rules.setdefault(name, set())
@@ -112,7 +149,7 @@ def _sync_core(name: str, api: XRayAPI, rules: Dict[str, Tuple[list, str]]):
     # sent every time on purpose: a restarted core forgets its rules, a duplicate is just refused
     for tag, (emails, ip) in rules.items():
         try:
-            api.add_rule(tag, IP_LIMIT_OUTBOUND_TAG, user_emails=emails, source_ips=[ip], timeout=5)
+            api.add_rule(tag, IP_LIMIT_OUTBOUND_TAG, user_emails=emails, source_ips=[ip], timeout=5, legacy=legacy)
             applied.add(tag)
         except xray_exc.XrayError as exc:
             if "duplicate ruleTag" in str(exc.details):
@@ -149,5 +186,6 @@ def enforce(apis: Dict[str, XRayAPI], online_users: Dict[int, Dict[str, dict]]):
             logger.info(f"IP limit: user {user_id} exceeded its limit, blocking {ip}")
     blocked_ips = new_blocked
 
+    versions = _core_versions() if rules or any(applied_rules.values()) else {}
     for name, api in apis.items():
-        _sync_core(name, api, rules)
+        _sync_core(name, api, rules, legacy=legacy_geoip(versions.get(name)))

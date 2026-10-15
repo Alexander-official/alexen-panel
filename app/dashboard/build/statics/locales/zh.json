@@ -1454,5 +1454,11 @@
   "serverMsg.tgTokenBad": "这看起来不像机器人令牌（123456789:AA...）",
   "serverMsg.tgTokenRejected": "Telegram 拒绝了此令牌",
   "serverMsg.tgNeedToken": "请先输入机器人令牌",
-  "serverMsg.tgNeedAdmin": "请至少添加一个管理员 Telegram ID"
+  "serverMsg.tgNeedAdmin": "请至少添加一个管理员 Telegram ID",
+  "admins.expired": "已过期",
+  "serverMsg.adminExpired": "您的管理员账号已过期：请联系面板所有者续期",
+  "serverMsg.userLimitReached": "已达到用户上限（{{n}}）：请删除用户或申请提高上限",
+  "serverMsg.trafficQuotaReached": "您的流量配额已用完：请向面板所有者申请更多",
+  "serverMsg.userExists": "该用户名已存在",
+  "serverMsg.protocolDisabled": "此服务器上 {{protocol}} 已关闭（没有对应的入站）"
 }

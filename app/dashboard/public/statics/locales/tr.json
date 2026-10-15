@@ -1456,5 +1456,11 @@
   "serverMsg.tgTokenBad": "Bu bir bot token'ına benzemiyor (123456789:AA...)",
   "serverMsg.tgTokenRejected": "Telegram bu token'ı kabul etmedi",
   "serverMsg.tgNeedToken": "Önce bot token'ını girin",
-  "serverMsg.tgNeedAdmin": "En az bir yönetici Telegram ID'si ekleyin"
+  "serverMsg.tgNeedAdmin": "En az bir yönetici Telegram ID'si ekleyin",
+  "admins.expired": "süresi doldu",
+  "serverMsg.adminExpired": "Yönetici hesabınızın süresi doldu: panel sahibinden uzatmasını isteyin",
+  "serverMsg.userLimitReached": "Kullanıcı limitine ulaşıldı ({{n}}): bir kullanıcı silin ya da limitin artırılmasını isteyin",
+  "serverMsg.trafficQuotaReached": "Trafik kotanız doldu: panel sahibinden ek kota isteyin",
+  "serverMsg.userExists": "Bu adla bir kullanıcı zaten var",
+  "serverMsg.protocolDisabled": "{{protocol}} bu sunucuda kapalı (bunun için inbound yok)"
 }

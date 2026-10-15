@@ -1456,5 +1456,11 @@
   "serverMsg.tgTokenBad": "Bu bot tokenine meňzänok (123456789:AA...)",
   "serverMsg.tgTokenRejected": "Telegram bu tokeni kabul etmedi",
   "serverMsg.tgNeedToken": "Ilki bot tokenini giriziň",
-  "serverMsg.tgNeedAdmin": "Iň bolmanda bir dolandyryjy Telegram ID-sini goşuň"
+  "serverMsg.tgNeedAdmin": "Iň bolmanda bir dolandyryjy Telegram ID-sini goşuň",
+  "admins.expired": "möhleti gutardy",
+  "serverMsg.adminExpired": "Dolandyryjy hasabyňyzyň möhleti gutardy: panel eýesinden uzaltmagy haýyş ediň",
+  "serverMsg.userLimitReached": "Ulanyjy çägine ýetildi ({{n}}): bir ulanyjyny pozuň ýa-da çägi ulaltmagy haýyş ediň",
+  "serverMsg.trafficQuotaReached": "Trafik kwotaňyz gutardy: panel eýesinden goşmaça soraň",
+  "serverMsg.userExists": "Bu atly ulanyjy eýýäm bar",
+  "serverMsg.protocolDisabled": "{{protocol}} bu serwerde öçük (onuň üçin inbound ýok)"
 }
