@@ -8,6 +8,8 @@ agents, and reads their traffic counters back into the normal usage records
 
 Settings live in the settings table under "vpn"; per-user keys in the
 vpn_identities table."""
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import ObjectDeletedError
 import hashlib
 import ipaddress
 import json
@@ -203,6 +205,10 @@ def identity(db, user):
     if ident:
         return ident
     with _lock:
+        # another thread (a sync job, a user's change) may have made it meanwhile
+        ident = db.query(VPNIdentity).filter(VPNIdentity.user_id == uid).populate_existing().first()
+        if ident:
+            return ident
         s = load(db)
         if ensure_secrets(s, MASTER):
             save(db, s)
@@ -214,7 +220,14 @@ def identity(db, user):
         ident = VPNIdentity(user_id=uid, idx=idx, awg_private_key=priv, awg_public_key=pub,
                             awg_psk=pki.wg_psk(), ovpn_cn=cn, ovpn_cert=cert, ovpn_key=key)
         db.add(ident)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            # made by another process at the same moment: that one is the user's
+            db.rollback()
+            ident = db.query(VPNIdentity).filter(VPNIdentity.user_id == uid).first()
+            if ident is None:
+                raise
         return ident
 
 
@@ -577,9 +590,16 @@ def sync():
             return
         users = [u for u in db.query(User).all() if allowed(u)]
         idents = {i.user_id: i for i in db.query(VPNIdentity).all()}
-        for u in users:
-            if u.id not in idents:
+        missing = [u for u in users if u.id not in idents]
+        for u in missing:
+            try:
                 idents[u.id] = identity(db, u)
+            except ObjectDeletedError:   # removed meanwhile
+                db.rollback()
+        if missing:
+            # identity() commits, which leaves the loaded users stale (and a removed one unreadable)
+            users = [u for u in db.query(User).all() if allowed(u)]
+            idents = {i.user_id: i for i in db.query(VPNIdentity).all()}
         s = load(db)   # identity() may have made the CA
         perms = permissions(db)
         by_pub = {_device_pub(i, slot): i.user_id for i in idents.values() for slot in range(s.awg_devices)}

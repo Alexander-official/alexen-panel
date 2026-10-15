@@ -22,6 +22,7 @@ from . import (
     outbounds,
     backup,
     update,
+    telegram,
 )
 
 api_router = APIRouter()
@@ -50,6 +51,7 @@ routers = [
     outbounds.router,
     backup.router,
     update.router,
+    telegram.router,
 ]
 
 for router in routers:

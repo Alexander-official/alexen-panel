@@ -8,7 +8,7 @@
 # self-signed certificate for the server's IP, and for the creator account.
 # Without questions:  ALEXEN_DOMAIN=panel.example.com ALEXEN_EMAIL=me@example.com \
 #                     ALEXEN_ADMIN=owner ALEXEN_PASSWORD='...' bash alexen.sh install
-# Then:  alexen {status|logs|restart|update|backup|admin|uninstall|cli ...}
+# Then:  alexen (a menu) or alexen help: status, doctor, logs, update, backup, restore, env, core, cert, passwd ...
 #
 # Updates also run from the panel (Settings > Update): the panel writes a request into
 # <data>/update/, the updater unit (systemd, set up here) does the update and writes how it
@@ -40,8 +40,12 @@ say()  { echo "${2:-$B}==> $1${N}"; }
 fail() { echo "${R}!! $1${N}" >&2; exit 1; }
 need_root() { [ "$(id -u)" -eq 0 ] || fail "run as root (sudo)"; }
 # questions work even when the script comes through a pipe
-ask() { local q="$1" def="${2:-}" a=""; if [ -r /dev/tty ]; then read -rp "$q" a </dev/tty || true; fi; echo "${a:-$def}"; }
-ask_secret() { local q="$1" a=""; if [ -r /dev/tty ]; then read -rsp "$q" a </dev/tty || true; echo >&2; fi; echo "$a"; }
+# a terminal to ask in: /dev/tty can exist without one (cron, systemd, ssh without -t)
+has_tty() { { : </dev/tty; } 2>/dev/null; }
+ask() { local q="$1" def="${2:-}" a=""; if has_tty; then read -rp "$q" a </dev/tty || true; fi; echo "${a:-$def}"; }
+# a yes/no question; ALEXEN_YES=1 answers yes (scripts, automation)
+confirm() { [ "${ALEXEN_YES:-}" = 1 ] && return 0; case "$(ask "$1 [y/N] " n)" in y|Y|yes) return 0;; *) return 1;; esac; }
+ask_secret() { local q="$1" a=""; if has_tty; then read -rsp "$q" a </dev/tty || true; echo >&2; fi; echo "$a"; }
 dc() { docker compose -f "$COMPOSE" -p "$PROJECT" "$@"; }
 
 pkg_install() {
@@ -173,10 +177,12 @@ open_port() {
 
 create_creator() {
     local user="${1:-}" pass="${2:-}"
+    [ -z "$pass" ] || [ ${#pass} -ge 8 ] || fail "ALEXEN_PASSWORD is too short (8 characters or more)"
     [ -n "$user" ] || user=$(ask "Creator (owner) username [admin]: " admin)
     while [ -z "$pass" ]; do
+        has_tty || fail "set ALEXEN_PASSWORD (8 characters or more)"
         pass=$(ask_secret "Password for $user (min. 8 characters): ")
-        [ ${#pass} -ge 8 ] || { echo "${Y}too short${N}" >&2; pass=""; [ -r /dev/tty ] || fail "set ALEXEN_PASSWORD"; }
+        [ ${#pass} -ge 8 ] || { echo "${Y}too short${N}" >&2; pass=""; has_tty || fail "set ALEXEN_PASSWORD (8 characters or more)"; }
     done
     docker exec -e MARZBAN_ADMIN_PASSWORD="$pass" $CONTAINER marzban-cli admin create --sudo --creator -u "$user" -tg "" -dc "" \
         >/tmp/$APP-admin.log 2>&1 && grep -q "created successfully" /tmp/$APP-admin.log \
@@ -466,13 +472,6 @@ cmd_update() {
     upd_update || exit 1
 }
 
-cmd_backup() {
-    need_root
-    local f; f=$(docker exec $CONTAINER python3 -c "from app import backup; print(backup.save_to_disk())" 2>/dev/null | tail -1)
-    [ -n "$f" ] || fail "backup failed"
-    say "backup: $DATA_DIR/backups/$(basename "$f")" "$G"
-}
-
 cmd_uninstall() {
     need_root
     local a; a=$(ask "Remove Alexen? The data in $DATA_DIR is kept unless you also type 'data': [y/N/data] " n)
@@ -485,20 +484,471 @@ cmd_uninstall() {
     say "Alexen removed" "$G"
 }
 
-case "${1:-help}" in
-    install)   cmd_install ;;
-    update)    cmd_update ;;
-    status)    dc ps ;;
-    logs)      dc logs -f --tail 100 ;;
-    restart)   need_root; dc restart ;;
-    up)        need_root; dc up -d ;;
-    down)      need_root; dc down ;;
-    backup)    cmd_backup ;;
-    admin)     need_root; create_creator "${2:-}" "${ALEXEN_PASSWORD:-}"; say "creator ${ADMIN_USER} added" "$G" ;;
-    cli)       shift; need_root; docker exec -it $CONTAINER marzban-cli "$@" ;;
-    check-update)     need_root; upd_check ;;
-    updater-install)  need_root; install_updater ;;
-    updater-run)      need_root; upd_run ;;
-    uninstall) cmd_uninstall ;;
-    *) echo "Alexen: alexen {install|update|check-update|status|logs|restart|up|down|backup|admin [name]|cli ...|uninstall}" ;;
-esac
+cmd_backup() {
+    need_root
+    case "${1:-now}" in
+        list|ls)
+            local dir="$DATA_DIR/backups" n=0
+            [ -d "$dir" ] || { echo "no backups yet"; return 0; }
+            printf "  %-52s %10s  %s\n" "NAME" "SIZE" "DATE"
+            while read -r f; do
+                [ -n "$f" ] || continue
+                n=$((n + 1))
+                printf "  %-52s %10s  %s\n" "$(basename "$f")" "$(du -h "$f" | cut -f1)" "$(date -r "$f" '+%F %T')"
+            done < <(ls -t "$dir"/*.zip 2>/dev/null)
+            [ "$n" -gt 0 ] || echo "no backups yet"
+            ;;
+        now|"")
+            container_up || fail "the panel isn't running (alexen up)"
+            local f; f=$(docker exec "$CONTAINER" python3 -c "from app import backup; print(backup.save_to_disk())" 2>/dev/null | tail -1)
+            [ -n "$f" ] || fail "backup failed"
+            say "backup: $DATA_DIR/backups/$(basename "$f") ($(du -h "$DATA_DIR/backups/$(basename "$f")" | cut -f1))" "$G"
+            ;;
+        *) fail "alexen backup [now|list]" ;;
+    esac
+}
+
+# ---------------- the command line, beyond install / update ----------------
+ok()   { echo "  ${G}✓${N} $*"; }
+warn() { echo "  ${Y}!${N} $*"; }
+bad()  { echo "  ${R}✗${N} $*"; }
+row()  { printf "  %-16s %s\n" "$1" "$2"; }
+
+tty_flags() { if [ -t 0 ] && [ -t 1 ]; then echo -it; else echo -i; fi; }
+
+# a newer than b (1.10.0 > 1.9.2)
+ver_gt() { [ -n "$1" ] && [ -n "$2" ] && [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -1)" = "$1" ]; }
+
+container_up() { [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null)" = true ]; }
+
+# KEY = value lines of .env (the last one that isn't a comment wins, like the panel reads it)
+env_get() {
+    [ -f "$ENV_FILE" ] || return 0
+    { grep -E "^[[:space:]]*$1[[:space:]]*=" "$ENV_FILE" || true; } | tail -1 \
+        | sed -E 's/^[^=]*=[[:space:]]*//; s/[[:space:]]+$//; s/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/'
+}
+
+env_set() {
+    local key="$1" value="$2"
+    [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || fail "a setting name is like UVICORN_PORT"
+    case "$value" in *$'\n'*|*'"'*) fail "the value can't have a newline or a double quote";; esac
+    cp -p "$ENV_FILE" "$ENV_FILE.bak"
+    local line="$key = \"$value\""
+    if grep -qE "^[[:space:]]*${key}[[:space:]]*=" "$ENV_FILE"; then
+        # every line that sets it (an .env can have it twice): the new value
+        awk -v k="$key" -v l="$line" '
+            { if ($0 ~ "^[[:space:]]*" k "[[:space:]]*=") print l; else print }' "$ENV_FILE.bak" > "$ENV_FILE.tmp"
+        cat "$ENV_FILE.tmp" > "$ENV_FILE"; rm -f "$ENV_FILE.tmp"
+    else
+        printf '\n%s\n' "$line" >> "$ENV_FILE"
+    fi
+}
+
+env_unset() {
+    local key="$1"
+    grep -qE "^[[:space:]]*${key}[[:space:]]*=" "$ENV_FILE" || return 0
+    cp -p "$ENV_FILE" "$ENV_FILE.bak"
+    awk -v k="$key" '{ if ($0 ~ "^[[:space:]]*" k "[[:space:]]*=") print "# " $0; else print }' "$ENV_FILE.bak" > "$ENV_FILE.tmp"
+    cat "$ENV_FILE.tmp" > "$ENV_FILE"; rm -f "$ENV_FILE.tmp"
+}
+
+secret_key() { [[ "$1" =~ PASS|SECRET|TOKEN|KEY|WEBHOOK|DATABASE_URL ]]; }
+
+ask_restart() {
+    local a; a=$(ask "Restart the panel now to use it? [Y/n] " y)
+    case "$a" in n|N) echo "  later: alexen restart";; *) restart_and_wait;; esac
+}
+
+restart_and_wait() {
+    say "restarting"
+    dc up -d --force-recreate >/dev/null 2>&1 || dc up -d
+    if is_up "$(panel_port)"; then say "the panel is up" "$G"; else dc logs --tail 30 || true; fail "the panel didn't come back (log above)"; fi
+}
+
+cmd_env() {
+    need_root
+    [ -f "$ENV_FILE" ] || fail "no $ENV_FILE"
+    case "${1:-list}" in
+        list|ls)
+            local k v
+            while IFS= read -r k; do
+                v=$(env_get "$k")
+                secret_key "$k" && [ -n "$v" ] && v="••••••"
+                printf "  %-34s %s\n" "$k" "$v"
+            done < <(grep -E '^[[:space:]]*[A-Z][A-Z0-9_]*[[:space:]]*=' "$ENV_FILE" | sed -E 's/^[[:space:]]*([A-Z0-9_]+).*/\1/' | awk '!seen[$0]++')
+            ;;
+        get) [ -n "${2:-}" ] || fail "alexen env get NAME"; env_get "$2" ;;
+        set)
+            [ -n "${2:-}" ] && [ $# -ge 3 ] || fail "alexen env set NAME VALUE"
+            env_set "$2" "$3"; say "$2 set (the old file: $ENV_FILE.bak)" "$G"; ask_restart ;;
+        unset|del)
+            [ -n "${2:-}" ] || fail "alexen env unset NAME"
+            env_unset "$2"; say "$2 off (commented out)" "$G"; ask_restart ;;
+        *) fail "alexen env [list|get NAME|set NAME VALUE|unset NAME]" ;;
+    esac
+}
+
+cmd_edit() {
+    need_root
+    local ed="${EDITOR:-}"
+    [ -n "$ed" ] || for e in nano vim vi; do command -v $e >/dev/null && { ed=$e; break; }; done
+    [ -n "$ed" ] || fail "no editor (set EDITOR, or: alexen env set NAME VALUE)"
+    local before; before=$(md5sum "$ENV_FILE" | cut -d' ' -f1)
+    cp -p "$ENV_FILE" "$ENV_FILE.bak"
+    $ed "$ENV_FILE" </dev/tty >/dev/tty
+    [ "$(md5sum "$ENV_FILE" | cut -d' ' -f1)" = "$before" ] && { echo "  no change"; return 0; }
+    say "saved (the old file: $ENV_FILE.bak)" "$G"; ask_restart
+}
+
+# a host path for a path inside the container (/var/lib/marzban/... is the data folder)
+host_path() { case "$1" in /var/lib/marzban/*) echo "$DATA_DIR/${1#/var/lib/marzban/}";; *) echo "$1";; esac; }
+
+cert_days() {
+    local f; f=$(host_path "$(env_get UVICORN_SSL_CERTFILE)")
+    [ -n "$f" ] && [ -f "$f" ] || return 1
+    local end; end=$(openssl x509 -enddate -noout -in "$f" 2>/dev/null | cut -d= -f2) || return 1
+    echo $(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 ))
+}
+
+panel_url() {
+    local p; p=$(env_get XRAY_SUBSCRIPTION_URL_PREFIX)
+    [ -n "$p" ] && echo "${p%/}/dashboard/" || echo "https://$(public_ip):$(panel_port)/dashboard/"
+}
+
+core_version() { docker exec "$CONTAINER" sh -c "\"\${XRAY_EXECUTABLE_PATH:-/usr/local/bin/xray}\" version 2>/dev/null | head -1" 2>/dev/null | awk '{print $2}'; }
+
+cmd_status() {
+    local run up started restarts
+    echo "${B}Alexen${N}"
+    if container_up; then
+        started=$(docker inspect -f '{{.State.StartedAt}}' "$CONTAINER" 2>/dev/null | cut -d. -f1)
+        restarts=$(docker inspect -f '{{.RestartCount}}' "$CONTAINER" 2>/dev/null)
+        up="${G}running${N} since $(date -d "${started}Z" '+%F %T' 2>/dev/null || echo "$started")"
+        [ "${restarts:-0}" -gt 0 ] && up="$up ${Y}(restarted $restarts times)${N}"
+    else
+        up="${R}stopped${N} (alexen up)"
+    fi
+    row "Panel" "$up"
+    row "Version" "$(running_version || true)"
+    if [ -f "$UPD_DIR/status.json" ]; then
+        local latest; latest=$(grep -o '"latest": *"[^"]*"' "$UPD_DIR/status.json" | sed 's/.*"\([^"]*\)"$/\1/')
+        ver_gt "$latest" "$(running_version)" && row "Update" "${G}$latest available${N} (alexen update)"
+    fi
+    row "Address" "$(panel_url)"
+    container_up && row "Xray" "$(core_version)"
+    local days; if days=$(cert_days); then
+        if [ "$days" -lt 7 ]; then row "Certificate" "${R}$days days left${N}"; else row "Certificate" "$days days left"; fi
+    fi
+    if container_up; then
+        local counts; counts=$(docker exec "$CONTAINER" python3 -c "
+from app.db import GetDB; from app.db.models import User, Admin
+with GetDB() as db: print(db.query(User).count(), db.query(Admin).count())" 2>/dev/null | tail -1)
+        [ -n "$counts" ] && row "Users" "${counts% *} (admins: ${counts#* })"
+    fi
+    row "Data" "$DATA_DIR ($(du -sh "$DATA_DIR" 2>/dev/null | cut -f1), disk $(df -h "$DATA_DIR" | awk 'NR==2{print $5" used"}'))"
+    local last; last=$(ls -t "$DATA_DIR"/backups/*.zip 2>/dev/null | head -1)
+    [ -n "$last" ] && row "Last backup" "$(date -r "$last" '+%F %T')"
+    if command -v systemctl >/dev/null; then
+        systemctl is-active -q $APP-updater.path 2>/dev/null && row "Panel updates" "on" || row "Panel updates" "${Y}off${N} (alexen updater-install)"
+    fi
+}
+
+cmd_doctor() {
+    need_root
+    local problems=0 port; port=$(panel_port)
+    echo "${B}Alexen: checking this server${N}"
+    if docker info >/dev/null 2>&1; then ok "Docker is running"; else bad "Docker isn't running (systemctl start docker)"; problems=$((problems+1)); fi
+    if container_up; then
+        local rc; rc=$(docker inspect -f '{{.RestartCount}}' "$CONTAINER" 2>/dev/null)
+        if [ "${rc:-0}" -gt 3 ]; then warn "the panel has restarted $rc times (alexen logs)"; else ok "the panel container runs"; fi
+    else bad "the panel container isn't running (alexen up; alexen logs)"; problems=$((problems+1)); fi
+    if curl -fsk -m 8 -o /dev/null "https://127.0.0.1:$port/dashboard/"; then ok "the panel answers on port $port"
+    else bad "the panel doesn't answer on port $port"; problems=$((problems+1)); fi
+    if pgrep -x xray >/dev/null 2>&1; then ok "Xray core runs ($(core_version))"; else bad "Xray core isn't running (alexen logs)"; problems=$((problems+1)); fi
+    local days; if days=$(cert_days); then
+        if [ "$days" -lt 0 ]; then bad "the certificate has expired"; problems=$((problems+1))
+        elif [ "$days" -lt 14 ]; then warn "the certificate ends in $days days (alexen cert renew)"
+        else ok "the certificate is valid for $days days"; fi
+    else warn "no certificate file found (UVICORN_SSL_CERTFILE)"; fi
+    if container_up; then
+        local qc; qc=$(docker exec "$CONTAINER" python3 -c "
+import sqlite3; print(sqlite3.connect('/var/lib/marzban/db.sqlite3').execute('PRAGMA quick_check').fetchone()[0])" 2>/dev/null | tail -1)
+        if [ "$qc" = ok ]; then ok "the database is healthy"
+        elif [ -n "$qc" ]; then bad "the database reports: $qc (restore a backup: alexen restore)"; problems=$((problems+1))
+        else warn "the database couldn't be checked (not SQLite?)"; fi
+    fi
+    local use; use=$(df -P "$DATA_DIR" | awk 'NR==2{gsub("%","",$5); print $5}')
+    if [ "${use:-0}" -ge 95 ]; then bad "the disk is ${use}% full"; problems=$((problems+1))
+    elif [ "${use:-0}" -ge 85 ]; then warn "the disk is ${use}% full"
+    else ok "disk ${use}% used"; fi
+    local mem; mem=$(free | awk '/Mem:/{printf "%d", ($2-$7)*100/$2}')
+    if [ "${mem:-0}" -ge 95 ]; then warn "memory ${mem}% used"; else ok "memory ${mem}% used"; fi
+    local last; last=$(ls -t "$DATA_DIR"/backups/*.zip 2>/dev/null | head -1)
+    if [ -z "$last" ]; then warn "no backup yet (alexen backup)"
+    elif [ $(( $(date +%s) - $(date -r "$last" +%s) )) -gt 172800 ]; then warn "the last backup is older than 2 days ($(date -r "$last" '+%F'))"
+    else ok "last backup $(date -r "$last" '+%F %T')"; fi
+    if command -v systemctl >/dev/null && [ -d /run/systemd/system ]; then
+        if systemctl is-active -q $APP-updater.path && systemctl is-active -q $APP-update-check.timer; then ok "updates from the panel are on"
+        else warn "updates from the panel are off (alexen updater-install)"; fi
+    fi
+    if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
+        if ufw status | grep -qE "^$port(/tcp)?[[:space:]]+ALLOW"; then ok "the firewall lets port $port in"
+        else warn "the firewall (ufw) may block port $port (ufw allow $port/tcp)"; fi
+    fi
+    if [ -f "$UPD_DIR/status.json" ]; then
+        local latest now; latest=$(grep -o '"latest": *"[^"]*"' "$UPD_DIR/status.json" | sed 's/.*"\([^"]*\)"$/\1/'); now=$(running_version)
+        if ver_gt "$latest" "$now"; then warn "version $latest is out (alexen update)"; else ok "version ${now:-?} is the latest"; fi
+    fi
+    echo
+    if [ "$problems" -eq 0 ]; then say "all good" "$G"; else say "$problems problem(s) above" "$R"; return 1; fi
+}
+
+cmd_restore() {
+    need_root
+    local src="${1:-}"
+    if [ -z "$src" ]; then
+        cmd_backup list
+        src=$(ask "Backup to restore (a name above, or a .zip path): " "")
+        [ -n "$src" ] || { echo "nothing restored"; return 0; }
+    fi
+    [ -f "$src" ] || src="$DATA_DIR/backups/$(basename "$src")"
+    [ -f "$src" ] || fail "no such backup: ${1:-$src}"
+    container_up || fail "the panel isn't running (alexen up)"
+    # the container reads it from the data folder
+    local inside="/var/lib/marzban/backups/$(basename "$src")"
+    [ "$(readlink -f "$src")" = "$(readlink -f "$DATA_DIR/backups/$(basename "$src")")" ] || cp -p "$src" "$DATA_DIR/backups/"
+    local info; info=$(docker exec -e F="$inside" "$CONTAINER" python3 -c "
+import os; from app import backup
+m = backup.check(open(os.environ['F'], 'rb').read()); print(m.get('created_at', '?')[:19].replace('T', ' '), m.get('panel_version', '?'))" 2>&1 | tail -1)
+    case "$info" in *Error*|*error*|"") fail "not a usable backup: $info";; esac
+    echo "  made ${info% *} by version ${info##* }"
+    confirm "Restore it? The panel's data now is saved first, then replaced." || { echo "nothing restored"; return 0; }
+    docker exec -e F="$inside" "$CONTAINER" python3 -c "
+import os; from app import backup; r = backup.restore(open(os.environ['F'], 'rb').read()); print('  the data before:', r['saved_before'])" 2>&1 | tail -1
+    restart_and_wait
+    say "restored" "$G"
+}
+
+cmd_core() {
+    need_root
+    container_up || fail "the panel isn't running (alexen up)"
+    local want="${1:-}" arch
+    case "$(uname -m)" in x86_64|amd64) arch=64;; aarch64|arm64) arch=arm64-v8a;; armv7l) arch=arm32-v7a;; *) fail "no Xray build for $(uname -m)";; esac
+    case "$want" in
+        ""|current) row "Xray now" "$(core_version)"; echo "  alexen core list | alexen core <version> | alexen core latest | alexen core reset"; return 0 ;;
+        list)
+            curl -fsSL -m 15 "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=12" \
+                | grep -o '"tag_name": *"[^"]*"' | sed 's/.*"\(v[^"]*\)"$/  \1/' || fail "couldn't reach GitHub"
+            return 0 ;;
+        reset)
+            env_unset XRAY_EXECUTABLE_PATH; env_unset XRAY_ASSETS_PATH
+            restart_and_wait
+            rm -rf "$DATA_DIR/xray-core" "$DATA_DIR/xray-core.old" "$DATA_DIR/xray-core.new"
+            say "back on the panel's own Xray $(core_version)" "$G"; return 0 ;;
+        latest)
+            want=$(curl -fsSL -m 15 https://api.github.com/repos/XTLS/Xray-core/releases/latest | grep -o '"tag_name": *"[^"]*"' | sed 's/.*"\(v[^"]*\)"$/\1/')
+            [ -n "$want" ] || fail "couldn't reach GitHub" ;;
+    esac
+    [[ "$want" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "a version is like v26.3.27 (alexen core list)"
+    want="v${want#v}"
+    say "downloading Xray $want"
+    # into the data folder, by the panel's own Python (nothing to install on the server)
+    docker exec -i "$CONTAINER" python3 - "$want" "$arch" <<'PYEOF' || fail "couldn't get Xray $want"
+import io, os, shutil, stat, subprocess, sys, urllib.request, zipfile
+ver, arch = sys.argv[1], sys.argv[2]
+url = f"https://github.com/XTLS/Xray-core/releases/download/{ver}/Xray-linux-{arch}.zip"
+try:
+    data = urllib.request.urlopen(url, timeout=120).read()
+except Exception as e:
+    sys.exit(f"  {ver}: {getattr(e, 'code', '') and 'no such version' or e}")
+tmp = "/var/lib/marzban/xray-core.new"
+shutil.rmtree(tmp, ignore_errors=True)
+os.makedirs(tmp)
+zipfile.ZipFile(io.BytesIO(data)).extractall(tmp)
+xray = os.path.join(tmp, "xray")
+os.chmod(xray, os.stat(xray).st_mode | stat.S_IEXEC)
+out = subprocess.run([xray, "version"], capture_output=True, text=True, timeout=20).stdout.split("\n")[0]
+if not out.startswith("Xray"):
+    sys.exit("the download doesn't run")
+dst = "/var/lib/marzban/xray-core"
+shutil.rmtree(dst + ".old", ignore_errors=True)
+if os.path.isdir(dst):
+    os.rename(dst, dst + ".old")
+os.rename(tmp, dst)
+print(out)
+PYEOF
+    local old_exec old_assets; old_exec=$(env_get XRAY_EXECUTABLE_PATH); old_assets=$(env_get XRAY_ASSETS_PATH)
+    env_set XRAY_EXECUTABLE_PATH /var/lib/marzban/xray-core/xray
+    env_set XRAY_ASSETS_PATH /var/lib/marzban/xray-core
+    dc up -d --force-recreate >/dev/null 2>&1 || true
+    local got=""
+    if is_up "$(panel_port)"; then sleep 5; pgrep -x xray >/dev/null && got=$(core_version); fi
+    if [ "$got" = "${want#v}" ]; then rm -rf "$DATA_DIR/xray-core.old"; say "Xray $got is running" "$G"; return 0; fi
+    # it didn't come up with that core: the one before
+    warn "Xray ${want#v} didn't start: going back"
+    if [ -n "$old_exec" ]; then env_set XRAY_EXECUTABLE_PATH "$old_exec"; else env_unset XRAY_EXECUTABLE_PATH; fi
+    if [ -n "$old_assets" ]; then env_set XRAY_ASSETS_PATH "$old_assets"; else env_unset XRAY_ASSETS_PATH; fi
+    if [ -d "$DATA_DIR/xray-core.old" ]; then rm -rf "$DATA_DIR/xray-core"; mv "$DATA_DIR/xray-core.old" "$DATA_DIR/xray-core"; fi
+    restart_and_wait
+    fail "kept Xray $(core_version) (alexen logs shows why the new one didn't start)"
+}
+
+cmd_passwd() {
+    need_root
+    container_up || fail "the panel isn't running (alexen up)"
+    local user="${1:-}" pass="${ALEXEN_PASSWORD:-}"
+    [ -z "$pass" ] || [ ${#pass} -ge 8 ] || fail "ALEXEN_PASSWORD is too short (8 characters or more)"
+    [ -n "$user" ] || user=$(ask "Admin username: " "")
+    [ -n "$user" ] || fail "alexen passwd USERNAME"
+    [[ "$user" =~ ^[A-Za-z0-9_.@-]{1,34}$ ]] || fail "no such admin: $user"
+    while [ -z "$pass" ]; do
+        has_tty || fail "set ALEXEN_PASSWORD (8 characters or more)"
+        pass=$(ask_secret "New password for $user (min. 8 characters): ")
+        [ ${#pass} -ge 8 ] || { echo "${Y}too short${N}" >&2; pass=""; has_tty || fail "set ALEXEN_PASSWORD (8 characters or more)"; }
+    done
+    local r; r=$(docker exec -e U="$user" -e P="$pass" "$CONTAINER" python3 -c "
+import os
+from datetime import datetime
+from app.db import GetDB; from app.db.models import Admin; from app.models.admin import pwd_context
+with GetDB() as db:
+    a = db.query(Admin).filter(Admin.username == os.environ['U']).first()
+    if not a: print('NOADMIN')
+    else:
+        a.hashed_password = pwd_context.hash(os.environ['P'])
+        a.password_reset_at = datetime.utcnow().replace(microsecond=0)
+        db.commit(); print('OK')" 2>/dev/null | tail -1)
+    case "$r" in OK) say "the password of $user is changed (its open sessions end)" "$G";; NOADMIN) fail "no such admin: $user";; *) fail "couldn't change it";; esac
+}
+
+cmd_cert() {
+    need_root
+    local f; f=$(host_path "$(env_get UVICORN_SSL_CERTFILE)")
+    case "${1:-}" in
+        renew)
+            [ -f /etc/cron.d/$APP-cert ] || fail "this panel has no Let's Encrypt certificate (a self-signed one doesn't need renewing)"
+            say "renewing"
+            docker run --rm -p 80:80 -v "$DATA_DIR/certs/le:/etc/letsencrypt" certbot/certbot renew --force-renewal --quiet \
+                || fail "renewing failed: port 80 must be free and the domain must point here"
+            restart_and_wait; say "renewed: $(cert_days) days" "$G" ;;
+        *)
+            [ -f "$f" ] || fail "no certificate file ($f)"
+            row "File" "$f"
+            row "For" "$(openssl x509 -noout -subject -in "$f" 2>/dev/null | sed 's/^subject= *//')"
+            row "Issuer" "$(openssl x509 -noout -issuer -in "$f" 2>/dev/null | sed 's/^issuer= *//')"
+            row "Ends" "$(openssl x509 -noout -enddate -in "$f" 2>/dev/null | cut -d= -f2) ($(cert_days) days)"
+            [ -f /etc/cron.d/$APP-cert ] && row "Renewal" "automatic (alexen cert renew to do it now)" ;;
+    esac
+}
+
+cmd_completion() {
+    need_root
+    cat > /etc/bash_completion.d/$APP <<'EOF'
+_alexen() {
+    local cur=${COMP_WORDS[COMP_CWORD]} prev=${COMP_WORDS[COMP_CWORD-1]}
+    case "$prev" in
+        env) COMPREPLY=($(compgen -W "list get set unset" -- "$cur")); return;;
+        backup) COMPREPLY=($(compgen -W "now list" -- "$cur")); return;;
+        core) COMPREPLY=($(compgen -W "list latest reset" -- "$cur")); return;;
+        cert) COMPREPLY=($(compgen -W "renew" -- "$cur")); return;;
+    esac
+    [ "$COMP_CWORD" -eq 1 ] && COMPREPLY=($(compgen -W "status doctor logs restart up down update check-update backup restore env edit core passwd admins admin cert cli version uninstall help" -- "$cur"))
+}
+complete -F _alexen alexen
+EOF
+    say "tab completion on (a new shell has it)" "$G"
+}
+
+cmd_help() {
+    cat <<EOF
+${B}Alexen${N} $(running_version 2>/dev/null || true) — the panel's command line
+
+  ${G}status${N}                 version, address, certificate, users, last backup
+  ${G}doctor${N}                 check everything and say what's wrong
+  ${G}logs${N} [-n LINES] [--no-follow]
+  ${G}restart${N} | ${G}up${N} | ${G}down${N}
+
+  ${G}update${N}                 the latest version (a backup first, the old one back if it fails)
+  ${G}check-update${N}           only look for a new version
+
+  ${G}backup${N} [list]          a backup now / the saved ones
+  ${G}restore${N} [FILE|NAME]    put a backup back (the data now is saved first)
+
+  ${G}env${N} [list|get|set|unset]   the panel's settings (.env); ${G}edit${N} opens it in an editor
+  ${G}core${N} [list|latest|VERSION|reset]   the Xray core version
+  ${G}cert${N} [renew]           the certificate
+
+  ${G}admins${N}                 the admin accounts
+  ${G}admin${N} [NAME]           add a creator (owner) account
+  ${G}passwd${N} [NAME]          a new password for an admin
+  ${G}cli${N} ...                the admin command line (marzban-cli)
+
+  ${G}completion${N}             tab completion for alexen
+  ${G}uninstall${N}              remove the panel (the data stays unless you ask)
+  ${G}version${N}
+
+  Without a command (in a terminal): a menu.  Support: Telegram @alexvpns
+EOF
+}
+
+cmd_menu() {
+    local items=("status" "doctor" "logs" "restart" "update" "backup" "backup list" "restore" "env list" "edit" "core" "admins" "passwd" "cert" "help")
+    while true; do
+        echo
+        echo "${B}Alexen${N} $(running_version 2>/dev/null || true)"
+        local i=1; for it in "${items[@]}"; do printf "  %2d) %s\n" $i "$it"; i=$((i+1)); done
+        printf "   0) exit\n"
+        local c; c=$(ask "> " 0)
+        [ "$c" = 0 ] || [ -z "$c" ] && return 0
+        [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -ge 1 ] && [ "$c" -le ${#items[@]} ] || { echo "  1-${#items[@]} or 0"; continue; }
+        # a command that fails returns here, not out of the menu
+        ( set +e; main ${items[$((c-1))]} ) || true
+    done
+}
+
+cmd_logs() {
+    local n=100 follow=-f
+    while [ $# -gt 0 ]; do
+        case "$1" in -n|--tail) n="${2:-100}"; shift;; --no-follow|-N) follow="";; [0-9]*) n="$1";; esac
+        shift
+    done
+    [[ "$n" =~ ^[0-9]+$ ]] || n=100
+    dc logs $follow --tail "$n"
+}
+
+main() {
+    local cmd="${1:-}"; [ $# -gt 0 ] && shift
+    # install / update / uninstall stop at the first error; the other commands check what
+    # matters themselves and go on past an empty answer (a grep that finds nothing)
+    case "$cmd" in install|update|uninstall|updater-run|check-update|updater-install) ;; *) set +e +o pipefail;; esac
+    case "$cmd" in
+        install)   cmd_install ;;
+        update)    cmd_update ;;
+        status)    cmd_status ;;
+        doctor|check) cmd_doctor ;;
+        logs|log)  cmd_logs "$@" ;;
+        restart)   need_root; restart_and_wait ;;
+        up|start)  need_root; dc up -d ;;
+        down|stop) need_root; dc down ;;
+        backup)    cmd_backup "$@" ;;
+        restore)   cmd_restore "$@" ;;
+        env)       cmd_env "$@" ;;
+        edit|edit-env) cmd_edit ;;
+        core|core-update|xray) cmd_core "$@" ;;
+        passwd|password) cmd_passwd "$@" ;;
+        admins)    need_root; docker exec $(tty_flags) "$CONTAINER" marzban-cli admin list ;;
+        admin)     need_root; create_creator "${1:-}" "${ALEXEN_PASSWORD:-}"; say "creator ${ADMIN_USER} added" "$G" ;;
+        cert|ssl)  cmd_cert "$@" ;;
+        cli)       need_root; docker exec $(tty_flags) "$CONTAINER" marzban-cli "$@" ;;
+        check-update)     need_root; upd_check ;;
+        updater-install)  need_root; install_updater ;;
+        updater-run)      need_root; upd_run ;;
+        completion) cmd_completion ;;
+        version|-v|--version) echo "Alexen $(running_version 2>/dev/null || echo '?')" ;;
+        uninstall) cmd_uninstall ;;
+        help|-h|--help) cmd_help ;;
+        "")        if [ -t 0 ] && [ -t 1 ]; then cmd_menu; else cmd_help; fi ;;
+        *)         echo "${R}unknown command: $cmd${N}" >&2; cmd_help; return 1 ;;
+    esac
+}
+
+main "$@"

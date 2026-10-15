@@ -50,6 +50,7 @@ import {
   BellAlertIcon,
   ChatBubbleLeftRightIcon,
   CloudArrowDownIcon,
+  ChatBubbleOvalLeftEllipsisIcon,
 } from "@heroicons/react/24/outline";
 import { BRAND_NAME } from "constants/Project";
 import { useDashboard } from "contexts/DashboardContext";
@@ -246,6 +247,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
               ...(isCreator
                 ? [
                     { title: t("backup.title"), path: "backup", icon: ic(ArchiveBoxArrowDownIcon) },
+                    { title: t("tg.title"), path: "telegram", icon: ic(ChatBubbleOvalLeftEllipsisIcon) },
                     { title: t("update.title"), path: "update", icon: ic(CloudArrowDownIcon), badge: update?.available ? 1 : 0 },
                   ]
                 : []),

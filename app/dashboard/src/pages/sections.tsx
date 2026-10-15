@@ -115,6 +115,13 @@ export const SECTIONS: Section[] = [
     Component: named(() => import("components/BackupPage"), "BackupPage"),
   },
   {
+    path: "telegram",
+    title: "tg.title",
+    sudo: true,
+    creator: true,
+    Component: named(() => import("components/TelegramPage"), "TelegramPage"),
+  },
+  {
     path: "update",
     title: "update.title",
     sudo: true,

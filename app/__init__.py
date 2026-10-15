@@ -11,7 +11,7 @@ from fastapi.routing import APIRoute
 
 from config import ALLOWED_ORIGINS, DOCS, XRAY_SUBSCRIPTION_PATH
 
-__version__ = "1.5.1"
+__version__ = "1.6.0"
 
 app = FastAPI(
     title="AlexenAPI",
@@ -117,6 +117,12 @@ def on_startup():
     repair.out_of_range_values()
     repair.blank_admins()
     scheduler.start()
+    # the panel's Telegram bot (Settings > Telegram); a failure there never stops the panel
+    try:
+        from app import tgbot
+        tgbot.apply_soon()
+    except Exception as e:
+        logger.error(f"telegram bot didn't start: {e}")
 
 
 @app.on_event("shutdown")

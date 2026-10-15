@@ -37,15 +37,30 @@ Then open `https://<domain or server IP>:8000/dashboard/`.
 
 ## Manage
 
+`alexen` alone opens a menu; `alexen help` lists everything:
+
 ```bash
-alexen status | logs | restart
+alexen status          # version, address, certificate, users, last backup
+alexen doctor          # check everything and say what's wrong
+alexen logs [-n 200] [--no-follow]
+alexen restart | up | down
 alexen update          # the latest version (also from the panel: Settings > Update)
-alexen check-update    # look for a new version
-alexen backup          # a backup into /var/lib/alexen/backups
-alexen admin [name]    # add a creator account
-alexen cli ...         # the admin command line
+alexen backup [list]   # a backup now / the saved ones
+alexen restore [FILE]  # put a backup back (the data now is saved first)
+alexen env [list|get|set|unset]   # the panel's settings; alexen edit opens them in an editor
+alexen core [list|latest|VERSION|reset]   # the Xray core version (back to the old one if it fails)
+alexen cert [renew]    # the certificate
+alexen passwd [NAME]   # a new password for an admin
+alexen admins | admin [NAME] | cli ...
+alexen completion      # tab completion
 alexen uninstall       # the data in /var/lib/alexen stays unless you ask
 ```
+
+## Telegram bot
+
+Settings > Telegram in the panel: paste a token from @BotFather and your Telegram ID
+(write `/id` to the bot to see it). The bot shows the panel's state, who is online and a
+user's details, sends a backup on request, and backups on a schedule if you turn it on.
 
 ## Nodes
 

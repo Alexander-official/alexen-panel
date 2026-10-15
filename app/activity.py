@@ -13,7 +13,7 @@ from app import logger
 KEEP_DAYS = 365
 MAX_BODY = 64 * 1024
 MAX_DETAIL = 4000
-SECRET = re.compile(r"pass|secret|private|token|key$|^key|psk|cert|credential", re.IGNORECASE)
+SECRET = re.compile(r"pass|secret|private|token|key$|^key|psk|cert|credential|^proxy$", re.IGNORECASE)
 # noisy calls that change nothing worth keeping
 SKIP = re.compile(r"^/api/(external-configs/preview|sub-webpage/preview|sub-domain/example|core/outbound-from-link|overview|traffic/live|node-install/)")
 

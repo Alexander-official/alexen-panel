@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.6.0",
+    "date": "2026-10-15",
+    "tr": [
+      "Telegram botu panelden kuruluyor (Ayarlar → Telegram): token, yönetici ID'leri, dil, proxy",
+      "Bot: durum, online kullanıcılar, kullanıcı sorgulama, istenince yedek; seçilen aralıkla otomatik yedek gönderimi",
+      "Gelişmiş alexen komutu: menü, status, doctor (sağlık kontrolü), env/edit (ayarlar), backup/restore, core (Xray sürümü, sorun olursa geri döner), passwd, cert, sekme tamamlama",
+      "Kurulum: şifre kısa ya da terminal yokken soru sonsuza dek tekrarlanmıyor"
+    ],
+    "en": [
+      "The Telegram bot is set up from the panel (Settings → Telegram): token, admin IDs, language, proxy",
+      "The bot: status, online users, user lookup, a backup on request; backups sent automatically at the chosen interval",
+      "A richer alexen command: a menu, status, doctor (health check), env/edit (settings), backup/restore, core (the Xray version, back if it fails), passwd, cert, tab completion",
+      "Installer: a short password or no terminal no longer repeats the question forever"
+    ]
+  },
+  {
     "version": "1.5.1",
     "date": "2026-10-15",
     "tr": [

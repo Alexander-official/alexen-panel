@@ -13,8 +13,22 @@ if TELEGRAM_API_TOKEN:
 
 handler_names = ["admin", "report", "user"]
 
+def _panel_bot_on() -> bool:
+    """the bot set up in the panel (app/tgbot.py) takes the place of this one"""
+    try:
+        from app import tgbot
+        s = tgbot.load()
+        return bool(s.enabled and s.token)
+    except Exception:
+        return False
+
+
 @app.on_event("startup")
 def start_bot():
+    if bot and _panel_bot_on():
+        from app import logger
+        logger.warning("the Telegram bot set in .env doesn't start: the one set in the panel is on")
+        return
     if bot:
         handler_dir = dirname(__file__) + "/handlers/"
         for name in handler_names:
