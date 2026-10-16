@@ -49,12 +49,12 @@ def _view(s: tgbot.BotSettings) -> BotView:
 
 
 @router.get("", response_model=BotView)
-def read_bot(db: Session = Depends(get_db), _: Admin = Depends(Admin.check_creator_admin)):
+def read_bot(db: Session = Depends(get_db), _: Admin = Depends(Admin.check_sudo_admin)):
     return _view(tgbot.load(db))
 
 
 @router.put("", response_model=BotView)
-def update_bot(body: BotUpdate, db: Session = Depends(get_db), _: Admin = Depends(Admin.check_creator_admin)):
+def update_bot(body: BotUpdate, db: Session = Depends(get_db), _: Admin = Depends(Admin.check_sudo_admin)):
     """save and (re)start the bot; a new token is checked with Telegram first"""
     old = tgbot.load(db)
     token = "" if body.clear_token else ((body.token or "").strip() or old.token)
@@ -86,7 +86,7 @@ def update_bot(body: BotUpdate, db: Session = Depends(get_db), _: Admin = Depend
 
 
 @router.post("/test")
-def test_bot(db: Session = Depends(get_db), _: Admin = Depends(Admin.check_creator_admin)) -> Dict[str, str]:
+def test_bot(db: Session = Depends(get_db), _: Admin = Depends(Admin.check_sudo_admin)) -> Dict[str, str]:
     """a message to every admin id: id -> "" when it went, else why not"""
     s = tgbot.load(db)
     if not s.token:
@@ -97,7 +97,7 @@ def test_bot(db: Session = Depends(get_db), _: Admin = Depends(Admin.check_creat
 
 
 @router.post("/backup")
-def send_backup_now(db: Session = Depends(get_db), _: Admin = Depends(Admin.check_creator_admin)) -> Dict[str, str]:
+def send_backup_now(db: Session = Depends(get_db), _: Admin = Depends(Admin.check_sudo_admin)) -> Dict[str, str]:
     """a backup to every admin now"""
     s = tgbot.load(db)
     if not s.token:

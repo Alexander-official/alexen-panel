@@ -1,4 +1,5 @@
 import {
+  Avatar,
   Badge,
   Box,
   Button,
@@ -102,6 +103,14 @@ export const AdminsModal: FC = () => {
     queryKey: "admin-sub-profiles",
     queryFn: () => fetch("/admins/sub-profiles"),
     enabled: isManagingAdmins,
+  });
+
+  // each admin's own picture and name (Profile page)
+  const { data: people } = useQuery<Record<string, { display_name: string; avatar: string | null }>>({
+    queryKey: "admin-people",
+    queryFn: () => fetch("/profiles"),
+    enabled: isManagingAdmins,
+    staleTime: 60000,
   });
 
   const refresh = () =>
@@ -454,11 +463,24 @@ export const AdminsModal: FC = () => {
                   _dark={{ borderColor: "gray.600" }}
                 >
                   <HStack justifyContent="space-between" flexWrap="wrap" rowGap={2}>
+                    <Avatar
+                      size="sm"
+                      name={people?.[admin.username]?.display_name || admin.username}
+                      src={people?.[admin.username]?.avatar || undefined}
+                      bg="primary.500"
+                      color="white"
+                      flexShrink={0}
+                    />
                     <VStack align="flex-start" spacing={0} minW={0} flex="1">
                       <HStack flexWrap="wrap" rowGap={1}>
                         <Text fontSize="sm" fontWeight="medium">
                           {admin.username}
                         </Text>
+                        {people?.[admin.username]?.display_name && (
+                          <Text fontSize="xs" color="gray.500" isTruncated maxW="160px">
+                            {people[admin.username].display_name}
+                          </Text>
+                        )}
                         {admin.is_creator ? (
                           <Badge colorScheme="yellow">{t("admins.roleName.creator")}</Badge>
                         ) : (

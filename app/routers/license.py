@@ -27,7 +27,6 @@ class LicenseState(BaseModel):
     last_check: Optional[int] = None
     last_attempt: Optional[int] = None
     last_error: Optional[str] = None
-    server: Optional[str] = None
     has_key: Optional[bool] = None
 
 
@@ -45,7 +44,6 @@ def _out(admin: Admin) -> LicenseState:
         out.last_check = st["last_check"] or None
         out.last_attempt = st["last_attempt"] or None
         out.last_error = st["last_error"] or None
-        out.server = st["server"]
         out.has_key = st["has_key"]
     return out
 

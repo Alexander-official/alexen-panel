@@ -19,6 +19,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import {
+  UserCircleIcon,
   KeyIcon,
   ArchiveBoxArrowDownIcon,
   ArrowTopRightOnSquareIcon,
@@ -62,6 +63,7 @@ import { useQuery } from "react-query";
 import { fetch } from "service/http";
 import { useLocation, useNavigate } from "react-router-dom";
 import { updateThemeColor } from "utils/themeColor";
+import { useProfile } from "./ProfilePage";
 import { create } from "zustand";
 import { Language } from "./Language";
 import { useNotifyCounts } from "./NotificationsPage";
@@ -179,6 +181,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
     retry: false,
     onSuccess: (d: any) => d?.version && useDashboard.setState({ version: d.version }),
   });
+  const { data: profile } = useProfile(getUserIsSuccess);
   const onResetAllUsage = useDashboard((s) => s.onResetAllUsage);
   const { colorMode, toggleColorMode } = useColorMode();
   const toggleCollapsed = useSidebar((s) => s.toggleCollapsed);
@@ -204,7 +207,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
   const { data: update } = useQuery<{ available: boolean }>({
     queryKey: "update-state",
     queryFn: () => fetch("/update"),
-    enabled: isCreator,
+    enabled: isSudo,
     retry: false,
     staleTime: 5 * 60000,
     refetchInterval: 30 * 60000,
@@ -218,6 +221,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
     { title: t("messages.title"), path: "messages", icon: ic(ChatBubbleLeftRightIcon), badge: counts?.messages || 0 },
     { title: t("activity.title"), path: "activity", icon: ic(ClockIcon) },
     { title: t("appearance.title"), path: "theme", icon: ic(SwatchIcon) },
+    { title: t("profile.title"), path: "profile", icon: ic(UserCircleIcon) },
     ...(isSudo
       ? [
           { title: t("header.hostSettings"), path: "hosts", icon: ic(ListBulletIcon) },
@@ -245,14 +249,11 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
               { title: t("header.subSettings"), path: "sub", icon: ic(DocumentTextIcon) },
               { title: t("domain.title"), path: "domain", icon: ic(LinkIcon) },
               { title: t("external.title"), path: "external", icon: ic(GlobeAltIcon) },
-              ...(isCreator
-                ? [
-                    { title: t("backup.title"), path: "backup", icon: ic(ArchiveBoxArrowDownIcon) },
-                    { title: t("tg.title"), path: "telegram", icon: ic(ChatBubbleOvalLeftEllipsisIcon) },
-                    { title: t("update.title"), path: "update", icon: ic(CloudArrowDownIcon), badge: update?.available ? 1 : 0 },
-                    { title: t("lic.title"), path: "license", icon: ic(KeyIcon) },
-                  ]
-                : []),
+              // sudo admins share these with the creator; the license stays the creator's
+              { title: t("backup.title"), path: "backup", icon: ic(ArchiveBoxArrowDownIcon) },
+              { title: t("tg.title"), path: "telegram", icon: ic(ChatBubbleOvalLeftEllipsisIcon) },
+              { title: t("update.title"), path: "update", icon: ic(CloudArrowDownIcon), badge: update?.available ? 1 : 0 },
+              ...(isCreator ? [{ title: t("lic.title"), path: "license", icon: ic(KeyIcon) }] : []),
               {
                 title: t("resetAllUsage"),
                 icon: ic(ArrowPathIcon),
@@ -446,11 +447,21 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
           justifyContent={collapsed ? "center" : "flex-start"}
           flexDirection={collapsed ? "column" : "row"}
         >
-          <Avatar size="sm" name={userData.username || "?"} bg="primary.500" color="white" />
+          <Tooltip label={t("profile.title")} placement="right" isDisabled={!collapsed}>
+            <Avatar
+              size="sm"
+              name={profile?.display_name || userData.username || "?"}
+              src={profile?.avatar || undefined}
+              bg="primary.500"
+              color="white"
+              cursor="pointer"
+              onClick={() => go("profile")}
+            />
+          </Tooltip>
           {!collapsed && (
-            <Box minW={0} flex={1} lineHeight="short">
+            <Box minW={0} flex={1} lineHeight="short" cursor="pointer" onClick={() => go("profile")}>
               <Text fontSize="sm" fontWeight="semibold" isTruncated>
-                {userData.username}
+                {profile?.display_name || userData.username}
               </Text>
               <Text fontSize="xs" color="gray.500" isTruncated>
                 {(userData as any)?.is_creator ? t("admins.roleName.creator") : isSudo ? t("sidebar.sudo") : t("sidebar.reseller")}

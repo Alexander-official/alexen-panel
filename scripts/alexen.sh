@@ -4,11 +4,15 @@
 # Install (as root), with a license key from the seller:
 #   bash <(curl -fsSL https://admin.alexateam.ru/install.sh) install
 #
-# It asks for a domain (Let's Encrypt certificate, renewed by itself) or uses a
-# self-signed certificate for the server's IP, and for the creator account.
-# Without questions:  ALEXEN_DOMAIN=panel.example.com ALEXEN_EMAIL=me@example.com \
-#                     ALEXEN_ADMIN=owner ALEXEN_PASSWORD='...' ALEXEN_LICENSE=ALX-... bash alexen.sh install
-# Then:  alexen (a menu) or alexen help: status, doctor, logs, update, backup, restore, env, core, cert, passwd ...
+# It checks the server, asks for the license key, a domain (a Let's Encrypt certificate,
+# renewed by itself; Enter skips it: the server's IP with a self-signed one) and the owner.
+# A certificate that can't be had never stops the install: the panel starts on the IP and
+# the domain can be added later (alexen cert domain DOMAIN).
+# Without questions:  ALEXEN_LICENSE=ALX-... ALEXEN_DOMAIN=panel.example.com ALEXEN_EMAIL=me@example.com \
+#                     ALEXEN_ADMIN=owner ALEXEN_PASSWORD='...' bash alexen.sh install
+#   ALEXEN_DOMAIN=""         no domain (the IP)        ALEXEN_PORT=8443   another panel port
+#   ALEXEN_ENV_FILE=/path    your own .env (no domain or certificate questions)
+# Then:  alexen (a menu) or alexen help
 #
 # Updates also run from the panel (Settings > Update): the panel writes a request into
 # <data>/update/, the updater unit (systemd, set up here) does the update and writes how it
@@ -42,9 +46,26 @@ LIC_PUBKEY='-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAme9Yq1wS0MRKqsRdM7lAOQV2W3yP3C2L+Yr+ovnkp6I=
 -----END PUBLIC KEY-----'
 
-R=$'\e[91m'; G=$'\e[92m'; B=$'\e[94m'; Y=$'\e[93m'; N=$'\e[0m'
-say()  { echo "${2:-$B}==> $1${N}"; }
-fail() { echo "${R}!! $1${N}" >&2; exit 1; }
+# colours on a terminal only (NO_COLOR=1 turns them off)
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != dumb ]; then
+    R=$'\e[91m'; G=$'\e[92m'; B=$'\e[94m'; Y=$'\e[93m'; C=$'\e[96m'; M=$'\e[95m'; D=$'\e[2m'; W=$'\e[1m'; N=$'\e[0m'
+else
+    R=""; G=""; B=""; Y=""; C=""; M=""; D=""; W=""; N=""
+fi
+LINE="──────────────────────────────────────────────────────"
+say()  {
+    local c="${2:-$C}" m="›"
+    if [ -n "$G" ]; then case "$c" in "$G") m="✓";; "$Y") m="!";; "$R") m="✗";; esac; fi
+    echo "  ${c}${m}${N} $1"
+}
+fail() { echo "  ${R}✗ $1${N}" >&2; exit 1; }
+banner() {
+    echo
+    echo "  ${C}${W}▲ ALEXEN${N}  ${D}${1:-panel · Alexander LLC}${N}"
+    echo "  ${D}${LINE}${N}"
+}
+# an install step: [2/6] Title
+phase() { echo; echo "  ${M}${W}[$1/$2]${N} ${W}$3${N}"; }
 need_root() { [ "$(id -u)" -eq 0 ] || fail "run as root (sudo)"; }
 # questions work even when the script comes through a pipe
 # a terminal to ask in: /dev/tty can exist without one (cron, systemd, ssh without -t)
@@ -190,34 +211,55 @@ build_image() {
     try_build || { tail -20 /tmp/$APP-build.log >&2; fail "the image didn't build (log above)"; }
 }
 
+# a self-signed certificate for the server's IP (no domain, or Let's Encrypt couldn't be had)
+self_signed() {
+    local ip; ip=$(public_ip)
+    openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN=$ip" -addext "subjectAltName=IP:$ip" \
+        -keyout "$DATA_DIR/certs/panel.key" -out "$DATA_DIR/certs/panel.crt" >/dev/null 2>&1
+    CERT=/var/lib/marzban/certs/panel.crt; KEY=/var/lib/marzban/certs/panel.key; CA=private
+}
+
+le_cert() {
+    local domain="$1" email="$2"
+    docker run --rm -p 80:80 -v "$DATA_DIR/certs/le:/etc/letsencrypt" certbot/certbot certonly --standalone \
+        --non-interactive --agree-tos -m "${email:-admin@$domain}" -d "$domain" >/dev/null 2>&1 || return 1
+    CERT=/var/lib/marzban/certs/le/live/$domain/fullchain.pem
+    KEY=/var/lib/marzban/certs/le/live/$domain/privkey.pem
+    CA=public
+    cat > /etc/cron.d/$APP-cert <<EOF
+# Alexen: renew the panel certificate, restart the panel when it changed
+17 3 * * * root docker run --rm -p 80:80 -v $DATA_DIR/certs/le:/etc/letsencrypt certbot/certbot renew --quiet --deploy-hook "touch /etc/letsencrypt/.renewed" && [ -f $DATA_DIR/certs/le/.renewed ] && rm -f $DATA_DIR/certs/le/.renewed && docker restart $CONTAINER >/dev/null
+EOF
+}
+
+# a certificate for the panel. A domain that can't get one never stops the install:
+# it falls back to the IP (self-signed) and USED_IP is set, so the install says so.
+USED_IP=""
 certificates() {
     local domain="$1" email="$2"
     mkdir -p "$DATA_DIR/certs"
     if [ -n "$domain" ]; then
-        say "getting a Let's Encrypt certificate for $domain (port 80 must be free and point here)"
-        docker run --rm -p 80:80 -v "$DATA_DIR/certs/le:/etc/letsencrypt" certbot/certbot certonly --standalone \
-            --non-interactive --agree-tos -m "${email:-admin@$domain}" -d "$domain" >/dev/null 2>&1 \
-            || fail "no certificate for $domain: check that the domain points to this server and port 80 is open"
-        CERT=/var/lib/marzban/certs/le/live/$domain/fullchain.pem
-        KEY=/var/lib/marzban/certs/le/live/$domain/privkey.pem
-        CA=public
-        cat > /etc/cron.d/$APP-cert <<EOF
-# Alexen: renew the panel certificate, restart the panel when it changed
-17 3 * * * root docker run --rm -p 80:80 -v $DATA_DIR/certs/le:/etc/letsencrypt certbot/certbot renew --quiet --deploy-hook "touch /etc/letsencrypt/.renewed" && [ -f $DATA_DIR/certs/le/.renewed ] && rm -f $DATA_DIR/certs/le/.renewed && docker restart $CONTAINER >/dev/null
-EOF
-    else
-        local ip; ip=$(public_ip)
-        say "no domain: a self-signed certificate for $ip (the browser warns once; add a domain later for a real one)"
-        openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN=$ip" -addext "subjectAltName=IP:$ip" \
-            -keyout "$DATA_DIR/certs/panel.key" -out "$DATA_DIR/certs/panel.crt" >/dev/null 2>&1
-        CERT=/var/lib/marzban/certs/panel.crt; KEY=/var/lib/marzban/certs/panel.key; CA=private
+        say "getting a Let's Encrypt certificate for $domain" "$C"
+        if le_cert "$domain" "$email"; then say "certificate ready" "$G"; return 0; fi
+        say "couldn't get a certificate for $domain (does it point here? is port 80 free?)" "$Y"
+        say "starting on the server's IP for now — add the domain later with: alexen cert domain $domain" "$Y"
+        USED_IP=1
     fi
+    self_signed
 }
 
 write_config() {
     local host="$1" port="$2"
     mkdir -p "$DATA_DIR"
     [ -f "$DATA_DIR/xray_config.json" ] || cp "$SRC_DIR/xray_config.json" "$DATA_DIR/xray_config.json"
+    # your own .env: ALEXEN_ENV_FILE=/path (copied as-is, no certificate/domain lines added)
+    if [ ! -f "$ENV_FILE" ] && [ -n "${ALEXEN_ENV_FILE:-}" ]; then
+        [ -f "$ALEXEN_ENV_FILE" ] || fail "ALEXEN_ENV_FILE: no such file: $ALEXEN_ENV_FILE"
+        install -m 600 "$ALEXEN_ENV_FILE" "$ENV_FILE"
+        grep -q '^ALEXEN_LICENSE_SERVER' "$ENV_FILE" || [ "$LICENSE_SERVER" = https://admin.alexateam.ru ] \
+            || printf '\nALEXEN_LICENSE_SERVER = "%s"\n' "$LICENSE_SERVER" >> "$ENV_FILE"
+        say "using your .env ($ALEXEN_ENV_FILE)" "$C"
+    fi
     if [ ! -f "$ENV_FILE" ]; then
         cp "$SRC_DIR/.env.example" "$ENV_FILE"
         cat >> "$ENV_FILE" <<EOF
@@ -299,39 +341,53 @@ install_cli() {
 cmd_install() {
     need_root
     [ -f "$COMPOSE" ] && fail "Alexen is installed already (alexen update / alexen uninstall)"
+    banner "install"
     local domain="${ALEXEN_DOMAIN-__ask__}" email="${ALEXEN_EMAIL:-}" port="${ALEXEN_PORT:-8000}"
-    [ "$domain" = "__ask__" ] && domain=$(ask "Panel domain (empty: use the server IP with a self-signed certificate): " "")
-    if [ -n "$domain" ] && [ -z "$email" ]; then email=$(ask "E-mail for Let's Encrypt [admin@$domain]: " "admin@$domain"); fi
+    if [ "$domain" = "__ask__" ]; then
+        echo "  ${D}A domain gives a real certificate (no browser warning). Press Enter to skip${N}"
+        echo "  ${D}and use the server's IP with a self-signed one — you can add a domain later.${N}"
+        domain=$(ask "  ${W}Panel domain${N} ${D}(Enter = skip)${N}: " "")
+    fi
+    if [ -n "$domain" ] && [ -z "$email" ]; then email=$(ask "  ${W}E-mail for Let's Encrypt${N} [admin@$domain]: " "admin@$domain"); fi
+
+    phase 1 6 "Checking the server and installing Docker"
     install_deps
+    phase 2 6 "Checking the license"
     ask_license
-    say "downloading Alexen"
+    phase 3 6 "Downloading Alexen"
     fetch_source
+    phase 4 6 "Building the panel ${D}(a few minutes the first time)${N}"
     build_image
+    phase 5 6 "Certificate and settings"
     certificates "$domain" "$email"
-    local host="${domain:-$(public_ip)}"
+    local host="${domain:-$(public_ip)}"; [ -n "$USED_IP" ] && host=$(public_ip)
     write_config "$host" "$port"
     install_cli
-    say "starting"
+    phase 6 6 "Starting"
     dc up -d >/dev/null 2>&1 || { dc up -d; fail "the panel didn't start"; }
     wait_up "$port"
     open_port "$port"
     # installed again over kept data: its creator is still there
     ADMIN_USER=$(docker exec $CONTAINER python3 -c "from app.db import GetDB; from app.db.models import Admin
 with GetDB() as db: a = db.query(Admin).filter(Admin.is_creator == True).first(); print(a.username if a else '')" 2>/dev/null | tail -1)
-    if [ -n "$ADMIN_USER" ]; then say "keeping the existing creator: $ADMIN_USER"
+    if [ -n "$ADMIN_USER" ]; then say "keeping the existing creator: $ADMIN_USER" "$C"
     else create_creator "${ALEXEN_ADMIN:-}" "${ALEXEN_PASSWORD:-}"; fi
-    install_updater
+    install_updater quiet
     local lst; lst=$(license_wait)
+
     echo
-    say "Alexen is ready" "$G"
-    echo "    Panel:    ${G}https://$host:$port/dashboard/${N}"
-    echo "    Creator:  ${ADMIN_USER}"
+    echo "  ${G}${W}✓ Alexen is ready${N}"
+    echo "  ${D}${LINE}${N}"
+    printf "  %-10s ${G}%s${N}\n" "Panel" "https://$host:$port/dashboard/"
+    printf "  %-10s %s\n" "Owner" "$ADMIN_USER"
     case "$lst" in
-        active|grace) echo "    License:  ${G}active${N}" ;;
-        *) echo "    License:  ${Y}not active yet ($(license_text "$lst")): enter the key in the panel${N}" ;;
+        active|grace) printf "  %-10s ${G}%s${N}\n" "License" "active" ;;
+        *) printf "  %-10s ${Y}%s${N}\n" "License" "enter the key in the panel ($(license_text "$lst"))" ;;
     esac
-    [ -z "$domain" ] && echo "    ${Y}Self-signed certificate: the browser asks once; for a real one: alexen uninstall, then install with a domain${N}"
-    echo "    Commands: alexen status | logs | restart | update | backup | admin | uninstall"
+    { [ -z "$domain" ] || [ -n "$USED_IP" ]; } && printf "  %-10s ${Y}%s${N}\n" "Note" "self-signed certificate (the browser warns once); add a domain: alexen cert domain <domain>"
+    echo "  ${D}${LINE}${N}"
+    echo "  ${D}alexen${N}  — a menu     ${D}alexen help${N}  — every command"
+    echo
 }
 
 # ---------------- updates (also from the panel) ----------------
@@ -765,7 +821,7 @@ core_version() { docker exec "$CONTAINER" sh -c "\"\${XRAY_EXECUTABLE_PATH:-/usr
 
 cmd_status() {
     local run up started restarts
-    echo "${B}Alexen${N}"
+    banner "$(running_version 2>/dev/null || true)"
     if container_up; then
         started=$(docker inspect -f '{{.State.StartedAt}}' "$CONTAINER" 2>/dev/null | cut -d. -f1)
         restarts=$(docker inspect -f '{{.RestartCount}}' "$CONTAINER" 2>/dev/null)
@@ -802,12 +858,13 @@ with GetDB() as db: print(db.query(User).count(), db.query(Admin).count())" 2>/d
     if command -v systemctl >/dev/null; then
         systemctl is-active -q $APP-updater.path 2>/dev/null && row "Panel updates" "on" || row "Panel updates" "${Y}off${N} (alexen updater-install)"
     fi
+    echo
 }
 
 cmd_doctor() {
     need_root
     local problems=0 port; port=$(panel_port)
-    echo "${B}Alexen: checking this server${N}"
+    banner "checking this server"
     if docker info >/dev/null 2>&1; then ok "Docker is running"; else bad "Docker isn't running (systemctl start docker)"; problems=$((problems+1)); fi
     if container_up; then
         local rc; rc=$(docker inspect -f '{{.RestartCount}}' "$CONTAINER" 2>/dev/null)
@@ -991,6 +1048,18 @@ cmd_cert() {
             docker run --rm -p 80:80 -v "$DATA_DIR/certs/le:/etc/letsencrypt" certbot/certbot renew --force-renewal --quiet \
                 || fail "renewing failed: port 80 must be free and the domain must point here"
             restart_and_wait; say "renewed: $(cert_days) days" "$G" ;;
+        domain)
+            # switch a panel that runs on its IP (self-signed) to a real certificate for a domain
+            local domain="${2:-}" email="${3:-}" port; port=$(panel_port)
+            [ -n "$domain" ] || domain=$(ask "Domain (it must point to this server, port 80 free): " "")
+            [ -n "$domain" ] || fail "a domain is needed (alexen cert domain panel.example.com)"
+            [ -n "$email" ] || email="admin@$domain"
+            mkdir -p "$DATA_DIR/certs"
+            say "getting a Let's Encrypt certificate for $domain" "$C"
+            le_cert "$domain" "$email" || fail "no certificate for $domain: does it point here? is port 80 free? (the panel keeps running as it is)"
+            env_set UVICORN_SSL_CERTFILE "$CERT"; env_set UVICORN_SSL_KEYFILE "$KEY"; env_set UVICORN_SSL_CA_TYPE public
+            env_set XRAY_SUBSCRIPTION_URL_PREFIX "https://$domain:$port"
+            restart_and_wait; say "the panel now uses https://$domain:$port — set it as your subscription domain too" "$G" ;;
         *)
             [ -f "$f" ] || fail "no certificate file ($f)"
             row "File" "$f"
@@ -1028,7 +1097,7 @@ s = license.status(fresh=True); k = license.stored_key()
 def d(t): return time.strftime('%Y-%m-%d', time.localtime(t)) if t else '-'
 lim = lambda v: str(v) if v else 'no limit'
 u = license._usage()
-print('  %-16s %s' % ('Status', s['status']))
+print('  %-16s %s' % ('Status', s['status'].upper()))
 if k: print('  %-16s %s' % ('Key', k[:9] + '...' + k[-5:]))
 if s['customer']: print('  %-16s %s' % ('For', s['customer']))
 if s['activated']: print('  %-16s %s' % ('Active since', d(s['activated'])))
@@ -1048,7 +1117,7 @@ _alexen() {
         env) COMPREPLY=($(compgen -W "list get set unset" -- "$cur")); return;;
         backup) COMPREPLY=($(compgen -W "now list" -- "$cur")); return;;
         core) COMPREPLY=($(compgen -W "list latest reset" -- "$cur")); return;;
-        cert) COMPREPLY=($(compgen -W "renew" -- "$cur")); return;;
+        cert) COMPREPLY=($(compgen -W "renew domain" -- "$cur")); return;;
     esac
     [ "$COMP_CWORD" -eq 1 ] && COMPREPLY=($(compgen -W "status doctor logs restart up down update check-update backup restore env edit core passwd admins admin cert license cli version uninstall help" -- "$cur"))
 }
@@ -1058,50 +1127,53 @@ EOF
 }
 
 cmd_help() {
-    cat <<EOF
-${B}Alexen${N} $(running_version 2>/dev/null || true) — the panel's command line
-
-  ${G}status${N}                 version, address, certificate, users, last backup
-  ${G}doctor${N}                 check everything and say what's wrong
-  ${G}logs${N} [-n LINES] [--no-follow]
-  ${G}restart${N} | ${G}up${N} | ${G}down${N}
-
-  ${G}update${N}                 the latest version (a backup first, the old one back if it fails)
-  ${G}check-update${N}           only look for a new version
-
-  ${G}backup${N} [list]          a backup now / the saved ones
-  ${G}restore${N} [FILE|NAME]    put a backup back (the data now is saved first)
-
-  ${G}env${N} [list|get|set|unset]   the panel's settings (.env); ${G}edit${N} opens it in an editor
-  ${G}core${N} [list|latest|VERSION|reset]   the Xray core version
-  ${G}cert${N} [renew]           the certificate
-  ${G}license${N} [KEY]          the license (with a key: activate it on this server)
-
-  ${G}admins${N}                 the admin accounts
-  ${G}admin${N} [NAME]           add a creator (owner) account
-  ${G}passwd${N} [NAME]          a new password for an admin
-  ${G}cli${N} ...                the admin command line (marzban-cli)
-
-  ${G}completion${N}             tab completion for alexen
-  ${G}uninstall${N}              remove the panel (the data stays unless you ask)
-  ${G}version${N}
-
-  Without a command (in a terminal): a menu.  Support: Telegram @alexvpns
-EOF
+    banner "$(running_version 2>/dev/null || true)"
+    local h="  ${D}%-22s${N} %s\n"
+    echo "  ${W}EVERYDAY${N}"
+    printf "$h" "status"            "how the panel is doing"
+    printf "$h" "doctor"            "check everything, say what's wrong"
+    printf "$h" "logs [-n N] [-N]"  "the panel log (-N: don't follow)"
+    printf "$h" "restart / up / down" "stop and start the panel"
+    echo
+    echo "  ${W}VERSIONS & BACKUPS${N}"
+    printf "$h" "update"            "update to the latest (safe: rolls back on failure)"
+    printf "$h" "backup [list]"     "a backup now, or the saved ones"
+    printf "$h" "restore [FILE]"    "put a backup back (saves the data now first)"
+    printf "$h" "core [list|latest|VER|reset]" "the Xray core version"
+    echo
+    echo "  ${W}SETTINGS${N}"
+    printf "$h" "env [list|get|set|unset]" "the panel's .env settings"
+    printf "$h" "edit"              "open the .env in an editor"
+    printf "$h" "cert [renew|domain D]" "the certificate (domain: switch to a real one)"
+    printf "$h" "license [KEY]"     "the license (a key activates it here)"
+    echo
+    echo "  ${W}ACCOUNTS${N}"
+    printf "$h" "admins"            "the admin accounts"
+    printf "$h" "passwd [NAME]"     "a new password for an admin"
+    printf "$h" "admin [NAME]"      "add an owner (creator) account"
+    printf "$h" "cli ..."           "the admin command line"
+    echo
+    printf "$h" "completion"        "tab completion"
+    printf "$h" "uninstall"         "remove the panel (the data stays unless you ask)"
+    echo
+    echo "  ${D}Run ${N}${G}alexen${N}${D} with no command for a menu.  Support: Telegram ${C}@alexvpns${N}"
+    echo
 }
 
 cmd_menu() {
-    local items=("status" "doctor" "logs" "restart" "update" "backup" "backup list" "restore" "env list" "edit" "core" "admins" "passwd" "cert" "license" "help")
+    local items=("status" "doctor" "logs" "update" "backup" "backup list" "restore" "license" "env list" "edit" "core" "admins" "passwd" "cert" "restart" "help")
+    local labels=("Status" "Doctor" "Logs" "Update" "Backup now" "Backups" "Restore" "License" "Settings (.env)" "Edit .env" "Xray core" "Admins" "Change password" "Certificate" "Restart" "Help")
     while true; do
+        banner "$(running_version 2>/dev/null || true)"
+        local i=1; for it in "${labels[@]}"; do printf "   ${C}%2d${N}) %s\n" $i "$it"; i=$((i+1)); done
+        printf "    ${D}0${N}) exit\n\n"
+        local c; c=$(ask "  ${W}>${N} " 0)
+        [ "$c" = 0 ] || [ -z "$c" ] && { echo; return 0; }
+        [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -ge 1 ] && [ "$c" -le ${#items[@]} ] || { echo "  ${Y}pick 1-${#items[@]} or 0${N}"; continue; }
         echo
-        echo "${B}Alexen${N} $(running_version 2>/dev/null || true)"
-        local i=1; for it in "${items[@]}"; do printf "  %2d) %s\n" $i "$it"; i=$((i+1)); done
-        printf "   0) exit\n"
-        local c; c=$(ask "> " 0)
-        [ "$c" = 0 ] || [ -z "$c" ] && return 0
-        [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -ge 1 ] && [ "$c" -le ${#items[@]} ] || { echo "  1-${#items[@]} or 0"; continue; }
         # a command that fails returns here, not out of the menu
         ( set +e; main ${items[$((c-1))]} ) || true
+        [ -t 0 ] && { read -rp "  ${D}press Enter${N} " _ </dev/tty || true; }
     done
 }
 

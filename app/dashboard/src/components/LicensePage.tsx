@@ -39,7 +39,6 @@ export type License = {
   last_check?: number | null;
   last_attempt?: number | null;
   last_error?: string | null;
-  server?: string | null;
   has_key?: boolean | null;
 };
 
@@ -412,7 +411,6 @@ export const LicensePage: FC = () => {
           <Fact label={t("lic.key")} value={l.key || "—"} />
           <Fact label={t("lic.installId")} value={l.install_id ? `${l.install_id}…` : "—"} />
           <Fact label={t("lic.lastCheck")} value={l.last_check ? dayjs.unix(l.last_check).format("DD.MM.YYYY HH:mm") : t("lic.never")} />
-          <Fact label={t("lic.server")} value={(l.server || "").replace(/^https?:\/\//, "")} />
         </SimpleGrid>
         {l.last_error === "unreachable" && (
           <HStack mb={3} p={3} borderRadius="12px" bg="orange.50" _dark={{ bg: "rgba(237,137,54,.12)" }} spacing={2} align="flex-start">

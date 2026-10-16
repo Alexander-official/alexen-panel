@@ -17,7 +17,7 @@ def _zip(data: bytes, name: str) -> StreamingResponse:
 
 
 @router.get("")
-def download_backup(_: Admin = Depends(Admin.check_creator_admin)):
+def download_backup(_: Admin = Depends(Admin.check_sudo_admin)):
     """a backup of the panel as it is now (zip)"""
     try:
         return _zip(backup.create(), backup.file_name())
@@ -26,12 +26,12 @@ def download_backup(_: Admin = Depends(Admin.check_creator_admin)):
 
 
 @router.get("/list")
-def list_backups(_: Admin = Depends(Admin.check_creator_admin)):
+def list_backups(_: Admin = Depends(Admin.check_sudo_admin)):
     return {"keep": backup.KEEP, "backups": backup.listing()}
 
 
 @router.post("/now")
-def backup_now(_: Admin = Depends(Admin.check_creator_admin)):
+def backup_now(_: Admin = Depends(Admin.check_sudo_admin)):
     """write a backup to the server's backups folder"""
     try:
         import os
@@ -41,7 +41,7 @@ def backup_now(_: Admin = Depends(Admin.check_creator_admin)):
 
 
 @router.get("/file/{name}")
-def download_saved(name: str, _: Admin = Depends(Admin.check_creator_admin)):
+def download_saved(name: str, _: Admin = Depends(Admin.check_sudo_admin)):
     try:
         path = backup.safe_name(name)
     except ValueError as e:
@@ -51,7 +51,7 @@ def download_saved(name: str, _: Admin = Depends(Admin.check_creator_admin)):
 
 
 @router.delete("/file/{name}")
-def delete_saved(name: str, _: Admin = Depends(Admin.check_creator_admin)):
+def delete_saved(name: str, _: Admin = Depends(Admin.check_sudo_admin)):
     try:
         import os
         os.remove(backup.safe_name(name))
@@ -61,7 +61,7 @@ def delete_saved(name: str, _: Admin = Depends(Admin.check_creator_admin)):
 
 
 @router.post("/check")
-def check_backup(file: UploadFile = File(...), _: Admin = Depends(Admin.check_creator_admin)):
+def check_backup(file: UploadFile = File(...), _: Admin = Depends(Admin.check_sudo_admin)):
     """what a backup file contains (nothing is changed)"""
     try:
         return backup.check(file.file.read(backup.MAX_UPLOAD + 1))
@@ -70,7 +70,7 @@ def check_backup(file: UploadFile = File(...), _: Admin = Depends(Admin.check_cr
 
 
 @router.post("/restore")
-def restore_backup(file: UploadFile = File(...), _: Admin = Depends(Admin.check_creator_admin)):
+def restore_backup(file: UploadFile = File(...), _: Admin = Depends(Admin.check_sudo_admin)):
     """replace the panel's data with a backup, then restart (the current state is saved first)"""
     try:
         out = backup.restore(file.file.read(backup.MAX_UPLOAD + 1))

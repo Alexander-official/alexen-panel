@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.9.0",
+    "date": "2026-10-16",
+    "tr": [
+      "Profilim sayfası: profil resmi, görünen ad, biyografi, iletişim ve kendi şifreni değiştirme; resimler yönetici listesinde ve kenar çubuğunda görünür",
+      "Sudo adminler artık yedek, güncelleme ve Telegram bölümlerini de kullanabilir; lisans ve tehlikeli işlemler yalnızca sahipte (creator) kalır, sahip sudo'lardan gizli",
+      "Kullanıcı filtresine 'durum' ve 'admin' eklendi; telefonda da düzgün çalışıyor (admin seçince sadece o adminin kullanıcıları görünür)",
+      "Kurulum yenilendi: domain'i atlayabilirsin, sertifika alınamazsa kurulum durmaz (IP ile başlar, sonra 'alexen cert domain' ile gerçek sertifika), kendi .env'ini verebilirsin (ALEXEN_ENV_FILE)",
+      "alexen komut satırı baştan tasarlandı (menü, yardım, durum ekranları)"
+    ],
+    "en": [
+      "Profile page: a picture, display name, bio, contact and your own password; pictures show in the admins list and the sidebar",
+      "Sudo admins can now use backups, updates and Telegram; the license and dangerous actions stay the owner's (creator), who is hidden from sudo admins",
+      "A status and an admin filter on the users list, working on the phone too (pick an admin to see only their users)",
+      "Reworked install: skip the domain, a failed certificate no longer aborts (starts on the IP, then 'alexen cert domain' for a real one), bring your own .env (ALEXEN_ENV_FILE)",
+      "The alexen command line was redesigned (menu, help, status screens)"
+    ]
+  },
+  {
     "version": "1.8.0",
     "date": "2026-10-15",
     "tr": [

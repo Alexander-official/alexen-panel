@@ -13,6 +13,7 @@ export type FilterType = {
   offset?: number;
   sort: string;
   status?: "active" | "disabled" | "limited" | "expired" | "on_hold";
+  admin?: string;   // a sudo admin: show only this owner's users (backend param "admin")
 };
 export type ProtocolType =
   | "vmess"

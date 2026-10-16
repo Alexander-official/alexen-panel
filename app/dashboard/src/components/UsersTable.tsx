@@ -334,46 +334,13 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                 w="140px"
                 cursor={"pointer"}
               >
-                <HStack spacing={0} position="relative">
-                  <Text
-                    position="absolute"
-                    _dark={{
-                      bg: "gray.750",
-                    }}
-                    _light={{
-                      bg: "var(--app-surface-2)",
-                    }}
-                    userSelect="none"
-                    pointerEvents="none"
-                    zIndex={1}
-                    w="100%"
-                  >
-                    {t("usersTable.status")}
-                    {filters.status ? ": " + filters.status : ""}
-                  </Text>
-                  <Select
-                    value={filters.sort}
-                    fontSize="xs"
-                    fontWeight="extrabold"
-                    textTransform="uppercase"
-                    cursor="pointer"
-                    p={0}
-                    border={0}
-                    h="auto"
-                    w="auto"
-                    icon={<></>}
-                    _focusVisible={{
-                      border: "0 !important",
-                    }}
-                    onChange={handleStatusFilter}
-                  >
-                    <option></option>
-                    <option>active</option>
-                    <option>on_hold</option>
-                    <option>disabled</option>
-                    <option>limited</option>
-                    <option>expired</option>
-                  </Select>
+                <HStack spacing={1}>
+                  <Text userSelect="none">{t("usersTable.status")}</Text>
+                  {filters.status && (
+                    <Text color="primary.400" textTransform="none" fontWeight="bold">
+                      {t(`status.${filters.status}`)}
+                    </Text>
+                  )}
                 </HStack>
               </Th>
               <Th

@@ -12,7 +12,7 @@ remove_admin) and its name, still in the activity log, is remembered (settings
 from sqlalchemy import column, event, false, or_, select, table, true
 from sqlalchemy.orm import Session, with_loader_criteria
 
-from .models import (ActivityLog, Admin, AdminUsageLogs, Alert, NextPlan, NodeUserUsage,
+from .models import (ActivityLog, Admin, AdminProfile, AdminUsageLogs, Alert, NextPlan, NodeUserUsage,
                      NotificationReminder, Proxy, User, UserHWIDDevice, UserInboundUsage,
                      UserUsageResetLogs)
 
@@ -85,6 +85,7 @@ def _options(former: dict):
         with_loader_criteria(User, or_(User.admin_id.is_(None), User.admin_id.notin_(_creator_ids)),
                              include_aliases=True),
         with_loader_criteria(AdminUsageLogs, AdminUsageLogs.admin_id.notin_(_creator_ids), include_aliases=True),
+        with_loader_criteria(AdminProfile, AdminProfile.admin_id.notin_(_creator_ids), include_aliases=True),
         with_loader_criteria(ActivityLog, or_(ActivityLog.admin.is_(None),
                                               ActivityLog.admin.notin_(_creator_names) & ActivityLog.admin.notin_(names)),
                              include_aliases=True),

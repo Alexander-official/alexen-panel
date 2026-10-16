@@ -95,6 +95,12 @@ const RULES: [RegExp, string, string[]][] = [
   [/^License limit reached: at most (\d+) admins$/, "licLimitAdmins", ["n"]],
   [/^License limit reached: at most (\d+) nodes$/, "licLimitNodes", ["n"]],
   [/^no license key on this server: enter it in the panel$/, "licNoKey", []],
+  [/^The current password is wrong$/, "profCurrentWrong", []],
+  [/^The new password needs 8 characters or more$/, "profShort", []],
+  [/^The new password is the same as the current one$/, "profSame", []],
+  [/^The picture must be a PNG, JPEG or WebP image$/, "profPicture", []],
+  [/^The picture is too big/, "profPictureBig", []],
+  [/^This admin has no profile/, "profEnvAdmin", []],
   [/^Pick a start and an end date$/, "pickRange", []],
   [/^Pick at most 400 days$/, "rangeLong", []],
 ];

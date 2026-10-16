@@ -122,13 +122,13 @@ def _request(action: str) -> None:
 
 
 @router.get("", response_model=UpdateState)
-def update_state(_: Admin = Depends(Admin.check_creator_admin)):
+def update_state(_: Admin = Depends(Admin.check_sudo_admin)):
     """the panel version, the latest one, and how an update goes"""
     return _state()
 
 
 @router.post("/check", response_model=UpdateState)
-def check_for_update(_: Admin = Depends(Admin.check_creator_admin)):
+def check_for_update(_: Admin = Depends(Admin.check_sudo_admin)):
     """ask the updater to look for a new version"""
     st = _state()
     if not st.installed:
@@ -140,7 +140,7 @@ def check_for_update(_: Admin = Depends(Admin.check_creator_admin)):
 
 
 @router.post("", response_model=UpdateState)
-def start_update(_: Admin = Depends(Admin.check_creator_admin)):
+def start_update(_: Admin = Depends(Admin.check_sudo_admin)):
     """update the panel to the latest version (backup first, the old version back if it fails)"""
     st = _state()
     if not st.installed:

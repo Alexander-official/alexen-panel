@@ -23,6 +23,9 @@ import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import debounce from "lodash.debounce";
 import React, { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "react-query";
+import { fetch } from "service/http";
+import useGetUser from "hooks/useGetUser";
 
 const iconProps = {
   baseStyle: {
@@ -48,6 +51,15 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
   const { loading, filters, onFilterChange, refetchUsers, onCreateUser } = useDashboardPick("loading", "filters", "onFilterChange", "refetchUsers", "onCreateUser");
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
+  const { userData } = useGetUser();
+  const isSudo = !!userData?.is_sudo;
+  // the admins a sudo may filter by (names only); regular admins don't see this
+  const { data: admins } = useQuery<{ username: string; is_sudo: boolean }[]>({
+    queryKey: "filter-admins",
+    queryFn: () => fetch("/admins"),
+    enabled: isSudo,
+    staleTime: 60000,
+  });
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
     setSearchField(e.target.value);
@@ -104,10 +116,44 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
         </InputGroup>
       </GridItem>
       <GridItem colSpan={2} order={{ base: 1, md: 2 }}>
-        <HStack justifyContent="flex-end" alignItems="center" h="full">
+        <HStack justifyContent="flex-end" alignItems="center" h="full" flexWrap={{ base: "wrap", md: "nowrap" }} gap={2}>
           <Select
             size="sm"
-            maxW={{ base: "none", md: "190px" }}
+            flex={{ base: 1, md: "initial" }}
+            minW={{ base: "120px", md: "auto" }}
+            maxW={{ base: "none", md: "150px" }}
+            borderColor="light-border"
+            value={filters.status || ""}
+            onChange={(e) => onFilterChange({ status: (e.target.value || undefined) as any, offset: 0 })}
+          >
+            <option value="">{t("filters.allStatus")}</option>
+            <option value="active">{t("status.active")}</option>
+            <option value="on_hold">{t("status.on_hold")}</option>
+            <option value="disabled">{t("status.disabled")}</option>
+            <option value="limited">{t("status.limited")}</option>
+            <option value="expired">{t("status.expired")}</option>
+          </Select>
+          {isSudo && (admins?.length || 0) > 0 && (
+            <Select
+              size="sm"
+              flex={{ base: 1, md: "initial" }}
+              minW={{ base: "120px", md: "auto" }}
+              maxW={{ base: "none", md: "170px" }}
+              borderColor="light-border"
+              value={filters.admin || ""}
+              onChange={(e) => onFilterChange({ admin: e.target.value || undefined, offset: 0 })}
+            >
+              <option value="">{t("filters.allAdmins")}</option>
+              {admins!.map((a) => (
+                <option key={a.username} value={a.username}>
+                  {a.username}
+                </option>
+              ))}
+            </Select>
+          )}
+          <Select
+            size="sm"
+            maxW={{ base: "none", md: "160px" }}
             flex={{ base: 1, md: "initial" }}
             minW={0}
             borderColor="light-border"

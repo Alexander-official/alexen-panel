@@ -111,15 +111,19 @@ export const SECTIONS: Section[] = [
     path: "backup",
     title: "backup.title",
     sudo: true,
-    creator: true,
     Component: named(() => import("components/BackupPage"), "BackupPage"),
   },
   {
     path: "telegram",
     title: "tg.title",
     sudo: true,
-    creator: true,
     Component: named(() => import("components/TelegramPage"), "TelegramPage"),
+  },
+  {
+    path: "profile",
+    title: "profile.title",
+    sudo: false,
+    Component: named(() => import("components/ProfilePage"), "ProfilePage"),
   },
   {
     path: "license",
@@ -132,7 +136,6 @@ export const SECTIONS: Section[] = [
     path: "update",
     title: "update.title",
     sudo: true,
-    creator: true,
     Component: named(() => import("components/UpdatePage"), "UpdatePage"),
   },
   {

@@ -1092,6 +1092,9 @@ def remove_admin(db: Session, dbadmin: Admin, heir: Optional[Admin] = None) -> A
             heir = db.query(Admin).filter(Admin.is_creator.is_(True), Admin.id != dbadmin.id).first()
     db.query(User).filter(User.admin_id == dbadmin.id) \
         .update({User.admin_id: heir.id if heir is not None else None}, synchronize_session=False)
+    # its profile too: a later admin with the same id (SQLite) mustn't get its picture
+    from app.db.models import AdminProfile
+    db.query(AdminProfile).filter(AdminProfile.admin_id == dbadmin.id).delete(synchronize_session=False)
     db.delete(dbadmin)
     db.commit()
     return dbadmin

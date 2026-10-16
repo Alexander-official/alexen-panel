@@ -60,6 +60,19 @@ class Admin(Base):
     host_groups = Column(JSON, nullable=True, default=list)
 
 
+class AdminProfile(Base):
+    """what an admin shows about itself (Profile page): kept apart from the admins table, so
+    the picture isn't loaded with every admin"""
+    __tablename__ = "admin_profiles"
+
+    admin_id = Column(Integer, ForeignKey("admins.id", ondelete="CASCADE"), primary_key=True)
+    display_name = Column(String(64), nullable=True)
+    bio = Column(String(500), nullable=True)
+    contact = Column(String(100), nullable=True)
+    avatar = Column(Text, nullable=True)          # a data: URL (PNG / JPEG / WebP, small)
+    updated_at = Column(DateTime, nullable=True)
+
+
 class AdminUsageLogs(Base):
     __tablename__ = "admin_usage_logs"
 
