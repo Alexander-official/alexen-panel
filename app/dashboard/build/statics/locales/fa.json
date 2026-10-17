@@ -1599,5 +1599,11 @@
   "bulkProto.applyEnable": "برای کاربران روشن کن",
   "bulkProto.applyDisable": "برای کاربران خاموش کن",
   "bulkProto.noInbound": "هنوز هیچ پروتکلی روی این سرور inbound ندارد.",
-  "bulkProto.done": "{{protocol}}: از {{matched}} کاربر {{changed}} تغییر کرد"
+  "bulkProto.done": "{{protocol}}: از {{matched}} کاربر {{changed}} تغییر کرد",
+  "overview.subsUpdated": "به‌روزرسانی اشتراک",
+  "overview.subsUpdatedHelp": "در این بازه",
+  "userDialog.createdAt": "ایجاد شده",
+  "userDialog.lastSubUpdate": "آخرین به‌روزرسانی",
+  "userDialog.subUpdateCount": "تعداد به‌روزرسانی",
+  "userDialog.never": "هرگز"
 }

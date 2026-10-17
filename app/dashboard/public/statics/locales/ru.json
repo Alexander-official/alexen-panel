@@ -1604,5 +1604,11 @@
   "bulkProto.applyEnable": "Включить у пользователей",
   "bulkProto.applyDisable": "Выключить у пользователей",
   "bulkProto.noInbound": "На этом сервере пока нет ни одного inbound.",
-  "bulkProto.done": "{{protocol}}: изменено {{changed}} из {{matched}}"
+  "bulkProto.done": "{{protocol}}: изменено {{changed}} из {{matched}}",
+  "overview.subsUpdated": "Обновлений подписки",
+  "overview.subsUpdatedHelp": "за период",
+  "userDialog.createdAt": "Создан",
+  "userDialog.lastSubUpdate": "Последнее обновление",
+  "userDialog.subUpdateCount": "Число обновлений",
+  "userDialog.never": "никогда"
 }

@@ -1597,5 +1597,11 @@
   "bulkProto.applyEnable": "Enable for users",
   "bulkProto.applyDisable": "Disable for users",
   "bulkProto.noInbound": "No protocol has an inbound on this server yet.",
-  "bulkProto.done": "{{protocol}}: changed {{changed}} of {{matched}} users"
+  "bulkProto.done": "{{protocol}}: changed {{changed}} of {{matched}} users",
+  "overview.subsUpdated": "Subs updated",
+  "overview.subsUpdatedHelp": "in this period",
+  "userDialog.createdAt": "Created",
+  "userDialog.lastSubUpdate": "Last sub update",
+  "userDialog.subUpdateCount": "Sub updates",
+  "userDialog.never": "never"
 }

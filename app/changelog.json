@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.11.0",
+    "date": "2026-10-17",
+    "tr": [
+      "Kullanıcı istatistikleri: kullanıcı penceresinde ne zaman oluşturulduğu, aboneliği en son ne zaman güncellediği ve kaç kez güncellediği görünür",
+      "Genel Bakış'a 'Abonelik güncellemeleri' kutusu: seçili dönemde aboneliğini güncelleyen kullanıcı sayısı"
+    ],
+    "en": [
+      "User stats: the user dialog shows when the user was created, when they last updated their subscription and how many times",
+      "A 'Subs updated' tile on the overview: how many users refreshed their subscription in the selected period"
+    ]
+  },
+  {
     "version": "1.10.0",
     "date": "2026-10-17",
     "tr": [

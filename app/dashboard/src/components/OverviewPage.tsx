@@ -19,6 +19,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import {
+  ArrowPathRoundedSquareIcon,
   ArrowTrendingUpIcon,
   ChartBarIcon,
   ChartPieIcon,
@@ -46,7 +47,7 @@ type Overview = {
   period: string;
   unit: "hour" | "day";
   points: number[];
-  users: { total: number; by_status: Record<string, number>; online: number; online_ips: number; expiring: number; created: number };
+  users: { total: number; by_status: Record<string, number>; online: number; online_ips: number; expiring: number; created: number; subs_updated: number };
   traffic: { total: number; series: Series; by_node: { name: string; total: number; series: Series }[] };
   protocols: { protocol: string; traffic: number }[];
   protocols_from_history: boolean;
@@ -313,12 +314,13 @@ export const OverviewPage: FC = () => {
 
       <LicenseCard />
 
-      <SimpleGrid columns={{ base: 2, md: 3, "2xl": 6 }} spacing={3}>
+      <SimpleGrid columns={{ base: 2, md: 3, "2xl": 7 }} spacing={3}>
         <Stat icon={UsersIcon} label={t("overview.users")} value={data.users.total} sub={t("overview.activeOf", { n: by.active || 0 })} />
         <Stat icon={SignalIcon} color="green" label={t("overview.onlineNow")} value={data.users.online} sub={t("overview.ips", { n: data.users.online_ips })} />
         <Stat icon={ArrowTrendingUpIcon} color="purple" label={t("overview.trafficIn", { period: periodLabel(t, range) })} value={formatBytes(data.traffic.total, 1)} />
         <Stat icon={ClockIcon} color="orange" label={t("overview.expiring")} value={data.users.expiring} sub={t("overview.expiringHelp")} />
         <Stat icon={UserPlusIcon} color="cyan" label={t("overview.created")} value={data.users.created} sub={periodLabel(t, range)} />
+        <Stat icon={ArrowPathRoundedSquareIcon} color="teal" label={t("overview.subsUpdated")} value={data.users.subs_updated} sub={t("overview.subsUpdatedHelp")} />
         <Stat icon={ChartPieIcon} color="red" label={t("overview.inactive")} value={(by.expired || 0) + (by.limited || 0) + (by.disabled || 0)} sub={t("overview.inactiveHelp")} />
       </SimpleGrid>
 

@@ -1597,5 +1597,11 @@
   "bulkProto.applyEnable": "Kullanıcılarda aç",
   "bulkProto.applyDisable": "Kullanıcılarda kapat",
   "bulkProto.noInbound": "Bu sunucuda henüz hiçbir protokolün inbound'u yok.",
-  "bulkProto.done": "{{protocol}}: {{matched}} kullanıcının {{changed}} tanesi değişti"
+  "bulkProto.done": "{{protocol}}: {{matched}} kullanıcının {{changed}} tanesi değişti",
+  "overview.subsUpdated": "Abonelik güncellemeleri",
+  "overview.subsUpdatedHelp": "bu dönemde",
+  "userDialog.createdAt": "Oluşturuldu",
+  "userDialog.lastSubUpdate": "Son abonelik güncellemesi",
+  "userDialog.subUpdateCount": "Güncelleme sayısı",
+  "userDialog.never": "hiç"
 }

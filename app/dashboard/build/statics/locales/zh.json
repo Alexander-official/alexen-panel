@@ -1595,5 +1595,11 @@
   "bulkProto.applyEnable": "为用户启用",
   "bulkProto.applyDisable": "为用户禁用",
   "bulkProto.noInbound": "此服务器尚无任何协议的入站。",
-  "bulkProto.done": "{{protocol}}：{{matched}} 个用户中已更改 {{changed}} 个"
+  "bulkProto.done": "{{protocol}}：{{matched}} 个用户中已更改 {{changed}} 个",
+  "overview.subsUpdated": "订阅更新",
+  "overview.subsUpdatedHelp": "本期内",
+  "userDialog.createdAt": "创建于",
+  "userDialog.lastSubUpdate": "上次订阅更新",
+  "userDialog.subUpdateCount": "更新次数",
+  "userDialog.never": "从未"
 }

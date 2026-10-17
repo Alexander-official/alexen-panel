@@ -1597,5 +1597,11 @@
   "bulkProto.applyEnable": "Ulanyjylarda aç",
   "bulkProto.applyDisable": "Ulanyjylarda öçür",
   "bulkProto.noInbound": "Bu serwerde entek hiç protokolyň inbound-y ýok.",
-  "bulkProto.done": "{{protocol}}: {{matched}} ulanyjydan {{changed}} sanysy üýtgedi"
+  "bulkProto.done": "{{protocol}}: {{matched}} ulanyjydan {{changed}} sanysy üýtgedi",
+  "overview.subsUpdated": "Abuna täzelenmeleri",
+  "overview.subsUpdatedHelp": "bu döwürde",
+  "userDialog.createdAt": "Döredildi",
+  "userDialog.lastSubUpdate": "Soňky abuna täzelenmesi",
+  "userDialog.subUpdateCount": "Täzelenme sany",
+  "userDialog.never": "hiç haçan"
 }

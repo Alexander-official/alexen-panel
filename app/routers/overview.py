@@ -108,6 +108,8 @@ def overview(period: str = Query("24h"), tz: int = Query(0, ge=-900, le=900),
     now = time.time()
     expiring = uq.filter(User.expire.isnot(None), User.expire > now, User.expire < now + 3 * 86400).count()
     created = uq.filter(User.created_at >= since, User.created_at < until).count()
+    subs_updated = uq.filter(User.sub_updated_at.isnot(None),
+                             User.sub_updated_at >= since, User.sub_updated_at < until).count()
     from app.xray import online as _online
     online_now = {uid: ips for uid, ips in _online.online_users.items() if uid in user_ids}
     online_ips_now = sum(len(ips) for ips in online_now.values())
@@ -228,6 +230,7 @@ def overview(period: str = Query("24h"), tz: int = Query(0, ge=-900, le=900),
             "online_ips": online_ips_now,
             "expiring": expiring,
             "created": created,
+            "subs_updated": subs_updated,
         },
         "traffic": {
             "total": sum(total_series),

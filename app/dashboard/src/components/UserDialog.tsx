@@ -464,6 +464,34 @@ export const UserDialog: FC<UserDialogProps> = () => {
                   <UserWarningBox username={editingUser.username} warning={editingUser.warning} editable={!!userData?.is_sudo} />
                 </Box>
               )}
+              {isEditing && editingUser && (
+                <HStack
+                  mb={4}
+                  spacing={0}
+                  flexWrap="wrap"
+                  borderWidth="1px"
+                  borderColor="light-border"
+                  _dark={{ borderColor: "gray.600" }}
+                  borderRadius="8px"
+                  overflow="hidden"
+                  divider={<Box w="1px" alignSelf="stretch" bg="light-border" _dark={{ bg: "gray.600" }} />}
+                >
+                  {([
+                    [t("userDialog.createdAt"), (editingUser as any).created_at ? dayjs.utc((editingUser as any).created_at).local().format("DD.MM.YYYY HH:mm") : "—"],
+                    [t("userDialog.lastSubUpdate"), (editingUser as any).sub_updated_at ? dayjs.utc((editingUser as any).sub_updated_at).local().fromNow() : t("userDialog.never")],
+                    [t("userDialog.subUpdateCount"), String((editingUser as any).sub_request_count ?? 0)],
+                  ] as [string, string][]).map(([label, val], i) => (
+                    <Box key={i} flex="1 1 120px" minW={0} px={3} py={2}>
+                      <Text fontSize="2xs" color="gray.500" textTransform="uppercase" letterSpacing="wide" noOfLines={1}>
+                        {label}
+                      </Text>
+                      <Text fontSize="sm" fontWeight="semibold" noOfLines={1}>
+                        {val}
+                      </Text>
+                    </Box>
+                  ))}
+                </HStack>
+              )}
               <Grid
                 templateColumns={{
                   base: "repeat(1, 1fr)",
