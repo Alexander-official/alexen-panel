@@ -1603,5 +1603,7 @@
   "userDialog.createdAt": "Created",
   "userDialog.lastSubUpdate": "Last sub update",
   "userDialog.subUpdateCount": "Sub updates",
-  "userDialog.never": "never"
+  "userDialog.never": "never",
+  "lic.messageTitle": "Message from the provider",
+  "lic.gotIt": "Got it"
 }

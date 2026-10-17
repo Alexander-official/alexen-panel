@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.12.0",
+    "date": "2026-10-17",
+    "tr": [
+      "Lisans kontrol merkezi: lisans panelinden panelin sahibini (creator) sen belirleyebilirsin; o panelde müşterinin hesabı sudo olur, asıl sahip sensin (sadece sen bilirsin)",
+      "Lisans panelinde her panelin node listesi, admin listesi ve toplam trafiği görünür",
+      "Lisans panelinden bir panele mesaj gönderebilirsin; panel bir sonraki denetimde tüm adminlere gösterir"
+    ],
+    "en": [
+      "License control plane: set a panel's owner (creator) from the license panel; the customer's own account becomes sudo and you are the real owner (only you know it)",
+      "The license panel shows each panel's node list, admin list and total traffic",
+      "Send a message from the license panel to a panel; it shows to all its admins on the next check-in"
+    ]
+  },
+  {
     "version": "1.11.0",
     "date": "2026-10-17",
     "tr": [

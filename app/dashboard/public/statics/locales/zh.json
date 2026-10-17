@@ -1601,5 +1601,7 @@
   "userDialog.createdAt": "创建于",
   "userDialog.lastSubUpdate": "上次订阅更新",
   "userDialog.subUpdateCount": "更新次数",
-  "userDialog.never": "从未"
+  "userDialog.never": "从未",
+  "lic.messageTitle": "来自服务商的消息",
+  "lic.gotIt": "知道了"
 }

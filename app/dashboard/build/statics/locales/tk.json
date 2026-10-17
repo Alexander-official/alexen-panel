@@ -1603,5 +1603,7 @@
   "userDialog.createdAt": "Döredildi",
   "userDialog.lastSubUpdate": "Soňky abuna täzelenmesi",
   "userDialog.subUpdateCount": "Täzelenme sany",
-  "userDialog.never": "hiç haçan"
+  "userDialog.never": "hiç haçan",
+  "lic.messageTitle": "Üpjün edijiden habar",
+  "lic.gotIt": "Düşnükli"
 }

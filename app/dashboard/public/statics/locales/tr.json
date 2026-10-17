@@ -1603,5 +1603,7 @@
   "userDialog.createdAt": "Oluşturuldu",
   "userDialog.lastSubUpdate": "Son abonelik güncellemesi",
   "userDialog.subUpdateCount": "Güncelleme sayısı",
-  "userDialog.never": "hiç"
+  "userDialog.never": "hiç",
+  "lic.messageTitle": "Sağlayıcıdan mesaj",
+  "lic.gotIt": "Anladım"
 }

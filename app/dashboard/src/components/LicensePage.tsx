@@ -3,6 +3,7 @@
 // the card on the overview. The VPN itself never stops for the license: only the management.
 import { Badge, Box, Button, HStack, Icon, Input, SimpleGrid, Spinner, Text, useToast, VStack } from "@chakra-ui/react";
 import {
+  ChatBubbleLeftRightIcon,
   ArrowPathIcon,
   CheckBadgeIcon,
   ClockIcon,
@@ -34,6 +35,8 @@ export type License = {
   grace_until: number;
   limits: Record<"users" | "admins" | "nodes", number>;
   usage: Record<"users" | "admins" | "nodes", number | null>;
+  message?: string;
+  message_at?: number;
   key?: string | null;
   install_id?: string | null;
   last_check?: number | null;
@@ -270,9 +273,38 @@ export const LicenseGate: FC<{ children: ReactNode }> = ({ children }) => {
   if (data?.locked) return <LockScreen l={data} creator={getUserIsSuccess && !!(userData as any).is_creator} />;
   return (
     <>
+      {data?.message && <MessageBanner text={data.message} onDismiss={() => refetch()} />}
       {data && <LicenseBanner l={data} creator={getUserIsSuccess && !!(userData as any).is_creator} sudo={getUserIsSuccess && !!userData.is_sudo} />}
       {children}
     </>
+  );
+};
+
+// a message the seller sent from the license panel; shown to every admin until dismissed
+const MessageBanner: FC<{ text: string; onDismiss: () => void }> = ({ text, onDismiss }) => {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const dismiss = () => {
+    setBusy(true);
+    fetch("/license/dismiss-message", { method: "POST" })
+      .then(() => { qc.setQueryData("license", (d: any) => (d ? { ...d, message: "" } : d)); onDismiss(); })
+      .finally(() => setBusy(false));
+  };
+  return (
+    <HStack mt={{ base: 3, md: 4 }} p={3.5} borderRadius="12px" borderWidth="1px" borderColor="primary.300"
+      bg="primary.50" _dark={{ bg: "rgba(99,102,241,.12)", borderColor: "primary.700" }} spacing={3} align="flex-start">
+      <Icon as={ChatBubbleLeftRightIcon} boxSize="20px" color="primary.400" flexShrink={0} mt="1px" />
+      <Box flex="1" minW={0}>
+        <Text fontSize="xs" color="primary.500" fontWeight="bold" textTransform="uppercase" letterSpacing="wide">
+          {t("lic.messageTitle")}
+        </Text>
+        <Text fontSize="sm" whiteSpace="pre-wrap">{text}</Text>
+      </Box>
+      <Button size="xs" variant="ghost" colorScheme="primary" onClick={dismiss} isLoading={busy}>
+        {t("lic.gotIt")}
+      </Button>
+    </HStack>
   );
 };
 

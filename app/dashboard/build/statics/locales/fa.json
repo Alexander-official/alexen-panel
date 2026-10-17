@@ -1605,5 +1605,7 @@
   "userDialog.createdAt": "ایجاد شده",
   "userDialog.lastSubUpdate": "آخرین به‌روزرسانی",
   "userDialog.subUpdateCount": "تعداد به‌روزرسانی",
-  "userDialog.never": "هرگز"
+  "userDialog.never": "هرگز",
+  "lic.messageTitle": "پیام از ارائه‌دهنده",
+  "lic.gotIt": "متوجه شدم"
 }

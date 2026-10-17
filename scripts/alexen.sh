@@ -41,6 +41,7 @@ RAW="$LICENSE_SERVER/install.sh"
 UPD_DIR=$DATA_DIR/update
 UPD_LOG=$UPD_DIR/update.log
 LIC_DIR=$DATA_DIR/license
+LICENSE_HAS_CREATOR=""
 # the license server's signing key: a release it didn't sign isn't installed
 LIC_PUBKEY='-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAme9Yq1wS0MRKqsRdM7lAOQV2W3yP3C2L+Yr+ovnkp6I=
@@ -182,7 +183,10 @@ ask_license() {
         ( umask 077; printf '%s' "$n" > "$LIC_DIR/key" )
         lic_install >/dev/null
         ls_get /api/v1/precheck
-        if [ "$LS_CODE" = 200 ]; then say "license OK" "$G"; return 0; fi
+        if [ "$LS_CODE" = 200 ]; then
+            printf '%s' "$LS_BODY" | grep -q '"creator_set": *true' && LICENSE_HAS_CREATOR=1 || LICENSE_HAS_CREATOR=""
+            say "license OK" "$G"; return 0
+        fi
         local why; why=$(ls_error)
         rm -f "$LIC_DIR/key"
         if has_tty && [ -z "${ALEXEN_LICENSE:-}" ] && [ "$LS_CODE" != 000 ]; then echo "${Y}$why${N}" >&2; k=""; continue; fi
@@ -319,15 +323,18 @@ open_port() {
 }
 
 create_creator() {
-    local user="${1:-}" pass="${2:-}"
+    local user="${1:-}" pass="${2:-}" role="--creator" what="Creator (owner)"
+    # the license panel sets the owner (creator) for this panel: the installer makes the
+    # customer's own admin a sudo instead, and the owner is provisioned from the license
+    if [ "$LICENSE_HAS_CREATOR" = 1 ]; then role=""; what="Admin"; fi
     [ -z "$pass" ] || [ ${#pass} -ge 8 ] || fail "ALEXEN_PASSWORD is too short (8 characters or more)"
-    [ -n "$user" ] || user=$(ask "Creator (owner) username [admin]: " admin)
+    [ -n "$user" ] || user=$(ask "$what username [admin]: " admin)
     while [ -z "$pass" ]; do
         has_tty || fail "set ALEXEN_PASSWORD (8 characters or more)"
         pass=$(ask_secret "Password for $user (min. 8 characters): ")
         [ ${#pass} -ge 8 ] || { echo "${Y}too short${N}" >&2; pass=""; has_tty || fail "set ALEXEN_PASSWORD (8 characters or more)"; }
     done
-    docker exec -e MARZBAN_ADMIN_PASSWORD="$pass" $CONTAINER marzban-cli admin create --sudo --creator -u "$user" -tg "" -dc "" \
+    docker exec -e MARZBAN_ADMIN_PASSWORD="$pass" $CONTAINER marzban-cli admin create --sudo $role -u "$user" -tg "" -dc "" \
         >/tmp/$APP-admin.log 2>&1 && grep -q "created successfully" /tmp/$APP-admin.log \
         || { tail -5 /tmp/$APP-admin.log >&2; fail "couldn't create $user (it may exist already: alexen cli admin update -u $user)"; }
     ADMIN_USER=$user

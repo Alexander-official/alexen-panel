@@ -1610,5 +1610,7 @@
   "userDialog.createdAt": "Создан",
   "userDialog.lastSubUpdate": "Последнее обновление",
   "userDialog.subUpdateCount": "Число обновлений",
-  "userDialog.never": "никогда"
+  "userDialog.never": "никогда",
+  "lic.messageTitle": "Сообщение от поставщика",
+  "lic.gotIt": "Понятно"
 }
