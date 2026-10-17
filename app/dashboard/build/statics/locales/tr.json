@@ -1584,5 +1584,18 @@
   "serverMsg.profPictureBig": "Resim çok büyük (en fazla 300 KB)",
   "serverMsg.profEnvAdmin": "Bu admin .env dosyasından geliyor, profili yok",
   "filters.allStatus": "Tüm durumlar",
-  "filters.allAdmins": "Tüm adminler"
+  "filters.allAdmins": "Tüm adminler",
+  "bulkProto.title": "Toplu protokol",
+  "bulkProto.help": "Bir protokolü birçok kullanıcıda tek seferde aç ya da kapat. Bir protokol, ancak kullanıcının hesabında açıksa aboneliğine gelir.",
+  "bulkProto.protocol": "Protokol",
+  "bulkProto.action": "İşlem",
+  "bulkProto.enable": "Aç",
+  "bulkProto.disable": "Kapat",
+  "bulkProto.scope": "Hangi kullanıcılar",
+  "bulkProto.allUsers": "Tüm kullanıcılar",
+  "bulkProto.onlyAdmin": "Sadece {{admin}} kullanıcıları",
+  "bulkProto.applyEnable": "Kullanıcılarda aç",
+  "bulkProto.applyDisable": "Kullanıcılarda kapat",
+  "bulkProto.noInbound": "Bu sunucuda henüz hiçbir protokolün inbound'u yok.",
+  "bulkProto.done": "{{protocol}}: {{matched}} kullanıcının {{changed}} tanesi değişti"
 }

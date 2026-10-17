@@ -1584,5 +1584,18 @@
   "serverMsg.profPictureBig": "The picture is too big (300 KB at most)",
   "serverMsg.profEnvAdmin": "This admin comes from the .env file and has no profile",
   "filters.allStatus": "All statuses",
-  "filters.allAdmins": "All admins"
+  "filters.allAdmins": "All admins",
+  "bulkProto.title": "Bulk protocol",
+  "bulkProto.help": "Turn a protocol on or off for many users at once. A user only gets a protocol in their subscription if it's on their account.",
+  "bulkProto.protocol": "Protocol",
+  "bulkProto.action": "Action",
+  "bulkProto.enable": "Enable",
+  "bulkProto.disable": "Disable",
+  "bulkProto.scope": "Which users",
+  "bulkProto.allUsers": "All users",
+  "bulkProto.onlyAdmin": "Only {{admin}}'s users",
+  "bulkProto.applyEnable": "Enable for users",
+  "bulkProto.applyDisable": "Disable for users",
+  "bulkProto.noInbound": "No protocol has an inbound on this server yet.",
+  "bulkProto.done": "{{protocol}}: changed {{changed}} of {{matched}} users"
 }

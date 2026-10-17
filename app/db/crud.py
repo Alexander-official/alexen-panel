@@ -570,6 +570,39 @@ def update_user(db: Session, dbuser: User, modify: UserModify) -> User:
     return dbuser
 
 
+def bulk_set_protocol(db: Session, protocol: ProxyTypes, enable: bool, user_ids: List[int]):
+    """Add (enable) or remove (disable) a protocol for many users at once.
+
+    Enabling a user who lacks the protocol gives them a fresh proxy of that type with
+    default settings and every inbound of that type (no exclusions). Disabling removes
+    the proxy, but never the user's last one (a user needs at least one). Returns the
+    users that actually changed, so the caller can re-sync Xray only for them.
+    """
+    from app.models.proxy import ProxyTypes as _PT
+    settings_model = _PT(protocol).settings_model
+    changed: List[User] = []
+    q = db.query(User).filter(User.id.in_(user_ids)) if user_ids else db.query(User).filter(False)
+    for dbuser in q.all():
+        have = {p.type: p for p in dbuser.proxies}
+        if enable:
+            if protocol in have:
+                continue
+            dbuser.proxies.append(Proxy(type=protocol, settings=settings_model().dict(no_obj=True)))
+            changed.append(dbuser)
+        else:
+            if protocol not in have:
+                continue
+            if len(dbuser.proxies) <= 1:          # don't leave a user with no proxy
+                continue
+            db.delete(have[protocol])
+            changed.append(dbuser)
+    if changed:
+        db.commit()
+        for u in changed:
+            db.refresh(u)
+    return changed
+
+
 def reset_user_data_usage(db: Session, dbuser: User) -> User:
     """
     Resets the data usage of a user and logs the reset.

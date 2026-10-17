@@ -1584,5 +1584,18 @@
   "serverMsg.profPictureBig": "Surat gaty uly (iň köp 300 KB)",
   "serverMsg.profEnvAdmin": "Bu admin .env faýlyndan gelýär, profili ýok",
   "filters.allStatus": "Ähli ýagdaýlar",
-  "filters.allAdmins": "Ähli adminler"
+  "filters.allAdmins": "Ähli adminler",
+  "bulkProto.title": "Köpçülik protokol",
+  "bulkProto.help": "Bir protokoly köp ulanyjyda birbada aç ýa-da öçür. Protokol diňe ulanyjynyň hasabynda açyk bolsa abuna goşulýar.",
+  "bulkProto.protocol": "Protokol",
+  "bulkProto.action": "Hereket",
+  "bulkProto.enable": "Aç",
+  "bulkProto.disable": "Öçür",
+  "bulkProto.scope": "Haýsy ulanyjylar",
+  "bulkProto.allUsers": "Ähli ulanyjylar",
+  "bulkProto.onlyAdmin": "Diňe {{admin}} ulanyjylary",
+  "bulkProto.applyEnable": "Ulanyjylarda aç",
+  "bulkProto.applyDisable": "Ulanyjylarda öçür",
+  "bulkProto.noInbound": "Bu serwerde entek hiç protokolyň inbound-y ýok.",
+  "bulkProto.done": "{{protocol}}: {{matched}} ulanyjydan {{changed}} sanysy üýtgedi"
 }

@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.10.0",
+    "date": "2026-10-17",
+    "tr": [
+      "Toplu protokol: bir protokolü (ör. Hysteria) tüm ya da bir adminin kullanıcılarında tek seferde aç/kapat. Kullanıcı filtresi çubuğundaki yeni düğme (sudo).",
+      "Not: bir protokol, ancak kullanıcının hesabında açıksa aboneliğe gelir; host ve inbound eklemek tek başına yetmez — bu düğme onu toplu halleder."
+    ],
+    "en": [
+      "Bulk protocol: turn a protocol (e.g. Hysteria) on or off for all users, or one admin's, in one action. New button on the users filter bar (sudo).",
+      "Note: a protocol only reaches a subscription if it's on the user's account; adding a host and inbound isn't enough — this button does it in bulk."
+    ]
+  },
+  {
     "version": "1.9.0",
     "date": "2026-10-16",
     "tr": [

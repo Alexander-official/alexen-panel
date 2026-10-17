@@ -1582,5 +1582,18 @@
   "serverMsg.profPictureBig": "图片太大（最多 300 KB）",
   "serverMsg.profEnvAdmin": "此管理员来自 .env 文件，没有资料",
   "filters.allStatus": "全部状态",
-  "filters.allAdmins": "全部管理员"
+  "filters.allAdmins": "全部管理员",
+  "bulkProto.title": "批量协议",
+  "bulkProto.help": "一次为多个用户开启或关闭某协议。只有在用户账户中启用，协议才会出现在订阅中。",
+  "bulkProto.protocol": "协议",
+  "bulkProto.action": "操作",
+  "bulkProto.enable": "启用",
+  "bulkProto.disable": "禁用",
+  "bulkProto.scope": "哪些用户",
+  "bulkProto.allUsers": "所有用户",
+  "bulkProto.onlyAdmin": "仅 {{admin}} 的用户",
+  "bulkProto.applyEnable": "为用户启用",
+  "bulkProto.applyDisable": "为用户禁用",
+  "bulkProto.noInbound": "此服务器尚无任何协议的入站。",
+  "bulkProto.done": "{{protocol}}：{{matched}} 个用户中已更改 {{changed}} 个"
 }

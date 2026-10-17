@@ -1591,5 +1591,18 @@
   "serverMsg.profPictureBig": "Фото слишком большое (не больше 300 КБ)",
   "serverMsg.profEnvAdmin": "Этот админ задан в .env и не имеет профиля",
   "filters.allStatus": "Все статусы",
-  "filters.allAdmins": "Все админы"
+  "filters.allAdmins": "Все админы",
+  "bulkProto.title": "Массовый протокол",
+  "bulkProto.help": "Включите или выключите протокол сразу у многих пользователей. Протокол попадает в подписку только если он включён в аккаунте.",
+  "bulkProto.protocol": "Протокол",
+  "bulkProto.action": "Действие",
+  "bulkProto.enable": "Включить",
+  "bulkProto.disable": "Выключить",
+  "bulkProto.scope": "Какие пользователи",
+  "bulkProto.allUsers": "Все пользователи",
+  "bulkProto.onlyAdmin": "Только пользователи {{admin}}",
+  "bulkProto.applyEnable": "Включить у пользователей",
+  "bulkProto.applyDisable": "Выключить у пользователей",
+  "bulkProto.noInbound": "На этом сервере пока нет ни одного inbound.",
+  "bulkProto.done": "{{protocol}}: изменено {{changed}} из {{matched}}"
 }

@@ -1586,5 +1586,18 @@
   "serverMsg.profPictureBig": "عکس خیلی بزرگ است (حداکثر ۳۰۰ کیلوبایت)",
   "serverMsg.profEnvAdmin": "این ادمین از فایل .env می‌آید و پروفایل ندارد",
   "filters.allStatus": "همه وضعیت‌ها",
-  "filters.allAdmins": "همه ادمین‌ها"
+  "filters.allAdmins": "همه ادمین‌ها",
+  "bulkProto.title": "پروتکل گروهی",
+  "bulkProto.help": "یک پروتکل را برای چند کاربر یکجا روشن یا خاموش کنید. پروتکل فقط وقتی در اشتراک می‌آید که در حساب کاربر فعال باشد.",
+  "bulkProto.protocol": "پروتکل",
+  "bulkProto.action": "عملیات",
+  "bulkProto.enable": "روشن کردن",
+  "bulkProto.disable": "خاموش کردن",
+  "bulkProto.scope": "کدام کاربران",
+  "bulkProto.allUsers": "همه کاربران",
+  "bulkProto.onlyAdmin": "فقط کاربران {{admin}}",
+  "bulkProto.applyEnable": "برای کاربران روشن کن",
+  "bulkProto.applyDisable": "برای کاربران خاموش کن",
+  "bulkProto.noInbound": "هنوز هیچ پروتکلی روی این سرور inbound ندارد.",
+  "bulkProto.done": "{{protocol}}: از {{matched}} کاربر {{changed}} تغییر کرد"
 }

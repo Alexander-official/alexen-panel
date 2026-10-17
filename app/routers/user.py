@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Union
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.exc import InvalidRequestError
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
@@ -291,6 +291,52 @@ def get_users(
     )
 
     return {"users": users, "total": count}
+
+
+class BulkProtocol(BaseModel):
+    protocol: str                 # vless | vmess | trojan | shadowsocks | hysteria
+    enable: bool = True
+    admin: Optional[str] = None       # a sudo: only this owner's users (ignored for a reseller)
+    usernames: Optional[List[str]] = None   # only these users (still within the caller's scope)
+
+
+@router.post("/users/bulk/protocol", responses={400: responses._400, 403: responses._403})
+def bulk_protocol(
+    body: BulkProtocol,
+    bg: BackgroundTasks,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(Admin.check_sudo_admin),
+):
+    """Turn a protocol on or off for many users at once (e.g. give every user Hysteria).
+
+    A sudo admin may target every user, or one owner's with `admin`, or a list with
+    `usernames`. A newly enabled protocol gives the user every inbound of that type.
+    """
+    from app.models.proxy import ProxyTypes
+    from app.db.models import User as DBUser, Admin as DBAdmin
+    try:
+        proto = ProxyTypes(body.protocol)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Unknown protocol: {body.protocol}")
+    if body.enable and not xray.config.inbounds_by_protocol.get(proto):
+        raise HTTPException(status_code=400, detail=f"Protocol {proto.value} has no inbound on this server")
+
+    # the users in the caller's scope (a reseller: only their own)
+    owners = ([admin.username] if not admin.is_sudo else
+              ([body.admin] if body.admin else None))
+    q = db.query(DBUser.id)
+    if owners is not None:
+        q = q.join(DBUser.admin).filter(DBAdmin.username.in_(owners))
+    if body.usernames:
+        q = q.filter(DBUser.username.in_(body.usernames))
+    user_ids = [uid for (uid,) in q.all()]
+
+    changed = crud.bulk_set_protocol(db, proto, body.enable, user_ids)
+    for dbuser in changed:
+        if dbuser.status in (UserStatus.active, UserStatus.on_hold):
+            bg.add_task(xray.operations.update_user, dbuser=dbuser)
+    logger.info(f'Bulk {"enable" if body.enable else "disable"} {proto.value} for {len(changed)} users (by {admin.username})')
+    return {"protocol": proto.value, "enabled": body.enable, "matched": len(user_ids), "changed": len(changed)}
 
 
 @router.post("/users/reset", responses={403: responses._403, 404: responses._404})

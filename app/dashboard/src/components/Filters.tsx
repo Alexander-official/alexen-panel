@@ -15,9 +15,11 @@ import {
 } from "@chakra-ui/react";
 import {
   ArrowPathIcon,
+  Bars3BottomLeftIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { lazy, Suspense } from "react";
 import classNames from "classnames";
 import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import debounce from "lodash.debounce";
@@ -53,6 +55,7 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
   const [search, setSearch] = useState("");
   const { userData } = useGetUser();
   const isSudo = !!userData?.is_sudo;
+  const [bulkOpen, setBulkOpen] = useState(false);
   // the admins a sudo may filter by (names only); regular admins don't see this
   const { data: admins } = useQuery<{ username: string; is_sudo: boolean }[]>({
     queryKey: "filter-admins",
@@ -180,6 +183,17 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
               })}
             />
           </IconButton>
+          {isSudo && (
+            <IconButton
+              aria-label={t("bulkProto.title")}
+              title={t("bulkProto.title")}
+              size="sm"
+              variant="outline"
+              onClick={() => setBulkOpen(true)}
+            >
+              <chakra.span display="inline-flex"><Bars3BottomLeftIcon width={18} /></chakra.span>
+            </IconButton>
+          )}
           <Button
             colorScheme="primary"
             size="sm"
@@ -191,6 +205,13 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
           </Button>
         </HStack>
       </GridItem>
+      {bulkOpen && (
+        <Suspense fallback={null}>
+          <BulkProtocol isOpen={bulkOpen} onClose={() => setBulkOpen(false)} adminFilter={filters.admin} />
+        </Suspense>
+      )}
     </Grid>
   );
 };
+
+const BulkProtocol = lazy(() => import("components/BulkProtocolModal"));
