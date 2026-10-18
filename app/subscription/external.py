@@ -64,9 +64,16 @@ class ExternalConfig(BaseModel):
     links: str = ""
     # subscription sources
     url: str = ""
+    # extra URLs: tried in order if the main one fails (fallback); with random_url they
+    # form one pool and a random one is used each refresh (and the rest are the fallback)
+    urls: List[str] = []
+    random_url: bool = False
     user_agent: str = ""
     range_start: int = Field(1, ge=1)  # 1-based, inclusive
     range_end: int = Field(0, ge=0)  # 0 = up to the last one
+    # keep only these protocols from a subscription source (empty = all)
+    # values: vless, vmess, trojan, ss, hysteria2
+    protocols: List[str] = []
     rename: str = "country"  # "none" | "country" | "country_city"
     test: bool = False  # test through our xray and keep only working links
     test_timeout: int = Field(5, ge=1, le=30)  # seconds

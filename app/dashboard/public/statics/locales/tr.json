@@ -1605,5 +1605,19 @@
   "userDialog.subUpdateCount": "Güncelleme sayısı",
   "userDialog.never": "hiç",
   "lic.messageTitle": "Sağlayıcıdan mesaj",
-  "lic.gotIt": "Anladım"
+  "lic.gotIt": "Anladım",
+  "transfer.title": "Kullanıcıları taşı",
+  "transfer.moveUsers": "Kullanıcıları başka admine taşı",
+  "transfer.help": "{{from}} adlı adminin tüm kullanıcılarını başka bir admine taşı.",
+  "transfer.target": "Hedef admin",
+  "transfer.pickTarget": "Bir admin seç",
+  "transfer.move": "Taşı",
+  "transfer.done": "{{n}} kullanıcı {{to}} adminine taşındı",
+  "external.fallbackUrls": "Yedek URL'ler",
+  "external.fallbackUrlsHelp": "her satıra bir tane · ana URL hata verirse kullanılır",
+  "external.fallbackUrlsRandomHelp": "her satıra bir tane · rastgele havuza dahil",
+  "external.randomUrl": "Her seferinde rastgele URL",
+  "external.randomUrlHelp": "her yenilemede havuzdan rastgele bir URL seçer (diğerleri yedek olur)",
+  "external.protocolFilter": "Protokol filtresi",
+  "external.protocolFilterHelp": "sadece bunları tut · boş = hepsi"
 }

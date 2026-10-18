@@ -339,6 +339,54 @@ def bulk_protocol(
     return {"protocol": proto.value, "enabled": body.enable, "matched": len(user_ids), "changed": len(changed)}
 
 
+class TransferUsers(BaseModel):
+    to_admin: str                          # the admin who will own the users
+    from_admin: Optional[str] = None       # move all of this admin's users
+    usernames: Optional[List[str]] = None  # or just these users
+
+
+@router.post("/users/transfer", responses={400: responses._400, 403: responses._403, 404: responses._404})
+def transfer_users(
+    body: TransferUsers,
+    bg: BackgroundTasks,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(Admin.check_sudo_admin),
+):
+    """Move users from one admin to another, one by one (usernames) or all of an admin's
+    (from_admin). A sudo admin can't see or move the creator accounts' users."""
+    from app.db.models import User as DBUser, Admin as DBAdmin
+    if not body.from_admin and not body.usernames:
+        raise HTTPException(status_code=400, detail="Pick the users to move (an admin or a list)")
+    target = crud.get_admin(db, body.to_admin)
+    if not target:
+        raise HTTPException(status_code=404, detail="The target admin doesn't exist")
+    q = db.query(DBUser)
+    if body.usernames:
+        q = q.filter(DBUser.username.in_(body.usernames))
+    if body.from_admin:
+        src = crud.get_admin(db, body.from_admin)
+        if not src:
+            raise HTTPException(status_code=404, detail="The source admin doesn't exist")
+        if src.id == target.id:
+            raise HTTPException(status_code=400, detail="The source and target admin are the same")
+        q = q.join(DBUser.admin).filter(DBAdmin.username == body.from_admin)
+    users = q.all()
+    moved = 0
+    for u in users:
+        if u.admin_id == target.id:
+            continue
+        u.admin_id = target.id
+        moved += 1
+    if moved:
+        db.commit()
+        # the owner change alters which hosts (groups) the user's subscription gets, and the
+        # admins' usage tracking; the user's own proxies are unchanged, so no Xray resync needed
+        for u in users:
+            db.refresh(u)
+    logger.info(f'Transferred {moved} users to "{body.to_admin}" (by {admin.username})')
+    return {"to_admin": body.to_admin, "matched": len(users), "moved": moved}
+
+
 @router.post("/users/reset", responses={403: responses._403, 404: responses._404})
 def reset_users_data_usage(
     db: Session = Depends(get_db), admin: Admin = Depends(Admin.check_sudo_admin)

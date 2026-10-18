@@ -1612,5 +1612,19 @@
   "userDialog.subUpdateCount": "Число обновлений",
   "userDialog.never": "никогда",
   "lic.messageTitle": "Сообщение от поставщика",
-  "lic.gotIt": "Понятно"
+  "lic.gotIt": "Понятно",
+  "transfer.title": "Перенос пользователей",
+  "transfer.moveUsers": "Перенести пользователей другому админу",
+  "transfer.help": "Перенести всех пользователей админа {{from}} другому.",
+  "transfer.target": "Кому",
+  "transfer.pickTarget": "Выберите админа",
+  "transfer.move": "Перенести",
+  "transfer.done": "{{n}} пользователей перенесено к {{to}}",
+  "external.fallbackUrls": "Запасные URL",
+  "external.fallbackUrlsHelp": "по одной в строке · если основной URL не работает",
+  "external.fallbackUrlsRandomHelp": "по одной в строке · входят в случайный пул",
+  "external.randomUrl": "Случайный URL каждый раз",
+  "external.randomUrlHelp": "при каждом обновлении берётся случайный URL из пула",
+  "external.protocolFilter": "Фильтр протоколов",
+  "external.protocolFilterHelp": "оставить только эти · пусто = все"
 }

@@ -46,6 +46,9 @@ type ExternalConfig = {
   kind: "links" | "subscription";
   links: string;
   url: string;
+  urls?: string[];
+  random_url?: boolean;
+  protocols?: string[];
   user_agent: string;
   range_start: number;
   range_end: number;
@@ -100,6 +103,9 @@ const empty = (kind: ExternalConfig["kind"] = "subscription"): ExternalConfig =>
   kind,
   links: "",
   url: "",
+  urls: [],
+  random_url: false,
+  protocols: [],
   user_agent: "",
   range_start: 1,
   range_end: 0,
@@ -262,6 +268,37 @@ const ConfigForm: FC<{ value: ExternalConfig; groups: string[] | null; onChange:
           <FormControl>
             <FormLabel>{t("external.url")}</FormLabel>
             <Input size="sm" fontFamily="mono" fontSize="xs" value={value.url} onChange={(e) => set({ url: e.target.value.trim() })} placeholder="https://example.com/sub/xxxx" />
+          </FormControl>
+          <FormControl>
+            <FormLabel>
+              {t("external.fallbackUrls")}{" "}
+              <Text as="span" fontSize="2xs" color="gray.500" fontWeight="normal">
+                {value.random_url ? t("external.fallbackUrlsRandomHelp") : t("external.fallbackUrlsHelp")}
+              </Text>
+            </FormLabel>
+            <Textarea size="sm" fontFamily="mono" fontSize="xs" rows={2} value={(value.urls || []).join("\n")}
+              onChange={(e) => set({ urls: e.target.value.split("\n").map((u) => u.trim()).filter(Boolean) })}
+              placeholder={"https://backup1.example.com/sub/xxxx\nhttps://backup2.example.com/sub/xxxx"} />
+          </FormControl>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+            <Toggle label={t("external.randomUrl")} help={t("external.randomUrlHelp")} value={!!value.random_url} onChange={(v) => set({ random_url: v })} />
+          </SimpleGrid>
+          <FormControl>
+            <FormLabel>
+              {t("external.protocolFilter")}{" "}
+              <Text as="span" fontSize="2xs" color="gray.500" fontWeight="normal">{t("external.protocolFilterHelp")}</Text>
+            </FormLabel>
+            <HStack spacing={1.5} flexWrap="wrap">
+              {(["vless", "vmess", "trojan", "ss", "hysteria2"] as const).map((pr) => {
+                const on = (value.protocols || []).includes(pr);
+                return (
+                  <Button key={pr} size="xs" variant={on ? "solid" : "outline"} colorScheme={on ? "primary" : "gray"}
+                    onClick={() => set({ protocols: on ? (value.protocols || []).filter((x) => x !== pr) : [...(value.protocols || []), pr] })}>
+                    {pr === "ss" ? "Shadowsocks" : pr === "hysteria2" ? "Hysteria2" : pr.toUpperCase()}
+                  </Button>
+                );
+              })}
+            </HStack>
           </FormControl>
           <SimpleGrid columns={{ base: 2, md: 3 }} spacing={3}>
             <FormControl>

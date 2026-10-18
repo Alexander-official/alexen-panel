@@ -1605,5 +1605,19 @@
   "userDialog.subUpdateCount": "Täzelenme sany",
   "userDialog.never": "hiç haçan",
   "lic.messageTitle": "Üpjün edijiden habar",
-  "lic.gotIt": "Düşnükli"
+  "lic.gotIt": "Düşnükli",
+  "transfer.title": "Ulanyjylary geçir",
+  "transfer.moveUsers": "Ulanyjylary başga admine geçir",
+  "transfer.help": "{{from}} adminiň ähli ulanyjylaryny başga admine geçir.",
+  "transfer.target": "Nyşana admin",
+  "transfer.pickTarget": "Admin saýla",
+  "transfer.move": "Geçir",
+  "transfer.done": "{{n}} ulanyjy {{to}} admine geçirildi",
+  "external.fallbackUrls": "Ätiýaç URL-ler",
+  "external.fallbackUrlsHelp": "her setire biri · esasy URL näsaz bolsa ulanylýar",
+  "external.fallbackUrlsRandomHelp": "her setire biri · tötänleýin howuza girýär",
+  "external.randomUrl": "Her gezek tötänleýin URL",
+  "external.randomUrlHelp": "her täzelenmede howuzdan tötänleýin URL saýlanýar",
+  "external.protocolFilter": "Protokol filtri",
+  "external.protocolFilterHelp": "diňe şulary sakla · boş = hemmesi"
 }

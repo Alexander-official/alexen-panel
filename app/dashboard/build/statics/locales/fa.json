@@ -1607,5 +1607,19 @@
   "userDialog.subUpdateCount": "تعداد به‌روزرسانی",
   "userDialog.never": "هرگز",
   "lic.messageTitle": "پیام از ارائه‌دهنده",
-  "lic.gotIt": "متوجه شدم"
+  "lic.gotIt": "متوجه شدم",
+  "transfer.title": "انتقال کاربران",
+  "transfer.moveUsers": "انتقال کاربران به ادمین دیگر",
+  "transfer.help": "همه کاربران {{from}} را به ادمین دیگری منتقل کن.",
+  "transfer.target": "به ادمین",
+  "transfer.pickTarget": "یک ادمین انتخاب کنید",
+  "transfer.move": "انتقال",
+  "transfer.done": "{{n}} کاربر به {{to}} منتقل شد",
+  "external.fallbackUrls": "آدرس‌های پشتیبان",
+  "external.fallbackUrlsHelp": "هر خط یکی · اگر آدرس اصلی خطا دهد",
+  "external.fallbackUrlsRandomHelp": "هر خط یکی · بخشی از مجموعه تصادفی",
+  "external.randomUrl": "هر بار آدرس تصادفی",
+  "external.randomUrlHelp": "در هر به‌روزرسانی یک آدرس تصادفی از مجموعه انتخاب می‌شود",
+  "external.protocolFilter": "فیلتر پروتکل",
+  "external.protocolFilterHelp": "فقط این‌ها · خالی = همه"
 }

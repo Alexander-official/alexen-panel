@@ -10,6 +10,7 @@ import {
   HStack,
   IconButton,
   Input,
+  Select,
   Text,
   Tooltip,
   VStack,
@@ -21,10 +22,11 @@ import {
   ModalBody,
   ModalCloseButton,
   ModalContent,
+  ModalFooter,
   ModalHeader,
   ModalOverlay,
 } from "./PageSurface";
-import { PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ArrowsRightLeftIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useDashboard, useDashboardPick } from "contexts/DashboardContext";
 import { FC, useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -37,6 +39,7 @@ import useGetUser from "hooks/useGetUser";
 
 const EditIcon = chakra(PencilIcon, { baseStyle: { w: 4, h: 4 } });
 const DeleteIcon = chakra(TrashIcon, { baseStyle: { w: 4, h: 4 } });
+const TransferIcon = chakra(ArrowsRightLeftIcon, { baseStyle: { w: 4, h: 4 } });
 const AddIcon = chakra(PlusIcon, { baseStyle: { w: 4, h: 4 } });
 
 type AdminItem = {
@@ -96,6 +99,7 @@ export const AdminsModal: FC = () => {
   const [admins, setAdmins] = useState<AdminItem[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editing, setEditing] = useState<string | null>(null);
+  const [transferFrom, setTransferFrom] = useState<AdminItem | null>(null);
   const [showForm, setShowForm] = useState(false);
   const profileSave = useRef<((name: string) => Promise<unknown>) | null>(null);
   const [subFirst, setSubFirst] = useState(false);
@@ -548,6 +552,17 @@ export const AdminsModal: FC = () => {
                           onClick={() => startEdit(admin)}
                         />
                       </Tooltip>
+                      {canManage(admin) && (
+                        <Tooltip label={t("transfer.moveUsers")}>
+                          <IconButton
+                            aria-label="transfer"
+                            size="xs"
+                            variant="ghost"
+                            icon={<TransferIcon />}
+                            onClick={() => setTransferFrom(admin)}
+                          />
+                        </Tooltip>
+                      )}
                       {admin.username !== myName && canManage(admin) && (
                         <Tooltip label={t("admins.delete")}>
                           <IconButton
@@ -567,6 +582,69 @@ export const AdminsModal: FC = () => {
             </VStack>
           )}
         </ModalBody>
+      </ModalContent>
+      {transferFrom && (
+        <TransferUsersModal
+          from={transferFrom}
+          admins={admins}
+          onClose={() => setTransferFrom(null)}
+          onDone={refresh}
+        />
+      )}
+    </Modal>
+  );
+};
+
+const TransferUsersModal: FC<{ from: AdminItem; admins: AdminItem[]; onClose: () => void; onDone: () => void }> = ({ from, admins, onClose, onDone }) => {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [to, setTo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const targets = admins.filter((a) => a.username !== from.username);
+  const go = () => {
+    if (!to) return;
+    setBusy(true);
+    fetch("/users/transfer", { method: "POST", body: { from_admin: from.username, to_admin: to } })
+      .then((r: { moved: number }) => {
+        toast({ status: "success", position: "top", duration: 4000, title: t("transfer.done", { n: r.moved, to }) });
+        onDone();
+        onClose();
+      })
+      .catch((e: any) => toast({ status: "error", position: "top", title: serverMessage(t, e?.response?._data?.detail) || t("errors.generic") }))
+      .finally(() => setBusy(false));
+  };
+  return (
+    <Modal isOpen onClose={onClose} isCentered size="sm">
+      <ModalOverlay backdropFilter="blur(3px)" />
+      <ModalContent mx="3">
+        <ModalHeader>{t("transfer.title")}</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <VStack align="stretch" spacing={3}>
+            <Text fontSize="sm" color="gray.500">
+              {t("transfer.help", { from: from.username })}
+            </Text>
+            <FormControl>
+              <FormLabel fontSize="sm">{t("transfer.target")}</FormLabel>
+              <Select size="sm" placeholder={t("transfer.pickTarget")} value={to} onChange={(e) => setTo(e.target.value)}>
+                {targets.map((a) => (
+                  <option key={a.username} value={a.username}>
+                    {a.username}
+                    {a.is_sudo ? " · sudo" : ""}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+          </VStack>
+        </ModalBody>
+        <ModalFooter gap={2}>
+          <Button variant="ghost" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button colorScheme="primary" isDisabled={!to} isLoading={busy} onClick={go} leftIcon={<TransferIcon />}>
+            {t("transfer.move")}
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );

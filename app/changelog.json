@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.13.0",
+    "date": "2026-10-18",
+    "tr": [
+      "External abonelik kaynaklarına yedek (fallback) URL'ler: ana URL hata verirse sıradaki denenir; istediğin kadar ekleyebilirsin",
+      "External kaynaklarda 'rastgele URL' seçeneği: havuzdan her yenilemede rastgele bir URL çekilir",
+      "External kaynaklara protokol filtresi: sadece seçtiğin protokoller tutulur (vless, vmess, trojan, shadowsocks, hysteria2)",
+      "Kullanıcı transferi: bir adminin tüm kullanıcılarını başka bir admine taşı (Yöneticiler sayfasında)"
+    ],
+    "en": [
+      "Fallback URLs for external subscription sources: if the main URL fails, the next is tried; add as many as you like",
+      "A 'random URL' option for external sources: a random URL from the pool is used on each refresh",
+      "A protocol filter for external sources: keep only the protocols you pick (vless, vmess, trojan, shadowsocks, hysteria2)",
+      "Transfer users: move all of an admin's users to another admin (on the Admins page)"
+    ]
+  },
+  {
     "version": "1.12.0",
     "date": "2026-10-17",
     "tr": [

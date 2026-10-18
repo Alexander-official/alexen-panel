@@ -1605,5 +1605,19 @@
   "userDialog.subUpdateCount": "Sub updates",
   "userDialog.never": "never",
   "lic.messageTitle": "Message from the provider",
-  "lic.gotIt": "Got it"
+  "lic.gotIt": "Got it",
+  "transfer.title": "Transfer users",
+  "transfer.moveUsers": "Move users to another admin",
+  "transfer.help": "Move all of {{from}}'s users to another admin.",
+  "transfer.target": "To admin",
+  "transfer.pickTarget": "Pick an admin",
+  "transfer.move": "Move",
+  "transfer.done": "{{n}} users moved to {{to}}",
+  "external.fallbackUrls": "Fallback URLs",
+  "external.fallbackUrlsHelp": "one per line · used if the main URL fails",
+  "external.fallbackUrlsRandomHelp": "one per line · part of the random pool",
+  "external.randomUrl": "Random URL each time",
+  "external.randomUrlHelp": "pick a random URL from the pool on each refresh (the rest are the fallback)",
+  "external.protocolFilter": "Protocol filter",
+  "external.protocolFilterHelp": "keep only these · empty = all"
 }

@@ -1603,5 +1603,19 @@
   "userDialog.subUpdateCount": "更新次数",
   "userDialog.never": "从未",
   "lic.messageTitle": "来自服务商的消息",
-  "lic.gotIt": "知道了"
+  "lic.gotIt": "知道了",
+  "transfer.title": "转移用户",
+  "transfer.moveUsers": "转移用户给其他管理员",
+  "transfer.help": "将 {{from}} 的所有用户转移给其他管理员。",
+  "transfer.target": "目标管理员",
+  "transfer.pickTarget": "选择管理员",
+  "transfer.move": "转移",
+  "transfer.done": "{{n}} 个用户已转移给 {{to}}",
+  "external.fallbackUrls": "备用网址",
+  "external.fallbackUrlsHelp": "每行一个 · 主网址失败时使用",
+  "external.fallbackUrlsRandomHelp": "每行一个 · 随机池的一部分",
+  "external.randomUrl": "每次随机网址",
+  "external.randomUrlHelp": "每次刷新从池中随机选取一个网址",
+  "external.protocolFilter": "协议筛选",
+  "external.protocolFilterHelp": "仅保留这些 · 空=全部"
 }

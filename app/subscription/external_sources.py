@@ -461,14 +461,62 @@ def rename_all(items: List[dict], mode: str, ws_label: str = ""):
 
 # ---------------------------------------------------------------- refresh
 
+def _source_urls(source) -> list:
+    """the main URL first, then the extras (deduped, trimmed)"""
+    out = []
+    for u in [getattr(source, "url", "")] + list(getattr(source, "urls", None) or []):
+        u = (u or "").strip()
+        if u and u not in out:
+            out.append(u)
+    return out
+
+
+def _fetch_pool(source):
+    """try the source's URLs until one returns links. With random_url the order is shuffled
+    (a random one each refresh); otherwise the main URL first, the extras as fallback.
+    Returns (links, used_url, [(url, error), ...] for the ones that failed)."""
+    import random as _random
+    pool = _source_urls(source)
+    if not pool:
+        raise ValueError("no URL")
+    if getattr(source, "random_url", False) and len(pool) > 1:
+        _random.shuffle(pool)
+    errors = []
+    for u in pool:
+        try:
+            links = fetch_links(u, source.user_agent)
+            if links:
+                return links, u, errors
+            errors.append((u, "empty"))
+        except Exception as e:
+            errors.append((u, str(e)[:120]))
+    # all failed (or all empty): raise the last real error so the entry shows it
+    raise RuntimeError("; ".join(f"{_short_url(u)}: {e}" for u, e in errors) or "no links")
+
+
+def _short_url(u: str) -> str:
+    try:
+        return urllib.parse.urlsplit(u).hostname or u[:40]
+    except Exception:
+        return u[:40]
+
+
 def refresh(source, test_url: str = DEFAULT_TEST_URL) -> dict:
     """fetch -> range -> test -> rename one subscription source, cache and return the result"""
     _running.add(source.id)
     entry = {"updated_at": int(time.time()), "items": [], "error": "",
              "stats": {"fetched": 0, "in_range": 0, "tested": 0, "working": 0}}
     try:
-        links = fetch_links(source.url, source.user_agent)
+        links, used_url, url_errors = _fetch_pool(source)
+        if used_url and used_url != source.url:
+            entry["used_url"] = used_url
+        if url_errors:
+            entry["url_errors"] = url_errors
         entry["stats"]["fetched"] = len(links)
+        want = {p.lower() for p in (getattr(source, "protocols", None) or [])}
+        if want:
+            links = [ln for ln in links if scheme_of(ln) in want]
+            entry["stats"]["in_protocols"] = len(links)
         start = max(1, source.range_start or 1) - 1
         end = source.range_end or len(links)
         links = links[start:end]
