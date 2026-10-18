@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.13.1",
+    "date": "2026-10-18",
+    "tr": [
+      "Yönetici silerken onay soruluyor (yanlışlıkla silmeyi önler); kullanıcıları olan bir admini silmeden önce uyarır"
+    ],
+    "en": [
+      "Deleting an admin now asks for confirmation (prevents accidental deletes) and warns when the admin still has users"
+    ]
+  },
+  {
     "version": "1.13.0",
     "date": "2026-10-18",
     "tr": [

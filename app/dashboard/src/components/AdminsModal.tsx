@@ -100,6 +100,7 @@ export const AdminsModal: FC = () => {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editing, setEditing] = useState<string | null>(null);
   const [transferFrom, setTransferFrom] = useState<AdminItem | null>(null);
+  const [confirmDel, setConfirmDel] = useState<AdminItem | null>(null);
   const [showForm, setShowForm] = useState(false);
   const profileSave = useRef<((name: string) => Promise<unknown>) | null>(null);
   const [subFirst, setSubFirst] = useState(false);
@@ -227,12 +228,15 @@ export const AdminsModal: FC = () => {
           title: errorText(e) || t("admins.error"),
           duration: 4000,
         })
-      );
+      )
+      .finally(() => setDeleting(false));
   };
 
+  const [deleting, setDeleting] = useState(false);
   const remove = (username: string) => {
+    setDeleting(true);
     fetch(`/admin/${username}`, { method: "DELETE" })
-      .then(() => refresh())
+      .then(() => { refresh(); setConfirmDel(null); })
       .catch((e) =>
         toast({
           status: "error",
@@ -571,7 +575,7 @@ export const AdminsModal: FC = () => {
                             variant="ghost"
                             colorScheme="red"
                             icon={<DeleteIcon />}
-                            onClick={() => remove(admin.username)}
+                            onClick={() => setConfirmDel(admin)}
                           />
                         </Tooltip>
                       )}
@@ -583,6 +587,37 @@ export const AdminsModal: FC = () => {
           )}
         </ModalBody>
       </ModalContent>
+      {confirmDel && (
+        <Modal isOpen onClose={() => !deleting && setConfirmDel(null)} isCentered size="sm">
+          <ModalOverlay backdropFilter="blur(3px)" />
+          <ModalContent mx="3">
+            <ModalHeader>{t("admins.deleteTitle")}</ModalHeader>
+            <ModalCloseButton isDisabled={deleting} />
+            <ModalBody>
+              <VStack align="stretch" spacing={3}>
+                <Text fontSize="sm">
+                  {t("admins.deleteConfirm", { name: confirmDel.username })}
+                </Text>
+                {!confirmDel.is_sudo && (confirmDel.users_usage || 0) >= 0 && (
+                  <Box p={2.5} borderRadius="8px" bg="orange.50" _dark={{ bg: "rgba(237,137,54,.12)" }}>
+                    <Text fontSize="xs" color="orange.600" _dark={{ color: "orange.300" }}>
+                      {t("admins.deleteUsersWarn")}
+                    </Text>
+                  </Box>
+                )}
+              </VStack>
+            </ModalBody>
+            <ModalFooter gap={2}>
+              <Button variant="ghost" onClick={() => setConfirmDel(null)} isDisabled={deleting}>
+                {t("cancel")}
+              </Button>
+              <Button colorScheme="red" leftIcon={<DeleteIcon />} isLoading={deleting} onClick={() => remove(confirmDel.username)}>
+                {t("admins.delete")}
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
       {transferFrom && (
         <TransferUsersModal
           from={transferFrom}

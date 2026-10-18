@@ -1626,5 +1626,8 @@
   "external.randomUrl": "Случайный URL каждый раз",
   "external.randomUrlHelp": "при каждом обновлении берётся случайный URL из пула",
   "external.protocolFilter": "Фильтр протоколов",
-  "external.protocolFilterHelp": "оставить только эти · пусто = все"
+  "external.protocolFilterHelp": "оставить только эти · пусто = все",
+  "admins.deleteTitle": "Удалить админа",
+  "admins.deleteConfirm": "Удалить «{{name}}»? Это нельзя отменить.",
+  "admins.deleteUsersWarn": "Пользователи этого админа останутся без владельца. Сначала перенесите их другому админу."
 }

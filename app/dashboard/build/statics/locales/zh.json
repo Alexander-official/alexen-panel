@@ -1617,5 +1617,8 @@
   "external.randomUrl": "每次随机网址",
   "external.randomUrlHelp": "每次刷新从池中随机选取一个网址",
   "external.protocolFilter": "协议筛选",
-  "external.protocolFilterHelp": "仅保留这些 · 空=全部"
+  "external.protocolFilterHelp": "仅保留这些 · 空=全部",
+  "admins.deleteTitle": "删除管理员",
+  "admins.deleteConfirm": "删除“{{name}}”？此操作无法撤销。",
+  "admins.deleteUsersWarn": "该管理员的用户将失去所属。如需保留归属，请先转移给其他管理员。"
 }

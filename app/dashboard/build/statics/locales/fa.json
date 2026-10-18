@@ -1621,5 +1621,8 @@
   "external.randomUrl": "هر بار آدرس تصادفی",
   "external.randomUrlHelp": "در هر به‌روزرسانی یک آدرس تصادفی از مجموعه انتخاب می‌شود",
   "external.protocolFilter": "فیلتر پروتکل",
-  "external.protocolFilterHelp": "فقط این‌ها · خالی = همه"
+  "external.protocolFilterHelp": "فقط این‌ها · خالی = همه",
+  "admins.deleteTitle": "حذف ادمین",
+  "admins.deleteConfirm": "«{{name}}» حذف شود؟ این عمل برگشت‌پذیر نیست.",
+  "admins.deleteUsersWarn": "کاربران این ادمین بدون مالک می‌مانند. اگر می‌خواهید حفظ شوند، ابتدا به ادمین دیگری منتقل کنید."
 }

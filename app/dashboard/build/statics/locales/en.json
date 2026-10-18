@@ -1619,5 +1619,8 @@
   "external.randomUrl": "Random URL each time",
   "external.randomUrlHelp": "pick a random URL from the pool on each refresh (the rest are the fallback)",
   "external.protocolFilter": "Protocol filter",
-  "external.protocolFilterHelp": "keep only these · empty = all"
+  "external.protocolFilterHelp": "keep only these · empty = all",
+  "admins.deleteTitle": "Delete admin",
+  "admins.deleteConfirm": "Delete \"{{name}}\"? This can't be undone.",
+  "admins.deleteUsersWarn": "This admin's users lose their owner. Transfer them to another admin first if you want to keep them assigned."
 }

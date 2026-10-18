@@ -1619,5 +1619,8 @@
   "external.randomUrl": "Her gezek tötänleýin URL",
   "external.randomUrlHelp": "her täzelenmede howuzdan tötänleýin URL saýlanýar",
   "external.protocolFilter": "Protokol filtri",
-  "external.protocolFilterHelp": "diňe şulary sakla · boş = hemmesi"
+  "external.protocolFilterHelp": "diňe şulary sakla · boş = hemmesi",
+  "admins.deleteTitle": "Admini poz",
+  "admins.deleteConfirm": "\"{{name}}\" pozulsunmy? Yzyna gaýtaryp bolmaýar.",
+  "admins.deleteUsersWarn": "Bu adminiň ulanyjylary eýesiz galýar. Isleseň öň başga admine geçir."
 }

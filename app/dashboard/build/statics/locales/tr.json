@@ -1619,5 +1619,8 @@
   "external.randomUrl": "Her seferinde rastgele URL",
   "external.randomUrlHelp": "her yenilemede havuzdan rastgele bir URL seçer (diğerleri yedek olur)",
   "external.protocolFilter": "Protokol filtresi",
-  "external.protocolFilterHelp": "sadece bunları tut · boş = hepsi"
+  "external.protocolFilterHelp": "sadece bunları tut · boş = hepsi",
+  "admins.deleteTitle": "Yöneticiyi sil",
+  "admins.deleteConfirm": "\"{{name}}\" silinsin mi? Bu geri alınamaz.",
+  "admins.deleteUsersWarn": "Bu adminin kullanıcıları sahipsiz kalır. Bağlı kalsınlar istiyorsan önce başka bir admine taşı."
 }
