@@ -1,5 +1,6 @@
 import re
 import secrets
+from contextvars import ContextVar
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Union
@@ -305,6 +306,15 @@ class UserModify(User):
         return status
 
 
+# when set for a request, a user's copyable configs are hidden (an admin without the
+# "copy configs" permission): the validators below don't fill links / subscription_url
+_hide_configs: ContextVar[bool] = ContextVar("alexen_hide_configs", default=False)
+
+
+def hide_configs(on: bool = True) -> None:
+    _hide_configs.set(on)
+
+
 class UserResponse(User):
     # stored values are read as they are: the upper bounds of User only guard input
     expire: Optional[int] = Field(None, nullable=True)
@@ -333,6 +343,9 @@ class UserResponse(User):
 
     @model_validator(mode="after")
     def validate_links(self):
+        if _hide_configs.get():
+            self.links = []
+            return self
         if not self.links:
             self.links = generate_v2ray_links(
                 self.proxies, self.inbounds, extra_data=self.model_dump(), reverse=False,
@@ -341,6 +354,9 @@ class UserResponse(User):
 
     @model_validator(mode="after")
     def validate_subscription_url(self):
+        if _hide_configs.get():
+            self.subscription_url = ""
+            return self
         if not self.subscription_url:
             # domain, path and last part come from the panel's Domain settings
             from app.subscription import domain

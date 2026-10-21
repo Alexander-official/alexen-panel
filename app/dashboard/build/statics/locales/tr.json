@@ -1622,5 +1622,14 @@
   "external.protocolFilterHelp": "sadece bunları tut · boş = hepsi",
   "admins.deleteTitle": "Yöneticiyi sil",
   "admins.deleteConfirm": "\"{{name}}\" silinsin mi? Bu geri alınamaz.",
-  "admins.deleteUsersWarn": "Bu adminin kullanıcıları sahipsiz kalır. Bağlı kalsınlar istiyorsan önce başka bir admine taşı."
+  "admins.deleteUsersWarn": "Bu adminin kullanıcıları sahipsiz kalır. Bağlı kalsınlar istiyorsan önce başka bir admine taşı.",
+  "admins.permsTitle": "İzinler",
+  "admins.permCopy": "Kullanıcı config'lerini kopyalayabilir",
+  "admins.permCopyHelp": "kapalı: bu admine kopyala/abonelik düğmeleri gösterilmez",
+  "admins.permLimits": "IP / cihaz limitini değiştirebilir",
+  "admins.permLimitsHelp": "kapalı: bu alanlar bu admin için salt-okunur",
+  "admins.created": "açtı",
+  "admins.deleted": "sildi",
+  "userDialog.ipBlocks": "Engellenen yeni IP",
+  "userDialog.deviceRejects": "Reddedilen yeni cihaz"
 }

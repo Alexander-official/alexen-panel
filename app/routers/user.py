@@ -4,6 +4,8 @@ from typing import List, Optional, Union
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.exc import InvalidRequestError
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
 from app import logger, xray
@@ -55,14 +57,9 @@ def _can_copy(admin: Admin, db: Session) -> bool:
     return bool(getattr(dbadmin, "can_copy_configs", True)) if dbadmin else True
 
 
-def _strip_configs(user):
-    """hide the copyable configs from an admin without the permission"""
-    try:
-        user.links = []
-        user.subscription_url = ""
-    except Exception:
-        pass
-    return user
+def _no_configs_response(data):
+    """a response whose users carry no links / subscription_url (FastAPI won't re-fill them)"""
+    return JSONResponse(content=jsonable_encoder(data))
 
 
 @router.post("/user", response_model=UserResponse, responses={400: responses._400, 409: responses._409})
@@ -127,7 +124,13 @@ def get_user(dbuser: UserResponse = Depends(get_validated_user),
              db: Session = Depends(get_db), admin: Admin = Depends(Admin.get_current)):
     """Get user information"""
     if not _can_copy(admin, db):
-        _strip_configs(dbuser)
+        from app.models.user import hide_configs
+        hide_configs(True)
+        try:
+            data = UserResponse.model_validate(dbuser).model_dump()
+        finally:
+            hide_configs(False)
+        return _no_configs_response(data)
     return dbuser
 
 
@@ -320,8 +323,13 @@ def get_users(
     )
 
     if not _can_copy(admin, db):
-        for u in users:
-            _strip_configs(u)
+        from app.models.user import hide_configs
+        hide_configs(True)
+        try:
+            out = [UserResponse.model_validate(u).model_dump() for u in users]
+        finally:
+            hide_configs(False)
+        return _no_configs_response({"users": out, "total": count})
     return {"users": users, "total": count}
 
 

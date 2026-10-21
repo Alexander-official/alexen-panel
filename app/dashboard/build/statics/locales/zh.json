@@ -1620,5 +1620,14 @@
   "external.protocolFilterHelp": "仅保留这些 · 空=全部",
   "admins.deleteTitle": "删除管理员",
   "admins.deleteConfirm": "删除“{{name}}”？此操作无法撤销。",
-  "admins.deleteUsersWarn": "该管理员的用户将失去所属。如需保留归属，请先转移给其他管理员。"
+  "admins.deleteUsersWarn": "该管理员的用户将失去所属。如需保留归属，请先转移给其他管理员。",
+  "admins.permsTitle": "权限",
+  "admins.permCopy": "可复制用户配置",
+  "admins.permCopyHelp": "关闭：隐藏复制/订阅按钮",
+  "admins.permLimits": "可修改 IP/设备限制",
+  "admins.permLimitsHelp": "关闭：这些字段只读",
+  "admins.created": "已创建",
+  "admins.deleted": "已删除",
+  "userDialog.ipBlocks": "新IP拦截",
+  "userDialog.deviceRejects": "新设备拒绝"
 }

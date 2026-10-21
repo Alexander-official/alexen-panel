@@ -1629,5 +1629,14 @@
   "external.protocolFilterHelp": "оставить только эти · пусто = все",
   "admins.deleteTitle": "Удалить админа",
   "admins.deleteConfirm": "Удалить «{{name}}»? Это нельзя отменить.",
-  "admins.deleteUsersWarn": "Пользователи этого админа останутся без владельца. Сначала перенесите их другому админу."
+  "admins.deleteUsersWarn": "Пользователи этого админа останутся без владельца. Сначала перенесите их другому админу.",
+  "admins.permsTitle": "Права",
+  "admins.permCopy": "Может копировать конфиги",
+  "admins.permCopyHelp": "выкл: кнопки копирования скрыты",
+  "admins.permLimits": "Может менять лимиты IP/устройств",
+  "admins.permLimitsHelp": "выкл: эти поля только для чтения",
+  "admins.created": "создал",
+  "admins.deleted": "удалил",
+  "userDialog.ipBlocks": "Блокировок новых IP",
+  "userDialog.deviceRejects": "Отклонено устройств"
 }

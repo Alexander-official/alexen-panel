@@ -1622,5 +1622,14 @@
   "external.protocolFilterHelp": "diňe şulary sakla · boş = hemmesi",
   "admins.deleteTitle": "Admini poz",
   "admins.deleteConfirm": "\"{{name}}\" pozulsunmy? Yzyna gaýtaryp bolmaýar.",
-  "admins.deleteUsersWarn": "Bu adminiň ulanyjylary eýesiz galýar. Isleseň öň başga admine geçir."
+  "admins.deleteUsersWarn": "Bu adminiň ulanyjylary eýesiz galýar. Isleseň öň başga admine geçir.",
+  "admins.permsTitle": "Rugsatlar",
+  "admins.permCopy": "Config göçürip bilýär",
+  "admins.permCopyHelp": "öçük: kopýala düwmeleri gizlenýär",
+  "admins.permLimits": "IP / enjam çägini üýtgedip bilýär",
+  "admins.permLimitsHelp": "öçük: bu meýdanlar diňe okalýar",
+  "admins.created": "açdy",
+  "admins.deleted": "pozdy",
+  "userDialog.ipBlocks": "Böklenen täze IP",
+  "userDialog.deviceRejects": "Ret edilen enjam"
 }
