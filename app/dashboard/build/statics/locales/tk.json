@@ -1035,7 +1035,7 @@
   "activity.kind.changes": "Üýtgeşmeler",
   "activity.kind.failed": "Şowsuz",
   "activity.allAdmins": "Ähli administratorlar",
-  "activity.search": "Gözle (ulanyjy, IP…)",
+  "activity.search": "Gözle (görnüş, ulanyjy, IP…)",
   "activity.empty": "Entek hiç zat ýok.",
   "activity.more": "Has könelerini görkez",
   "activity.failedBadge": "şowsuz ({{code}})",
@@ -1631,5 +1631,6 @@
   "admins.created": "açdy",
   "admins.deleted": "pozdy",
   "userDialog.ipBlocks": "Böklenen täze IP",
-  "userDialog.deviceRejects": "Ret edilen enjam"
+  "userDialog.deviceRejects": "Ret edilen enjam",
+  "activity.noMatch": "Gabat gelýän hereket ýok."
 }

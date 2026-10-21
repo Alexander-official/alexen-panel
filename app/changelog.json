@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.15.0",
+    "date": "2026-10-21",
+    "tr": [
+      "Etkinlik günlüğünde olay türüne göre arama: artık 'başarısız giriş' gibi yazarak da arayabilirsin, sadece kullanıcı/IP değil",
+      "Düzeltme: config kopyalama izni kapalı bir bayi, kullanıcı oluşturduktan/düzenledikten sonra da config kopyalayamıyor (önceden bu durumda kopyalayabiliyordu)",
+      "Düzeltme: yoğun panellerde ayarları (ör. bayi abonelik mesajı) kaydederken ara sıra çıkan 'veritabanı meşgul' hatası giderildi"
+    ],
+    "en": [
+      "Search the activity log by event type: you can now type e.g. 'failed login', not just a user/IP",
+      "Fix: a reseller without copy permission can no longer copy a config after creating/editing a user (it was still possible in that case)",
+      "Fix: the occasional 'database is busy' error when saving settings (e.g. a reseller's subscription message) on busy panels is gone"
+    ]
+  },
+  {
     "version": "1.14.0",
     "date": "2026-10-21",
     "tr": [

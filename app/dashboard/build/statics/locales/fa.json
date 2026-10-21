@@ -1037,7 +1037,7 @@
   "activity.kind.changes": "تغییرات",
   "activity.kind.failed": "ناموفق",
   "activity.allAdmins": "همه ادمین‌ها",
-  "activity.search": "جستجو (کاربر، IP…)",
+  "activity.search": "جستجو (نوع، کاربر، IP…)",
   "activity.empty": "هنوز چیزی نیست.",
   "activity.more": "نمایش قدیمی‌ترها",
   "activity.failedBadge": "ناموفق ({{code}})",
@@ -1633,5 +1633,6 @@
   "admins.created": "ایجاد",
   "admins.deleted": "حذف",
   "userDialog.ipBlocks": "مسدودی IP جدید",
-  "userDialog.deviceRejects": "رد دستگاه جدید"
+  "userDialog.deviceRejects": "رد دستگاه جدید",
+  "activity.noMatch": "فعالیت منطبقی یافت نشد."
 }
