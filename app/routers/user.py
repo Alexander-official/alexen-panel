@@ -62,6 +62,20 @@ def _no_configs_response(data):
     return JSONResponse(content=jsonable_encoder(data))
 
 
+def _user_out(user, admin: Admin, db: Session):
+    """a single-user response: stripped of links / subscription_url when the admin
+    may not copy configs, so create / edit / reset / revoke can't leak them either"""
+    if _can_copy(admin, db):
+        return user
+    from app.models.user import hide_configs
+    hide_configs(True)
+    try:
+        data = UserResponse.model_validate(user).model_dump()
+    finally:
+        hide_configs(False)
+    return _no_configs_response(data)
+
+
 @router.post("/user", response_model=UserResponse, responses={400: responses._400, 409: responses._409})
 def add_user(
     new_user: UserCreate,
@@ -116,22 +130,14 @@ def add_user(
     user = UserResponse.model_validate(dbuser)
     report.user_created(user=user, user_id=dbuser.id, by=admin, user_admin=dbuser.admin)
     logger.info(f'New user "{dbuser.username}" added')
-    return user
+    return _user_out(user, admin, db)
 
 
 @router.get("/user/{username}", response_model=UserResponse, responses={403: responses._403, 404: responses._404})
 def get_user(dbuser: UserResponse = Depends(get_validated_user),
              db: Session = Depends(get_db), admin: Admin = Depends(Admin.get_current)):
     """Get user information"""
-    if not _can_copy(admin, db):
-        from app.models.user import hide_configs
-        hide_configs(True)
-        try:
-            data = UserResponse.model_validate(dbuser).model_dump()
-        finally:
-            hide_configs(False)
-        return _no_configs_response(data)
-    return dbuser
+    return _user_out(dbuser, admin, db)
 
 
 @router.put("/user/{username}", response_model=UserResponse, responses={400: responses._400, 403: responses._403, 404: responses._404})
@@ -209,7 +215,7 @@ def modify_user(
             f'User "{dbuser.username}" status changed from {old_status} to {user.status}'
         )
 
-    return user
+    return _user_out(user, admin, db)
 
 
 @router.delete("/user/{username}", responses={403: responses._403, 404: responses._404})
@@ -261,7 +267,7 @@ def reset_user_data_usage(
     )
 
     logger.info(f'User "{dbuser.username}"\'s usage was reset')
-    return dbuser
+    return _user_out(dbuser, admin, db)
 
 
 @router.post("/user/{username}/revoke_sub", response_model=UserResponse, responses={403: responses._403, 404: responses._404})
@@ -283,7 +289,7 @@ def revoke_user_subscription(
 
     logger.info(f'User "{dbuser.username}" subscription revoked')
 
-    return user
+    return _user_out(user, admin, db)
 
 
 @router.get("/users", response_model=UsersResponse, responses={400: responses._400, 403: responses._403, 404: responses._404})
@@ -505,6 +511,7 @@ def active_next_plan(
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
     dbuser: UserResponse = Depends(get_validated_user),
+    admin: Admin = Depends(Admin.get_current),
 ):
     """Reset user by next plan"""
     dbuser = crud.reset_user_by_next(db=db, dbuser=dbuser)
@@ -524,7 +531,7 @@ def active_next_plan(
     )
 
     logger.info(f'User "{dbuser.username}"\'s usage was reset by next plan')
-    return dbuser
+    return _user_out(dbuser, admin, db)
 
 
 @router.get("/users/usage", response_model=UsersUsagesResponse)
@@ -563,7 +570,7 @@ def set_owner(
 
     logger.info(f'{user.username}"owner successfully set to{admin.username}')
 
-    return user
+    return _user_out(user, admin, db)
 
 
 @router.get("/users/expired", response_model=List[str])
