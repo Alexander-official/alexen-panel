@@ -1682,5 +1682,15 @@
   "extPanel.preview": "Önizle",
   "extPanel.doImport": "İçe aktar",
   "extPanel.imported": "{{count}} config içe aktarıldı",
-  "extPanel.previewCount": "{{count}} link"
+  "extPanel.previewCount": "{{count}} link",
+  "domain.mode": "Mod",
+  "domain.modeHelp": "Sadece web sayfası: VPN uygulamaları ham aboneliği alamaz — her istek web sayfasını alır, kullanıcılar config'leri oradan içe aktarır.",
+  "domain.modeNormal": "Normal",
+  "domain.modeWebonly": "Sadece web sayfası",
+  "adminSub.pathPlaceholder": "kendi path'i (ops.)",
+  "adminSub.modeInherit": "Devral",
+  "sub.deviceLimitMsg": "Cihaz-limiti mesajı",
+  "sub.deviceLimitMsgPlaceholder": "Yeni cihaz limiti aşınca gösterilir",
+  "sub.rateLimit": "Sub rate limit (sn)",
+  "sub.rateLimitHelp": "Bir kullanıcının iki abonelik çekişi arasındaki en az saniye. 0 = limitsiz."
 }

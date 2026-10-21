@@ -1682,5 +1682,15 @@
   "extPanel.preview": "Preview",
   "extPanel.doImport": "Import",
   "extPanel.imported": "{{count}} config(s) imported",
-  "extPanel.previewCount": "{{count}} link(s)"
+  "extPanel.previewCount": "{{count}} link(s)",
+  "domain.mode": "Mode",
+  "domain.modeHelp": "Web page only: VPN apps can't consume the raw subscription — every request gets the web page, and users import the configs from it.",
+  "domain.modeNormal": "Normal",
+  "domain.modeWebonly": "Web page only",
+  "adminSub.pathPlaceholder": "own path (optional)",
+  "adminSub.modeInherit": "Inherit",
+  "sub.deviceLimitMsg": "Device-limit message",
+  "sub.deviceLimitMsgPlaceholder": "Shown when a new device is over the limit",
+  "sub.rateLimit": "Sub rate limit (sec)",
+  "sub.rateLimitHelp": "Minimum seconds between two subscription fetches for one user. 0 = no limit."
 }

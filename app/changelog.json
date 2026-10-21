@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.20.0",
+    "date": "2026-10-21",
+    "tr": [
+      "Abonelik domaini için “Mod”: “Sadece web sayfası” mod’unda ham abonelik VPN uygulamalarına verilmez (her istek web sayfasını alır, kullanıcı oradan import eder) — genel ve bayi bazında",
+      "Bayi abonelik profilinde kendi “path”ı ve mod’u ayarlanabiliyor",
+      "Abonelik güncelleme hız sınırı (sub rate limit) — bir kullanıcının iki çekişi arası en az saniye",
+      "Cihaz (HWID) limiti aşılınca gösterilecek özel mesaj"
+    ],
+    "en": [
+      "Subscription domain “Mode”: in “Web page only” mode the raw sub is not handed to VPN apps (every request gets the web page; users import from it) — general and per-reseller",
+      "A reseller’s sub profile can set its own path and mode",
+      "Subscription fetch rate limit (minimum seconds between a user’s two fetches)",
+      "Custom message shown when the device (HWID) limit is exceeded"
+    ]
+  },
+  {
     "version": "1.19.0",
     "date": "2026-10-21",
     "tr": [

@@ -25,6 +25,10 @@ class SubscriptionSettings(BaseModel):
     near_expire_days: int = 1
     # hours between automatic updates in the apps; None: SUB_UPDATE_INTERVAL from .env
     update_interval: Optional[int] = None
+    # message shown when a new device is over the user's device (HWID) limit; empty: the .env default
+    device_limit_message: Optional[str] = ""
+    # minimum seconds between two subscription fetches for one user (0: no limit) — stops hammering
+    sub_rate_limit: int = 0
     # admin username -> its own templates for its users; an empty one falls back to the ones above
     admins: Dict[str, "AdminSubTemplates"] = {}
 
@@ -396,6 +400,8 @@ def example_sub_domain(settings: _domain.DomainSettings, db: Session = Depends(g
 class AdminSubProfile(BaseModel):
     url_prefix: str = ""                       # own domain for its users' links
     suffix: Optional[str] = None               # own last part; None: the general one
+    sub_path: Optional[str] = None             # own path word; None: the general one
+    mode: Optional[str] = None                 # "normal" | "webonly"; None: inherit the general
     templates: AdminSubTemplates = AdminSubTemplates()
     external_enabled: bool = True
     external_label: str = ""
@@ -427,7 +433,8 @@ def _profile(db: Session, name: str) -> AdminSubProfile:
     user = db.query(User).filter(User.admin_id == dbadmin.id).order_by(User.id).first() if dbadmin else None
     uname = user.username if user else "username"
     example = _domain.build_url(uname, create_subscription_token(uname) if user else "<token>", admin=name)
-    return AdminSubProfile(url_prefix=d.url_prefix if d else "", suffix=d.suffix if d else None, templates=t,
+    return AdminSubProfile(url_prefix=d.url_prefix if d else "", suffix=d.suffix if d else None,
+                           sub_path=(d.path if d else None), mode=(d.mode if d else None), templates=t,
                            external_enabled=e.enabled if e else True, external_label=e.label if e else "",
                            external_self_edit=e.self_edit if e else False,
                            external_include_general=e.include_general if e else True,
@@ -448,12 +455,13 @@ def update_admin_sub_profile(name: str, body: AdminSubProfile, db: Session = Dep
     _profile_access(db, name, admin)
     # domain
     try:
-        own = _domain.AdminDomain(url_prefix=body.url_prefix, suffix=body.suffix)
+        own = _domain.AdminDomain(url_prefix=body.url_prefix, suffix=body.suffix,
+                                  path=body.sub_path, mode=body.mode)
     except Exception as e:
         msg = e.errors()[0].get("msg", str(e)) if hasattr(e, "errors") else str(e)
         raise HTTPException(400, msg.replace("Value error, ", ""))
     ds = _domain.get().model_copy(deep=True)
-    if own.url_prefix or own.suffix is not None:
+    if own.url_prefix or own.suffix is not None or own.path or (own.mode and own.mode != "normal"):
         ds.admins[name] = own
     else:
         ds.admins.pop(name, None)

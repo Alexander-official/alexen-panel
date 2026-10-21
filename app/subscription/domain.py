@@ -26,6 +26,10 @@ class AdminDomain(BaseModel):
     """an admin's own address for its users' links; empty fields: the general ones"""
     url_prefix: str = Field("", max_length=300)
     suffix: Optional[str] = Field(None, max_length=100)
+    path: Optional[str] = Field(None, max_length=64)   # own path word; None: the general one
+    # "normal": apps consume the raw sub as usual. "webonly": the raw sub is NOT served to
+    # VPN apps (they get the web page), users import from the page. None: inherit the general.
+    mode: Optional[str] = None
 
     @field_validator("url_prefix")
     @classmethod
@@ -33,6 +37,18 @@ class AdminDomain(BaseModel):
         v = v.strip().rstrip("/")
         if v and not re.match(r"^https?://[^/\s]+(/[^\s]*)?$", v.replace("*", "x")):
             raise ValueError("Use a full address like https://sub.example.com")
+        return v
+
+    @field_validator("path")
+    @classmethod
+    def _apath(cls, v):
+        if v is None:
+            return v
+        v = v.strip().strip("/")
+        if v and not _PATH_RE.match(v):
+            raise ValueError("Path: letters, digits, - and _ only")
+        if v in ("api", "dashboard", "docs", "redoc", "statics", "openapi.json"):
+            raise ValueError(f"/{v}/ is used by the panel")
         return v
 
 
@@ -43,6 +59,8 @@ class DomainSettings(BaseModel):
     path: str = Field("", max_length=64)
     # after the token: "", "{username}" or any text (may contain {username})
     suffix: str = Field("", max_length=100)
+    # "normal" or "webonly" (block the raw sub for VPN apps, serve the web page only)
+    mode: str = Field("normal", max_length=16)
     # admin username -> its own address (and last part) for its users
     admins: Dict[str, AdminDomain] = {}
 
@@ -112,6 +130,15 @@ def path() -> str:
     return get().path or XRAY_SUBSCRIPTION_PATH
 
 
+def mode_for(admin: str = "", s: Optional[DomainSettings] = None) -> str:
+    """effective serving mode for a user's admin: 'normal' or 'webonly'"""
+    s = s or get()
+    own = s.admins.get(admin) if admin else None
+    if own and own.mode:
+        return own.mode
+    return s.mode or "normal"
+
+
 def admin_prefix(admin: str, s: Optional[DomainSettings] = None) -> str:
     """the admin's own address, if it has one"""
     s = s or get()
@@ -127,7 +154,8 @@ def build_url(username: str, token: str, s: Optional[DomainSettings] = None, adm
     prefix = ((own.url_prefix if own and own.url_prefix else "") or s.url_prefix
               or XRAY_SUBSCRIPTION_URL_PREFIX).replace("*", secrets.token_hex(8))
     suffix = own.suffix if own and own.suffix is not None else s.suffix
-    url = f"{prefix}/{s.path or XRAY_SUBSCRIPTION_PATH}/{token}"
+    word = (own.path if own and own.path else None) or s.path or XRAY_SUBSCRIPTION_PATH
+    url = f"{prefix}/{word}/{token}"
     if suffix:
         url += "/" + quote(suffix.replace("{username}", username), safe="@._-~")
     return url

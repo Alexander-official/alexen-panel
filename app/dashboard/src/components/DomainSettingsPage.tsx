@@ -24,7 +24,7 @@ import { useTranslation } from "react-i18next";
 import { useQueryClient } from "react-query";
 import { fetch } from "service/http";
 
-type Settings = { url_prefix: string; path: string; suffix: string };
+type Settings = { url_prefix: string; path: string; suffix: string; mode?: string };
 type State = { settings: Settings; env_url_prefix: string; env_path: string; example: string };
 
 const card = {
@@ -56,7 +56,7 @@ export const DomainSettingsPage: FC<{ embedded?: boolean }> = ({ embedded }) => 
   const toast = useToast();
   const qc = useQueryClient();
   const [state, setState] = useState<State | null>(null);
-  const [form, setForm] = useState<Settings>({ url_prefix: "", path: "", suffix: "" });
+  const [form, setForm] = useState<Settings>({ url_prefix: "", path: "", suffix: "", mode: "normal" });
   const [example, setExample] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -151,6 +151,23 @@ export const DomainSettingsPage: FC<{ embedded?: boolean }> = ({ embedded }) => 
                 onChange={(e) => set({ path: e.target.value.trim() })}
               />
             </InputGroup>
+          </Field>
+
+          <Field label={t("domain.mode")} help={t("domain.modeHelp")}>
+            <HStack spacing={2}>
+              {([["normal", t("domain.modeNormal")], ["webonly", t("domain.modeWebonly")]] as [string, string][]).map(([v, label]) => (
+                <Button
+                  key={v}
+                  size="sm"
+                  borderRadius="full"
+                  colorScheme="primary"
+                  variant={(form.mode || "normal") === v ? "solid" : "outline"}
+                  onClick={() => set({ mode: v })}
+                >
+                  {label}
+                </Button>
+              ))}
+            </HStack>
           </Field>
 
           <Field label={t("domain.suffix")} help={t("domain.suffixHelp")}>

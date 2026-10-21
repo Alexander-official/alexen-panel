@@ -17,6 +17,8 @@ type Templates = {
 type Profile = {
   url_prefix: string;
   suffix: string | null;
+  sub_path: string | null;
+  mode: string | null;
   templates: Templates;
   external_enabled: boolean;
   external_label: string;
@@ -28,6 +30,8 @@ type Profile = {
 const empty: Profile = {
   url_prefix: "",
   suffix: null,
+  sub_path: null,
+  mode: null,
   templates: { default_template: "", expired_template: "", disabled_template: "", limited_template: "", near_expire_template: "" },
   external_enabled: true,
   external_label: "",
@@ -108,6 +112,22 @@ export const AdminSubProfile: FC<{ name: string; saveRef: MutableRefObject<((nam
         <FormControl>
           <FormLabel fontSize="xs">{t("domain.suffix")}</FormLabel>
           <Input size="sm" fontFamily="mono" value={p.suffix ?? ""} placeholder={t("adminSub.suffixPlaceholder")} onChange={(e) => set({ suffix: e.target.value })} />
+        </FormControl>
+        <FormControl>
+          <FormLabel fontSize="xs">{t("domain.path")}</FormLabel>
+          <Input size="sm" fontFamily="mono" value={p.sub_path ?? ""} placeholder={t("adminSub.pathPlaceholder")} onChange={(e) => set({ sub_path: e.target.value })} />
+        </FormControl>
+        <FormControl>
+          <FormLabel fontSize="xs">{t("domain.mode")}</FormLabel>
+          <HStack spacing={2}>
+            {([["", t("adminSub.modeInherit")], ["normal", t("domain.modeNormal")], ["webonly", t("domain.modeWebonly")]] as [string, string][]).map(([v, label]) => (
+              <Button key={v || "inherit"} size="xs" borderRadius="full" colorScheme="primary"
+                variant={(p.mode ?? "") === v ? "solid" : "outline"}
+                onClick={() => set({ mode: v || null })}>
+                {label}
+              </Button>
+            ))}
+          </HStack>
         </FormControl>
         {p.example && (
           <Box>

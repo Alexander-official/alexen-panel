@@ -40,6 +40,8 @@ type SubSettings = {
   near_expire_template: string;
   near_expire_days: number;
   update_interval: number | null;
+  device_limit_message: string;
+  sub_rate_limit: number;
   admins: Record<string, Partial<Record<TemplateKey, string>>>;
 };
 type TemplateKey = "default_template" | "expired_template" | "disabled_template" | "limited_template" | "near_expire_template";
@@ -55,6 +57,8 @@ const empty: SubSettings = {
   near_expire_template: "",
   near_expire_days: 1,
   update_interval: null,
+  device_limit_message: "",
+  sub_rate_limit: 0,
   admins: {},
 };
 
@@ -250,6 +254,26 @@ export const SubSettingsModal: FC = () => {
                   set("near_expire_days", parseInt(e.target.value) || 0)
                 }
               />
+            </FormControl>
+            <FormControl isDisabled={!!scope}>
+              <FormLabel fontSize="sm" mb={1}>{t("sub.deviceLimitMsg")}</FormLabel>
+              <Input
+                size="sm"
+                value={form.device_limit_message || ""}
+                placeholder={t("sub.deviceLimitMsgPlaceholder")}
+                onChange={(e) => set("device_limit_message", e.target.value)}
+              />
+            </FormControl>
+            <FormControl isDisabled={!!scope}>
+              <FormLabel fontSize="sm" mb={1}>{t("sub.rateLimit")}</FormLabel>
+              <Input
+                size="sm"
+                type="number"
+                maxW="140px"
+                value={form.sub_rate_limit ?? 0}
+                onChange={(e) => set("sub_rate_limit", parseInt(e.target.value) || 0)}
+              />
+              <Text fontSize="xs" color="gray.500" mt={1}>{t("sub.rateLimitHelp")}</Text>
             </FormControl>
             <FormControl>
               <FormLabel fontSize="sm" mb={1}>{t("sub.nearExpire")}</FormLabel>

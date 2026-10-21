@@ -1,5 +1,6 @@
 import re
 from distutils.version import LooseVersion
+from typing import Dict
 
 from fastapi import HTTPException, APIRouter, Depends, Header, Path, Request, Response
 from fastapi.responses import HTMLResponse
@@ -127,8 +128,11 @@ def _absolute_sub_url(request: Request, user: UserResponse) -> str:
     return base + (url if url.startswith("/") else "/" + url)
 
 
-def device_limit_response(response_headers: dict) -> Response:
-    headers = {**response_headers, "announce": encode_title(HWID_LIMIT_REACHED_TEXT), "x-hwid-limit": "true"}
+_last_fetch: Dict[int, float] = {}  # user id -> last raw-sub fetch time (for the rate limit)
+
+
+def device_limit_response(response_headers: dict, message: str = "") -> Response:
+    headers = {**response_headers, "announce": encode_title(message or HWID_LIMIT_REACHED_TEXT), "x-hwid-limit": "true"}
     return Response(content="", media_type="text/plain", headers=headers)
 
 
@@ -142,9 +146,16 @@ def user_subscription(
 ):
     """Provides a subscription link based on the user agent (Clash, V2Ray, etc.)."""
     user: UserResponse = UserResponse.model_validate(dbuser)
+    cfg = get_subscription_settings(db)
+
+    # "web page only" mode: the raw sub is never handed to a VPN app — every request
+    # gets the web page, and the user imports the configs from it in a browser.
+    from app.subscription import domain as _dom
+    admin_name = dbuser.admin.username if dbuser.admin else ""
+    webonly = _dom.mode_for(admin_name) == "webonly"
 
     accept_header = request.headers.get("Accept", "")
-    if "text/html" in accept_header:
+    if "text/html" in accept_header or webonly:
         # the same links (order + external configs) the apps get
         links = generate_subscription(user=user, config_format="v2ray", as_base64=False, reverse=False)
         links = [l for l in links.splitlines() if l.strip()]
@@ -158,6 +169,17 @@ def user_subscription(
         return HTMLResponse(
             render_template(SUBSCRIPTION_PAGE_TEMPLATE, {"user": user, "links": links})
         )
+
+    # rate limit: at most one raw-sub fetch per sub_rate_limit seconds for a user (0: off).
+    # Stops hammering; legit apps poll on the hour so a few-second limit never bites them.
+    rl = cfg.sub_rate_limit or 0
+    if rl > 0:
+        now = _time.time()
+        last = _last_fetch.get(dbuser.id, 0)
+        if now - last < rl:
+            return Response(status_code=429, media_type="text/plain", content="",
+                            headers={"Retry-After": str(int(rl - (now - last)) + 1)})
+        _last_fetch[dbuser.id] = now
 
     crud.update_user_sub(db, dbuser, user_agent)
     prefix_lines, sub_headers = build_sub_page(db, user, token=request.path_params.get("token", ""))
@@ -174,7 +196,7 @@ def user_subscription(
     }
 
     if not register_device(request, db, dbuser, user_agent):
-        return device_limit_response(response_headers)
+        return device_limit_response(response_headers, get_subscription_settings(db).device_limit_message)
 
     if re.match(r'^([Cc]lash-verge|[Cc]lash[-\.]?[Mm]eta|[Ff][Ll][Cc]lash|[Mm]ihomo)', user_agent):
         conf = generate_subscription(user=user, config_format="clash-meta", as_base64=False, reverse=False)
@@ -338,7 +360,7 @@ def _client_type_subscription(request: Request, dbuser, client_type: str, db: Se
     }
 
     if not register_device(request, db, dbuser, user_agent):
-        return device_limit_response(response_headers)
+        return device_limit_response(response_headers, get_subscription_settings(db).device_limit_message)
 
     config = client_config.get(client_type)
     conf = generate_subscription(user=user,
