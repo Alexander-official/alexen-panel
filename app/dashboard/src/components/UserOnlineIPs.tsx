@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import { fetch } from "service/http";
 import { formatRate } from "./LiveTraffic";
+import useGetUser from "hooks/useGetUser";
 
 type OnlineIP = {
   ip: string;
@@ -34,6 +35,9 @@ const UnblockIcon = chakra(ArrowPathIcon, { baseStyle: { w: 4, h: 4 } });
 
 export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
   const { t } = useTranslation();
+  // only an admin allowed to edit limits may disconnect or unblock a user's IPs
+  const { userData } = useGetUser();
+  const canEdit = !!userData?.is_sudo || (userData as any)?.can_edit_limits !== false;
   const { data, refetch } = useQuery<{ ips: OnlineIP[]; ip_limit: number | null }>({
     queryKey: ["user-online-ips", username],
     queryFn: () => fetch(`/user/${username}/online-ips`),
@@ -94,7 +98,7 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
               <Text fontSize="xs" color="gray.500">
                 {dayjs.utc(ip.last_seen).local().format("HH:mm:ss")}
               </Text>
-              {ip.blocked ? (
+              {canEdit && (ip.blocked ? (
                 <Tooltip label={t("online.unblock")}>
                   <IconButton
                     aria-label="unblock"
@@ -116,7 +120,7 @@ export const UserOnlineIPs: FC<{ username: string }> = ({ username }) => {
                     onClick={() => kick(ip.ip)}
                   />
                 </Tooltip>
-              )}
+              ))}
             </HStack>
           </HStack>
           {(ip.provider || ip.connected_seconds > 0) && (

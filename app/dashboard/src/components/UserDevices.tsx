@@ -13,6 +13,7 @@ import { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import { fetch } from "service/http";
+import useGetUser from "hooks/useGetUser";
 
 const DeleteIcon = chakra(TrashIcon, { baseStyle: { w: 4, h: 4 } });
 
@@ -29,6 +30,9 @@ type Device = {
 
 export const UserDevices: FC<{ username: string }> = ({ username }) => {
   const { t } = useTranslation();
+  // only an admin allowed to edit limits may forget a user's devices
+  const { userData } = useGetUser();
+  const canEdit = !!userData?.is_sudo || (userData as any)?.can_edit_limits !== false;
   const { data, refetch } = useQuery<{
     devices: Device[];
     hwid_limit: number | null;
@@ -78,16 +82,18 @@ export const UserDevices: FC<{ username: string }> = ({ username }) => {
                 {dayjs.utc(device.updated_at).local().format("YYYY-MM-DD HH:mm")}
               </Text>
             </VStack>
-            <Tooltip label={t("devices.remove")}>
-              <IconButton
-                aria-label={t("devices.remove")}
-                size="xs"
-                variant="ghost"
-                colorScheme="red"
-                icon={<DeleteIcon />}
-                onClick={() => removeDevice(device.id)}
-              />
-            </Tooltip>
+            {canEdit && (
+              <Tooltip label={t("devices.remove")}>
+                <IconButton
+                  aria-label={t("devices.remove")}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="red"
+                  icon={<DeleteIcon />}
+                  onClick={() => removeDevice(device.id)}
+                />
+              </Tooltip>
+            )}
           </HStack>
         </Box>
       ))}

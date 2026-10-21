@@ -130,6 +130,27 @@ class Admin(BaseModel):
 
 
     @classmethod
+    def check_edit_limits(cls,
+                          db: Session = Depends(get_db),
+                          token: str = Depends(oauth2_scheme)):
+        """a reseller may touch a user's IP / device limits, devices and online IPs only
+        when the sudo/creator allowed it (can_edit_limits); a sudo/creator always may"""
+        admin = cls.get_admin(token, db)
+        if not admin:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if not admin.is_sudo and not getattr(admin, "can_edit_limits", True):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You're not allowed to change this user's devices or IPs"
+            )
+        return admin
+
+
+    @classmethod
     def check_creator_admin(cls,
                             db: Session = Depends(get_db),
                             token: str = Depends(oauth2_scheme)):

@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.15.1",
+    "date": "2026-10-21",
+    "tr": [
+      "Config kopyalama izni kapalı bayide artık SADECE configler (kodlar) gizlenir; abonelik (sub) adresi yine kopyalanabilir",
+      "Limit değiştirme izni kapalı bayi artık bir kullanıcının cihazını veya IP'sini silemez / engelini kaldıramaz (salt-okunur IP/cihaz limitlerine ek olarak)"
+    ],
+    "en": [
+      "A reseller without copy permission now has only the raw configs hidden; the subscription (sub) link stays copyable",
+      "A reseller without the edit-limits permission can no longer delete or unblock a user's devices or IPs (on top of the read-only IP/device limits)"
+    ]
+  },
+  {
     "version": "1.15.0",
     "date": "2026-10-21",
     "tr": [

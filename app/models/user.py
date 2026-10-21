@@ -306,8 +306,9 @@ class UserModify(User):
         return status
 
 
-# when set for a request, a user's copyable configs are hidden (an admin without the
-# "copy configs" permission): the validators below don't fill links / subscription_url
+# when set for a request, a user's copyable configs (the raw proxy links) are hidden
+# (an admin without the "copy configs" permission). The subscription link is NOT hidden:
+# the admin may still copy the sub address, only the individual configs are withheld.
 _hide_configs: ContextVar[bool] = ContextVar("alexen_hide_configs", default=False)
 
 
@@ -354,9 +355,7 @@ class UserResponse(User):
 
     @model_validator(mode="after")
     def validate_subscription_url(self):
-        if _hide_configs.get():
-            self.subscription_url = ""
-            return self
+        # the subscription link stays available even when configs are hidden
         if not self.subscription_url:
             # domain, path and last part come from the panel's Domain settings
             from app.subscription import domain

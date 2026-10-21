@@ -489,7 +489,8 @@ def get_user_devices(dbuser: UserResponse = Depends(get_validated_user), db: Ses
 
 
 @router.delete("/user/{username}/devices", responses={403: responses._403, 404: responses._404})
-def remove_user_devices(dbuser: UserResponse = Depends(get_validated_user), db: Session = Depends(get_db)):
+def remove_user_devices(dbuser: UserResponse = Depends(get_validated_user), db: Session = Depends(get_db),
+                        admin: Admin = Depends(Admin.check_edit_limits)):
     """Forget all devices of the user"""
     count = crud.remove_hwid_devices(db, dbuser)
     logger.info(f'{count} device(s) of user "{dbuser.username}" removed')
@@ -498,7 +499,8 @@ def remove_user_devices(dbuser: UserResponse = Depends(get_validated_user), db: 
 
 @router.delete("/user/{username}/devices/{device_id}", responses={403: responses._403, 404: responses._404})
 def remove_user_device(device_id: int, dbuser: UserResponse = Depends(get_validated_user),
-                       db: Session = Depends(get_db)):
+                       db: Session = Depends(get_db),
+                       admin: Admin = Depends(Admin.check_edit_limits)):
     """Forget one device of the user, so another one can take its place"""
     if not crud.remove_hwid_devices(db, dbuser, device_id):
         raise HTTPException(status_code=404, detail="Device not found")

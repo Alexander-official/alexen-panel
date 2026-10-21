@@ -737,6 +737,10 @@ const ActionButtons: FC<ActionButtonsProps> = ({ user }) => {
   const { setQRCode, setSubLink } = useDashboardPick("setQRCode", "setSubLink");
 
   const proxyLinks = user.links.join("\r\n");
+  // a reseller without copy permission may still copy the subscription link (and the QR),
+  // but NOT the raw configs (a sudo/creator always may); the backend also strips the configs.
+  const { userData } = useGetUser();
+  const canCopyConfigs = !!userData?.is_sudo || (userData as any)?.can_copy_configs !== false;
 
   const [copied, setCopied] = useState([-1, false]);
   useEffect(() => {
@@ -796,6 +800,7 @@ const ActionButtons: FC<ActionButtonsProps> = ({ user }) => {
           </Tooltip>
         </div>
       </CopyToClipboard>
+      {canCopyConfigs && (
       <CopyToClipboard
         text={proxyLinks}
         onCopy={() => {
@@ -830,6 +835,7 @@ const ActionButtons: FC<ActionButtonsProps> = ({ user }) => {
           </Tooltip>
         </div>
       </CopyToClipboard>
+      )}
       <Tooltip label="QR Code" placement="top">
         <IconButton
           p="0 !important"

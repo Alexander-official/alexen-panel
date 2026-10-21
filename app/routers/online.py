@@ -140,7 +140,8 @@ def get_online_providers(
 
 @router.delete("/user/{username}/online-ips/{ip}", responses={403: responses._403, 404: responses._404})
 def disconnect_user_ip(ip: str, bg: BackgroundTasks,
-                       dbuser: UserResponse = Depends(get_validated_user)):
+                       dbuser: UserResponse = Depends(get_validated_user),
+                       admin: Admin = Depends(Admin.check_edit_limits)):
     """Kick one online IP of the user: block it, then drop the user's live sessions so it really disconnects"""
     bg.add_task(xray.operations.terminate_ip, dbuser=dbuser, ip=ip)
     return {"detail": f"{ip} disconnected"}
@@ -148,7 +149,8 @@ def disconnect_user_ip(ip: str, bg: BackgroundTasks,
 
 @router.post("/user/{username}/online-ips/{ip}/unblock",
              responses={403: responses._403, 404: responses._404})
-def unblock_user_ip(ip: str, dbuser: UserResponse = Depends(get_validated_user)):
+def unblock_user_ip(ip: str, dbuser: UserResponse = Depends(get_validated_user),
+                    admin: Admin = Depends(Admin.check_edit_limits)):
     """Lift a manual block on an IP so it can connect again right away"""
     ip_limit.unban_ip(dbuser.id, ip)
     ip_limit.enforce_now()
