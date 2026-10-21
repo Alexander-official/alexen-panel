@@ -84,7 +84,7 @@ export const SubSettingsModal: FC = () => {
     }
   }, [isEditingSubSettings]);
 
-  const set = (k: keyof SubSettings, v: string | number | null) =>
+  const set = (k: keyof SubSettings, v: string | number | boolean | null) =>
     setForm((f) => ({ ...f, [k]: v }));
   // whose texts are edited: "" = everyone, else one admin's own (empty = the general text)
   const [scope, setScope] = useState("");

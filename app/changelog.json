@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.20.2",
+    "date": "2026-10-21",
+    "tr": [
+      "Düzeltme: Abonelik ayarlarındaki “Hiddify cihaz sayımı” ve cihaz-mesajı/rate-limit alanları arayüzde düzgün görünüyor (1.20.1’de arayüz derlenememişti)"
+    ],
+    "en": [
+      "Fix: the “count Hiddify-style apps” toggle and the device-message/rate-limit fields now render correctly in the UI (the dashboard failed to build in 1.20.1)"
+    ]
+  },
+  {
     "version": "1.20.1",
     "date": "2026-10-21",
     "tr": [
