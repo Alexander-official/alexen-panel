@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alexen — multi-protocol proxy panel</title>
+<meta name="description" content="Alexen is a hardened, multi-protocol proxy management panel built on the Xray core: Hysteria2, online-IP and device limits, resellers with host groups, and a full REST API.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236d5efc'%3E%3Cpath d='M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5l-8-3z'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0b0d12; --surface:#12151d; --surface2:#171b25; --line:#242a38;
+    --text:#e8eaf0; --muted:#9aa3b5; --brand:#6d5efc; --brand2:#8b7dff; --accent:#38d9a9;
+    --radius:16px; --maxw:1040px;
+  }
+  :root:not([data-theme="dark"]){ }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#f7f8fb; --surface:#ffffff; --surface2:#f1f3f8; --line:#e4e7ef;
+      --text:#141821; --muted:#5b6678; --brand:#5a49f0;
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--brand2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px}
+  header.nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav .wrap{display:flex;align-items:center;gap:16px;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+  .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand2));
+    display:grid;place-items:center}
+  .logo svg{width:18px;height:18px;fill:#fff}
+  .nav nav{margin-left:auto;display:flex;gap:18px;font-size:14px;color:var(--muted)}
+  .nav nav a{color:var(--muted)}
+  .hero{padding:84px 0 56px;text-align:center}
+  .hero h1{font-size:clamp(34px,6vw,56px);line-height:1.05;margin:0 0 16px;letter-spacing:-.02em}
+  .hero h1 .g{background:linear-gradient(120deg,var(--brand2),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{font-size:clamp(16px,2.4vw,20px);color:var(--muted);max-width:640px;margin:0 auto 28px}
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:12px;font-weight:600;font-size:15px}
+  .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+  .btn.ghost{border:1px solid var(--line);color:var(--text);background:var(--surface)}
+  .btn:hover{text-decoration:none;transform:translateY(-1px)}
+  section{padding:48px 0}
+  h2.sec{font-size:clamp(24px,4vw,34px);margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:0 0 30px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+  .card .ic{width:38px;height:38px;border-radius:10px;background:var(--surface2);display:grid;place-items:center;margin-bottom:14px;font-size:20px}
+  .card h3{margin:0 0 6px;font-size:17px}
+  .card p{margin:0;color:var(--muted);font-size:14.5px}
+  .api-band{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  pre{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:16px;overflow:auto;font-size:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text)}
+  .toklist{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .tok{font-family:ui-monospace,monospace;font-size:12.5px;background:var(--surface2);border:1px solid var(--line);
+    padding:3px 9px;border-radius:999px;color:var(--muted)}
+  footer{border-top:1px solid var(--line);color:var(--muted);font-size:14px;padding:28px 0 48px;text-align:center}
+  .pill{display:inline-block;font-size:12px;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);
+    border-radius:999px;padding:3px 12px;margin-bottom:18px}
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5l-8-3z"/></svg></span>Alexen</div>
+  <nav>
+    <a href="#features">Features</a>
+    <a href="#api">API</a>
+    <a href="api.html">API reference</a>
+    <a href="https://github.com/Alexander-official/alexen-panel">GitHub</a>
+  </nav>
+</div></header>
+
+<div class="hero wrap">
+  <span class="pill">Built on the Xray core</span>
+  <h1>A hardened <span class="g">multi-protocol</span><br>proxy management panel</h1>
+  <p>Alexen is a fork of Marzban by Alexander LLC: Hysteria2, real-time online-IP and device limits,
+     resellers with host groups and granular permissions, and a complete REST API.</p>
+  <div class="cta">
+    <a class="btn primary" href="api.html">API reference →</a>
+    <a class="btn ghost" href="https://github.com/Alexander-official/alexen-panel">View on GitHub</a>
+  </div>
+</div>
+
+<section id="features" class="wrap">
+  <h2 class="sec">What's inside</h2>
+  <p class="sub">The additions on top of Marzban.</p>
+  <div class="grid">
+    <div class="card"><div class="ic">🛡️</div><h3>Hysteria2</h3><p>Native Xray-core Hysteria2 (works on nodes too) with Salamander obfuscation.</p></div>
+    <div class="card"><div class="ic">📡</div><h3>Online IPs</h3><p>See who is connected, on which node and inbound, in real time — and kick a session with one click.</p></div>
+    <div class="card"><div class="ic">🔢</div><h3>IP & device limits</h3><p>Cap simultaneous IPs and devices (HWID) per user; extra ones are blocked until an earlier one drops.</p></div>
+    <div class="card"><div class="ic">👥</div><h3>Resellers</h3><p>Creator, sudo admins and resellers with user/traffic quotas, host groups and per-reseller copy/limit permissions.</p></div>
+    <div class="card"><div class="ic">🔗</div><h3>Subscriptions</h3><p>Custom sub-page templates per user state, placeholders incl. <code>{token}</code>, and custom domain/path.</p></div>
+    <div class="card"><div class="ic">💾</div><h3>Backups & updates</h3><p>Back up, restore and update from the panel — it backs up first and rolls back a failed update.</p></div>
+  </div>
+</section>
+
+<section id="api" class="api-band"><div class="wrap">
+  <h2 class="sec">REST API</h2>
+  <p class="sub">Automate everything. Most endpoints take a bearer token.</p>
+  <pre># 1) get a token
+curl -X POST https://YOUR-PANEL/api/admin/token \
+     -d 'username=&lt;admin&gt;&amp;password=&lt;password&gt;'
+# -> {"access_token": "…", "token_type": "bearer"}
+
+# 2) call the API
+curl https://YOUR-PANEL/api/users \
+     -H 'Authorization: Bearer &lt;access_token&gt;'</pre>
+  <p style="margin-top:18px">Subscription-message placeholders:</p>
+  <div class="toklist">
+    <span class="tok">{username}</span><span class="tok">{used}</span><span class="tok">{limit}</span>
+    <span class="tok">{remaining}</span><span class="tok">{expiretime}</span><span class="tok">{days}</span>
+    <span class="tok">{status}</span><span class="tok">{token}</span>
+  </div>
+  <p style="margin-top:22px"><a class="btn primary" href="api.html">Open the full API reference →</a></p>
+</div></section>
+
+<footer>
+  <div class="wrap">
+    Alexen · a product of Alexander LLC · built on <a href="https://github.com/XTLS/Xray-core">Xray</a>,
+    forked from <a href="https://github.com/Gozargah/Marzban">Marzban</a><br>
+    <a href="https://github.com/Alexander-official/alexen-panel">github.com/Alexander-official/alexen-panel</a> ·
+    <a href="https://t.me/alexvpns">@alexvpns</a>
+  </div>
+</footer>
+</body>
+</html>
