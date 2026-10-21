@@ -281,7 +281,18 @@ export const DocumentationPage: FC = () => {
       <Box className="alexen-page" borderWidth="1px" borderRadius="16px" p={4}>
         <VStack align="stretch" spacing={1}>
           {doc.sections.map((s, i) => (
-            <Link key={s.id} href={`#${s.id}`} fontSize="sm" color="primary.500" fontWeight="medium">
+            // the app uses hash-based routing, so an href="#id" would be taken as a route
+            // and error — scroll to the section by id instead, without touching the hash.
+            <Link
+              key={s.id}
+              fontSize="sm"
+              color="primary.500"
+              fontWeight="medium"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById(s.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            >
               {i + 1}. {s.title}
             </Link>
           ))}
