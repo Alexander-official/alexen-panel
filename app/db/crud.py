@@ -417,6 +417,8 @@ def create_user(db: Session, user: UserCreate, admin: Admin = None) -> User:
         ) if user.next_plan else None
     )
     db.add(dbuser)
+    if admin is not None:
+        admin.users_created = (admin.users_created or 0) + 1
     db.commit()
     db.refresh(dbuser)
     return dbuser
@@ -443,6 +445,8 @@ def remove_user(db: Session, dbuser: User) -> User:
     with warnings.catch_warnings():
         warnings.simplefilter("error", SAWarning)
         try:
+            if dbuser.admin is not None:
+                dbuser.admin.users_deleted = (dbuser.admin.users_deleted or 0) + 1
             db.delete(dbuser)
             db.commit()
         except SAWarning:
@@ -1015,6 +1019,8 @@ def create_admin(db: Session, admin: AdminCreate) -> Admin:
         max_user_ip_limit=admin.max_user_ip_limit or None,
         max_user_hwid_limit=admin.max_user_hwid_limit or None,
         host_groups=admin.host_groups,
+        can_copy_configs=admin.can_copy_configs if admin.can_copy_configs is not None else True,
+        can_edit_limits=admin.can_edit_limits if admin.can_edit_limits is not None else True,
     )
     db.add(dbadmin)
     db.commit()
@@ -1056,6 +1062,10 @@ def update_admin(db: Session, dbadmin: Admin, modified_admin: AdminModify) -> Ad
     dbadmin.max_user_hwid_limit = modified_admin.max_user_hwid_limit or None
     if modified_admin.host_groups is not None:
         dbadmin.host_groups = modified_admin.host_groups
+    if modified_admin.can_copy_configs is not None:
+        dbadmin.can_copy_configs = modified_admin.can_copy_configs
+    if modified_admin.can_edit_limits is not None:
+        dbadmin.can_edit_limits = modified_admin.can_edit_limits
 
     db.commit()
     db.refresh(dbadmin)

@@ -48,6 +48,12 @@ class Admin(BaseModel):
     max_user_ip_limit: Optional[int] = Field(None, ge=0, description="cap for each user's ip_limit")
     max_user_hwid_limit: Optional[int] = Field(None, ge=0, description="cap for each user's hwid_limit")
     host_groups: List[str] = Field(default_factory=list, description="host groups of the admin's users, empty means all")
+    # reseller permissions the sudo/creator grants (a sudo/creator is always allowed)
+    can_copy_configs: bool = True
+    can_edit_limits: bool = True
+    # lifetime counters (read-only)
+    users_created: int = 0
+    users_deleted: int = 0
     model_config = ConfigDict(from_attributes=True)
 
     @field_validator("host_groups", mode="before")
@@ -179,6 +185,8 @@ class AdminModify(BaseModel):
     max_user_ip_limit: Optional[int] = Field(None, ge=0)
     max_user_hwid_limit: Optional[int] = Field(None, ge=0)
     host_groups: Optional[List[str]] = None
+    can_copy_configs: Optional[bool] = None
+    can_edit_limits: Optional[bool] = None
 
     @property
     def hashed_password(self):
