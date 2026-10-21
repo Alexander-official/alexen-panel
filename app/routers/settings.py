@@ -29,6 +29,8 @@ class SubscriptionSettings(BaseModel):
     device_limit_message: Optional[str] = ""
     # minimum seconds between two subscription fetches for one user (0: no limit) — stops hammering
     sub_rate_limit: int = 0
+    # count devices for clients that send no hardware id (e.g. Hiddify) by an app+IP fingerprint
+    fingerprint_devices: bool = False
     # admin username -> its own templates for its users; an empty one falls back to the ones above
     admins: Dict[str, "AdminSubTemplates"] = {}
 

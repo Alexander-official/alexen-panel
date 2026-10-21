@@ -1,5 +1,6 @@
 import {
   Button,
+  Checkbox,
   HStack,
   Code,
   Divider,
@@ -42,6 +43,7 @@ type SubSettings = {
   update_interval: number | null;
   device_limit_message: string;
   sub_rate_limit: number;
+  fingerprint_devices: boolean;
   admins: Record<string, Partial<Record<TemplateKey, string>>>;
 };
 type TemplateKey = "default_template" | "expired_template" | "disabled_template" | "limited_template" | "near_expire_template";
@@ -59,6 +61,7 @@ const empty: SubSettings = {
   update_interval: null,
   device_limit_message: "",
   sub_rate_limit: 0,
+  fingerprint_devices: false,
   admins: {},
 };
 
@@ -274,6 +277,16 @@ export const SubSettingsModal: FC = () => {
                 onChange={(e) => set("sub_rate_limit", parseInt(e.target.value) || 0)}
               />
               <Text fontSize="xs" color="gray.500" mt={1}>{t("sub.rateLimitHelp")}</Text>
+            </FormControl>
+            <FormControl isDisabled={!!scope}>
+              <Checkbox
+                size="sm"
+                isChecked={!!form.fingerprint_devices}
+                onChange={(e) => set("fingerprint_devices", e.target.checked)}
+              >
+                {t("sub.fingerprintDevices")}
+              </Checkbox>
+              <Text fontSize="xs" color="gray.500" mt={1}>{t("sub.fingerprintDevicesHelp")}</Text>
             </FormControl>
             <FormControl>
               <FormLabel fontSize="sm" mb={1}>{t("sub.nearExpire")}</FormLabel>

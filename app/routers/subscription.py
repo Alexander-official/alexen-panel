@@ -105,15 +105,26 @@ def get_subscription_user_info(user: UserResponse) -> dict:
 
 def register_device(request: Request, db: Session, dbuser, user_agent: str) -> bool:
     """Remembers the device (from the HWID headers Happ, v2rayNG, etc. send);
-    False when it's a new device over the user's device limit. Clients without a HWID are let through."""
+    False when it's a new device over the user's device limit. Clients that send no HWID
+    (e.g. Hiddify) are let through — unless fingerprint_devices is on, then they're counted
+    by an app+IP fingerprint (Hiddify sends no hardware id, so this is a best-effort device)."""
     hwid = request.headers.get("x-hwid", "").strip()
+    platform = request.headers.get("x-device-os")
+    os_version = request.headers.get("x-ver-os")
+    device_model = request.headers.get("x-device-model")
     if not hwid:
-        return True
+        if not (user_agent and getattr(get_subscription_settings(db), "fingerprint_devices", False)):
+            return True
+        import hashlib
+        ip = request.client.host if request.client else ""
+        hwid = "fp-" + hashlib.sha256(f"{user_agent}|{ip}".encode()).hexdigest()[:24]
+        platform = platform or "app"
+        device_model = device_model or (user_agent.split("/")[0] or "app")[:60]
     return crud.register_hwid_device(
         db, dbuser, hwid,
-        platform=request.headers.get("x-device-os"),
-        os_version=request.headers.get("x-ver-os"),
-        device_model=request.headers.get("x-device-model"),
+        platform=platform,
+        os_version=os_version,
+        device_model=device_model,
         user_agent=user_agent,
     )
 

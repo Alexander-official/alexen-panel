@@ -1692,5 +1692,7 @@
   "sub.deviceLimitMsg": "Cihaz-limiti mesajı",
   "sub.deviceLimitMsgPlaceholder": "Yeni cihaz limiti aşınca gösterilir",
   "sub.rateLimit": "Sub rate limit (sn)",
-  "sub.rateLimitHelp": "Bir kullanıcının iki abonelik çekişi arasındaki en az saniye. 0 = limitsiz."
+  "sub.rateLimitHelp": "Bir kullanıcının iki abonelik çekişi arasındaki en az saniye. 0 = limitsiz.",
+  "sub.fingerprintDevices": "Hiddify gibi (cihaz kimliği göndermeyen) uygulamaları say",
+  "sub.fingerprintDevicesHelp": "Cihaz kimliği göndermeyen uygulamalar (ör. Hiddify) cihaz limitine uygulama+IP parmak iziyle sayılır. Yaklaşıktır — aynı uygulama aynı IP'de bir sayılır."
 }

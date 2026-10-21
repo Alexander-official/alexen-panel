@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.20.1",
+    "date": "2026-10-21",
+    "tr": [
+      "Hiddify gibi cihaz kimliği göndermeyen uygulamalar için cihaz limiti: Abonelik ayarlarından açınca bu uygulamalar uygulama+IP parmak iziyle cihaz limitine sayılır"
+    ],
+    "en": [
+      "Device limit for apps that send no hardware id (e.g. Hiddify): enable it in Subscription settings and those apps are counted toward the device limit by an app+IP fingerprint"
+    ]
+  },
+  {
     "version": "1.20.0",
     "date": "2026-10-21",
     "tr": [
