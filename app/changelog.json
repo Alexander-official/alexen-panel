@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.17.0",
+    "date": "2026-10-21",
+    "tr": [
+      "Harici panel (3x-ui / s-ui) entegrasyonu — ilk aşama: Ayarlar > Harici panel bölümünden 3x-ui veya s-ui paneli ekle, bağlantıyı test et ve inbound'larını gör (parola şifreli saklanır). Konfig içe aktarma, canlı trafik ve sahte-lokasyon kopyaları sıradaki aşamalarda."
+    ],
+    "en": [
+      "External panel (3x-ui / s-ui) integration — first stage: add a 3x-ui or s-ui panel under Settings > External panel, test the connection and view its inbounds (password stored encrypted). Config import, live traffic and fake-location copies come in the next stages."
+    ]
+  },
+  {
     "version": "1.16.2",
     "date": "2026-10-21",
     "tr": [

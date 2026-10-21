@@ -60,6 +60,12 @@ export const SECTIONS: Section[] = [
     Component: named(() => import("components/DocumentationPage"), "DocumentationPage"),
   },
   {
+    path: "external-panels",
+    title: "extPanel.title",
+    sudo: true,
+    Component: named(() => import("components/ExternalPanelsPage"), "ExternalPanelsPage"),
+  },
+  {
     path: "overview",
     title: "overview.title",
     sudo: false,

@@ -251,6 +251,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
               { title: t("header.subSettings"), path: "sub", icon: ic(DocumentTextIcon) },
               { title: t("domain.title"), path: "domain", icon: ic(LinkIcon) },
               { title: t("external.title"), path: "external", icon: ic(GlobeAltIcon) },
+              { title: t("extPanel.title"), path: "external-panels", icon: ic(ServerStackIcon) },
               // sudo admins share these with the creator; the license stays the creator's
               { title: t("backup.title"), path: "backup", icon: ic(ArchiveBoxArrowDownIcon) },
               { title: t("tg.title"), path: "telegram", icon: ic(ChatBubbleOvalLeftEllipsisIcon) },
