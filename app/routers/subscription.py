@@ -66,9 +66,9 @@ def _pick_template(cfg, user, admin_name: str = "") -> str:
     return cfg.default_template or ""
 
 
-def build_sub_page(db: Session, user: UserResponse):
+def build_sub_page(db: Session, user: UserResponse, token: str = ""):
     """Returns (prefix_lines, headers) from the admin's sub-page template for
-    the user's current state."""
+    the user's current state. `token` fills the {token} placeholder."""
     from app.subscription.subpage import render
     cfg = get_subscription_settings(db)
     admin_name = ""
@@ -77,7 +77,7 @@ def build_sub_page(db: Session, user: UserResponse):
         dbuser = _crud.get_user(db, user.username)
         admin_name = dbuser.admin.username if dbuser and dbuser.admin else ""
     template = _pick_template(cfg, user, admin_name)
-    prefix_lines, directives = render(template, user.__dict__)
+    prefix_lines, directives = render(template, user.__dict__, token=token)
     headers = {}
     if directives.get("profile-title"):
         headers["profile-title"] = directives["profile-title"]
@@ -151,7 +151,7 @@ def user_subscription(
         page = webpage.load(db)
         # a custom SUBSCRIPTION_PAGE_TEMPLATE from .env still wins over the built-in page
         if page.enabled and SUBSCRIPTION_PAGE_TEMPLATE == "subscription/index.html":
-            _, sub_headers = build_sub_page(db, user)
+            _, sub_headers = build_sub_page(db, user, token=request.path_params.get("token", ""))
             data = webpage.page_data(db, page, user, _absolute_sub_url(request, user), links, sub_headers)
             return HTMLResponse(render_template("subscription/webpage.html", {"data": data}),
                                 headers={"cache-control": "no-store"})
@@ -160,7 +160,7 @@ def user_subscription(
         )
 
     crud.update_user_sub(db, dbuser, user_agent)
-    prefix_lines, sub_headers = build_sub_page(db, user)
+    prefix_lines, sub_headers = build_sub_page(db, user, token=request.path_params.get("token", ""))
     response_headers = {
         "content-disposition": f'attachment; filename="{user.username}"',
         "profile-web-page-url": str(request.url),
@@ -324,7 +324,7 @@ def _client_type_subscription(request: Request, dbuser, client_type: str, db: Se
     """Provides a subscription link based on the specified client type (e.g., Clash, V2Ray)."""
     user: UserResponse = UserResponse.model_validate(dbuser)
 
-    prefix_lines, sub_headers = build_sub_page(db, user)
+    prefix_lines, sub_headers = build_sub_page(db, user, token=request.path_params.get("token", ""))
     response_headers = {
         "content-disposition": f'attachment; filename="{user.username}"',
         "profile-web-page-url": str(request.url),

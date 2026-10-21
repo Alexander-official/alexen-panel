@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.15.2",
+    "date": "2026-10-21",
+    "tr": [
+      "Abonelik mesajlarına {token} yer tutucu: kullanıcının kendi abonelik token'ını ekler (ör. kendi destek linkinizde https://site/destek?t={token})"
+    ],
+    "en": [
+      "{token} placeholder in subscription messages: inserts the user's own subscription token (e.g. in your own support link https://site/help?t={token})"
+    ]
+  },
+  {
     "version": "1.15.1",
     "date": "2026-10-21",
     "tr": [

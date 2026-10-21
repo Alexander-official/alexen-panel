@@ -146,7 +146,8 @@ export const SubSettingsModal: FC = () => {
             <Code fontSize="xs">{"{limit}"}</Code>{" "}
             <Code fontSize="xs">{"{remaining}"}</Code>{" "}
             <Code fontSize="xs">{"{expiretime}"}</Code>{" "}
-            <Code fontSize="xs">{"{days}"}</Code>
+            <Code fontSize="xs">{"{days}"}</Code>{" "}
+            <Code fontSize="xs">{"{token}"}</Code>
           </Text>
         </ModalHeader>
         <ModalCloseButton mt={3} />

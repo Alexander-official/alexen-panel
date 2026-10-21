@@ -33,6 +33,7 @@ ALIASES = {
     "remainingtime": "TIME_LEFT",
     "days": "DAYS_LEFT",
     "status": "STATUS_TEXT",
+    "token": "TOKEN",      # the user's subscription token (e.g. for a seller's support URL)
 }
 
 
@@ -53,13 +54,19 @@ def _encode_if_b64(value: str) -> Tuple[str, bool]:
     return value, False
 
 
-def render(template: str, extra_data: dict) -> Tuple[List[str], Dict[str, str]]:
+def render(template: str, extra_data: dict, token: str = "") -> Tuple[List[str], Dict[str, str]]:
     """Returns (prefix_lines, headers). prefix_lines go at the top of a v2ray
-    subscription; headers are set on the HTTP response."""
+    subscription; headers are set on the HTTP response. `token` fills {token}
+    (the user's own subscription token, e.g. inside a seller's support URL)."""
     if not template or not template.strip():
         return [], {}
 
     variables = setup_format_variables(extra_data)
+    # {token}: the token the user requested with; fall back to a fresh valid one
+    if not token and extra_data.get("username"):
+        from app.utils.jwt import create_subscription_token
+        token = create_subscription_token(extra_data["username"])
+    variables["TOKEN"] = token or ""
     lines = template.splitlines()
 
     # group content: each directive captures following non-directive lines too
