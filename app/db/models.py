@@ -58,6 +58,11 @@ class Admin(Base):
     max_user_hwid_limit = Column(Integer, nullable=True, default=None)
     # host groups the admin's users get in their subscription, empty means every host
     host_groups = Column(JSON, nullable=True, default=list)
+    # reseller permissions the sudo/creator grants (sudo/creator always allowed)
+    can_copy_configs = Column(Boolean, nullable=False, default=True, server_default="1")
+    can_edit_limits = Column(Boolean, nullable=False, default=True, server_default="1")
+    users_created = Column(Integer, nullable=False, default=0, server_default="0")
+    users_deleted = Column(Integer, nullable=False, default=0, server_default="0")
 
 
 class AdminProfile(Base):
@@ -111,6 +116,9 @@ class User(Base):
     sub_updated_at = Column(DateTime, nullable=True, default=None)
     sub_last_user_agent = Column(String(512), nullable=True, default=None)
     sub_request_count = Column(Integer, nullable=False, default=0)
+    # over-the-limit attempts: a new IP blocked / a new device rejected
+    ip_block_count = Column(Integer, nullable=False, default=0, server_default="0")
+    hwid_reject_count = Column(Integer, nullable=False, default=0, server_default="0")
     online_ip_count = Column(Integer, nullable=False, default=0)
     hwid_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
