@@ -163,9 +163,10 @@ export const ActivityPage: FC = () => {
 
   const load = (before?: number) => {
     setLoading(true);
+    // the search term is applied on the client (below) so it can match the localized
+    // event type too, not only the raw fields the server sees; the server keeps kind/admin.
     const qs = new URLSearchParams({ kind, limit: "100" });
     if (admin) qs.set("admin", admin);
-    if (q.trim()) qs.set("q", q.trim());
     if (before) qs.set("before", String(before));
     fetch(`/activity?${qs}`)
       .then((p: Page) => {
@@ -176,19 +177,42 @@ export const ActivityPage: FC = () => {
       .finally(() => setLoading(false));
   };
   useEffect(() => {
-    const h = setTimeout(() => load(), q ? 350 : 0);
-    return () => clearTimeout(h);
-  }, [kind, admin, q]);
+    load();
+  }, [kind, admin]);
+
+  // match the typed text against the localized event label and the raw fields, so
+  // "başarısız giriş" / "failed login" / an IP / a username all find their events.
+  const matches = (it: Item) => {
+    const term = q.trim().toLowerCase();
+    if (!term) return true;
+    let detail: any = null;
+    try {
+      detail = it.detail ? JSON.parse(it.detail) : null;
+    } catch {}
+    const hay = [describe(t, it, detail), it.admin || "", it.ip || "", it.path, it.action, deviceOf(it.user_agent).text]
+      .join(" ")
+      .toLowerCase();
+    return hay.includes(term);
+  };
+  const shown = useMemo(() => items.filter(matches), [items, q, t]);
+  // while searching, keep pulling older pages (bounded) so the search covers all history,
+  // not just the first page the list happened to load.
+  useEffect(() => {
+    if (q.trim() && more && !loading && items.length < 3000) {
+      const h = setTimeout(() => load(items[items.length - 1]?.id), 150);
+      return () => clearTimeout(h);
+    }
+  }, [q, more, loading, items]);
 
   const days = useMemo(() => {
     const out: { day: string; items: Item[] }[] = [];
-    items.forEach((it) => {
+    shown.forEach((it) => {
       const day = dayjs.unix(it.time).format("YYYY-MM-DD");
       if (!out.length || out[out.length - 1].day !== day) out.push({ day, items: [] });
       out[out.length - 1].items.push(it);
     });
     return out;
-  }, [items]);
+  }, [shown]);
 
   return (
     <VStack align="stretch" spacing={4} maxW="1100px">
@@ -217,9 +241,9 @@ export const ActivityPage: FC = () => {
         {loading && <Spinner size="sm" color="primary.500" />}
       </HStack>
 
-      {!items.length && !loading && (
+      {!shown.length && !loading && (
         <Box className="alexen-page" borderRadius="16px" borderWidth="1px" p={8} textAlign="center" color="gray.500" fontSize="sm">
-          {t("activity.empty")}
+          {q.trim() ? t("activity.noMatch") : t("activity.empty")}
         </Box>
       )}
 
@@ -303,7 +327,7 @@ export const ActivityPage: FC = () => {
           })}
         </Box>
       ))}
-      {more && (
+      {more && !q.trim() && (
         <Button size="sm" variant="outline" alignSelf="center" isLoading={loading} onClick={() => load(items[items.length - 1]?.id)}>
           {t("activity.more")}
         </Button>

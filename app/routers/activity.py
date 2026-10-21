@@ -32,8 +32,12 @@ def activity(kind: str = Query("all", pattern="^(all|logins|changes|failed)$"),
         query = query.filter(or_(ActivityLog.action == "login_failed", ActivityLog.status >= 400))
     if q.strip():
         like = f"%{q.strip()}%"
-        query = query.filter(or_(ActivityLog.path.like(like), ActivityLog.detail.like(like),
-                                 ActivityLog.ip.like(like), ActivityLog.admin.like(like)))
+        # action holds the event type ("login", "login_failed" or "METHOD /path"), so a
+        # raw type search ("login_failed", "DELETE /api/user") works here too; the dashboard
+        # additionally matches the localized event label on its side.
+        query = query.filter(or_(ActivityLog.action.like(like), ActivityLog.path.like(like),
+                                 ActivityLog.detail.like(like), ActivityLog.ip.like(like),
+                                 ActivityLog.admin.like(like)))
     if before:
         query = query.filter(ActivityLog.id < before)
     rows = query.order_by(ActivityLog.id.desc()).limit(limit).all()

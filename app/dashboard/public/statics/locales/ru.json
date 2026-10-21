@@ -1042,7 +1042,7 @@
   "activity.kind.changes": "Изменения",
   "activity.kind.failed": "Неудачные",
   "activity.allAdmins": "Все админы",
-  "activity.search": "Поиск (пользователь, IP…)",
+  "activity.search": "Поиск (тип, пользователь, IP…)",
   "activity.empty": "Пока ничего нет.",
   "activity.more": "Показать старые",
   "activity.failedBadge": "ошибка ({{code}})",
@@ -1638,5 +1638,6 @@
   "admins.created": "создал",
   "admins.deleted": "удалил",
   "userDialog.ipBlocks": "Блокировок новых IP",
-  "userDialog.deviceRejects": "Отклонено устройств"
+  "userDialog.deviceRejects": "Отклонено устройств",
+  "activity.noMatch": "Нет подходящих событий."
 }

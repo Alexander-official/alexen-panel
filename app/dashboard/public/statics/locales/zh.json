@@ -1033,7 +1033,7 @@
   "activity.kind.changes": "更改",
   "activity.kind.failed": "失败",
   "activity.allAdmins": "所有管理员",
-  "activity.search": "搜索（用户、IP…）",
+  "activity.search": "搜索（类型、用户、IP…）",
   "activity.empty": "暂无记录。",
   "activity.more": "显示更早",
   "activity.failedBadge": "失败（{{code}}）",
@@ -1629,5 +1629,6 @@
   "admins.created": "已创建",
   "admins.deleted": "已删除",
   "userDialog.ipBlocks": "新IP拦截",
-  "userDialog.deviceRejects": "新设备拒绝"
+  "userDialog.deviceRejects": "新设备拒绝",
+  "activity.noMatch": "没有匹配的记录。"
 }

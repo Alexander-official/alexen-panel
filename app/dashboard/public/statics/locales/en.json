@@ -1035,7 +1035,7 @@
   "activity.kind.changes": "Changes",
   "activity.kind.failed": "Failed",
   "activity.allAdmins": "All admins",
-  "activity.search": "Search (user, IP…)",
+  "activity.search": "Search (type, user, IP…)",
   "activity.empty": "Nothing here yet.",
   "activity.more": "Show older",
   "activity.failedBadge": "failed ({{code}})",
@@ -1631,5 +1631,6 @@
   "admins.created": "created",
   "admins.deleted": "deleted",
   "userDialog.ipBlocks": "New-IP blocks",
-  "userDialog.deviceRejects": "New-device rejects"
+  "userDialog.deviceRejects": "New-device rejects",
+  "activity.noMatch": "No matching activity."
 }

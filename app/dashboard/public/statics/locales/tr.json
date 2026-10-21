@@ -1035,7 +1035,7 @@
   "activity.kind.changes": "Değişiklikler",
   "activity.kind.failed": "Başarısız",
   "activity.allAdmins": "Tüm yöneticiler",
-  "activity.search": "Ara (kullanıcı, IP…)",
+  "activity.search": "Ara (tür, kullanıcı, IP…)",
   "activity.empty": "Henüz bir şey yok.",
   "activity.more": "Daha eskileri göster",
   "activity.failedBadge": "başarısız ({{code}})",
@@ -1631,5 +1631,6 @@
   "admins.created": "açtı",
   "admins.deleted": "sildi",
   "userDialog.ipBlocks": "Engellenen yeni IP",
-  "userDialog.deviceRejects": "Reddedilen yeni cihaz"
+  "userDialog.deviceRejects": "Reddedilen yeni cihaz",
+  "activity.noMatch": "Eşleşen etkinlik yok."
 }
