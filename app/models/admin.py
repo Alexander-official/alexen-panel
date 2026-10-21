@@ -54,6 +54,7 @@ class Admin(BaseModel):
     # lifetime counters (read-only)
     users_created: int = 0
     users_deleted: int = 0
+    total_users: int = 0   # how many users the admin has right now (filled by /admins)
     model_config = ConfigDict(from_attributes=True)
 
     @field_validator("host_groups", mode="before")

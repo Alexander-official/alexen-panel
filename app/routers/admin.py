@@ -165,7 +165,17 @@ def get_admins(
 ):
     """Fetch a list of admins with optional filters for pagination and username
     (the creator accounts only for a creator)."""
-    return crud.get_admins(db, offset, limit, username, with_creators=admin.is_creator)
+    admins = crud.get_admins(db, offset, limit, username, with_creators=admin.is_creator)
+    # current user count per admin (shown in the admins list)
+    from sqlalchemy import func as _func
+    from app.db.models import User as _User
+    counts = dict(db.query(_User.admin_id, _func.count(_User.id)).group_by(_User.admin_id).all())
+    for a in admins:
+        try:
+            a.total_users = counts.get(a.id, 0)
+        except Exception:
+            pass
+    return admins
 
 
 @router.post("/admin/{username}/users/disable", responses={403: responses._403, 404: responses._404})

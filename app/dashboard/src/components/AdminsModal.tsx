@@ -57,6 +57,7 @@ type AdminItem = {
   can_edit_limits?: boolean;
   users_created?: number;
   users_deleted?: number;
+  total_users?: number;
 };
 
 type FormState = {
@@ -533,9 +534,8 @@ export const AdminsModal: FC = () => {
                       {!admin.is_sudo && (
                         <Text fontSize="xs" color="gray.500">
                           {t("admins.users")}:{" "}
-                          {admin.users_limit
-                            ? `≤ ${admin.users_limit}`
-                            : "∞"}{" "}
+                          {admin.total_users ?? 0}
+                          {admin.users_limit ? ` / ${admin.users_limit}` : " / ∞"}{" "}
                           · {t("admins.traffic")}:{" "}
                           {formatBytes(admin.users_usage || 0)}
                           {admin.traffic_limit
