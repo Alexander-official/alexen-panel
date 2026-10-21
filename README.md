@@ -15,6 +15,14 @@ with these additions:
 
 Support: Telegram [@alexvpns](https://t.me/alexvpns)
 
+## API
+
+The panel exposes a full REST API (admin management, users, nodes, subscriptions
+and more). See the **[API reference](docs/API.md)** and the machine-readable
+**[OpenAPI schema](docs/openapi.json)** (import it into Postman/Insomnia, or a
+Redoc/Swagger viewer). Authenticate with a bearer token from `POST /api/admin/token`.
+Start the panel with `DOCS=True` to also get interactive Swagger UI at `/docs`.
+
 ## Install
 
 On a fresh Debian / Ubuntu server, as root:
