@@ -1640,5 +1640,7 @@
   "userDialog.ipBlocks": "Блокировок новых IP",
   "userDialog.deviceRejects": "Отклонено устройств",
   "activity.noMatch": "Нет подходящих событий.",
-  "docs.title": "Документация"
+  "docs.title": "Документация",
+  "close": "Закрыть",
+  "update.doneHint": "(исчезнет через час)"
 }

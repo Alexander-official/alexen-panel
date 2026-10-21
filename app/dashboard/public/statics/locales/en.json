@@ -1633,5 +1633,7 @@
   "userDialog.ipBlocks": "New-IP blocks",
   "userDialog.deviceRejects": "New-device rejects",
   "activity.noMatch": "No matching activity.",
-  "docs.title": "Documentation"
+  "docs.title": "Documentation",
+  "close": "Close",
+  "update.doneHint": "(clears itself after an hour)"
 }

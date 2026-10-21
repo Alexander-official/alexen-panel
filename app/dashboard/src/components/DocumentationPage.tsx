@@ -1,325 +1,358 @@
-// In-panel documentation: a complete guide to the panel's features plus API usage.
-// Content is kept here (bilingual TR/EN, picked by the UI language) rather than in the
-// per-key locale files, since it is long-form prose.
+// In-panel user guide + reference. An eye-catching, role-aware guide (reseller vs sudo)
+// plus subscription/{token} and REST API help. Content is bilingual (TR/EN, by UI language)
+// and kept here rather than in the per-key locale files, since it is long-form.
 import {
   Badge,
   Box,
+  Button,
   Code,
-  Divider,
+  Grid,
+  GridItem,
+  HStack,
   Heading,
+  Icon,
   Link,
-  ListItem,
   Text,
-  UnorderedList,
   VStack,
 } from "@chakra-ui/react";
-import { FC, Fragment } from "react";
+import {
+  UserPlusIcon,
+  LinkIcon,
+  SignalIcon,
+  ServerStackIcon,
+  RectangleGroupIcon,
+  ShieldCheckIcon,
+  Cog6ToothIcon,
+  CloudArrowDownIcon,
+  DevicePhoneMobileIcon,
+  NoSymbolIcon,
+  DocumentDuplicateIcon,
+  ClockIcon,
+  ChartPieIcon,
+  ShareIcon,
+  CommandLineIcon,
+  KeyIcon,
+} from "@heroicons/react/24/outline";
+import useGetUser from "hooks/useGetUser";
+import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-type Block =
-  | { h: string }
-  | { p: string }
-  | { ul: string[] }
-  | { code: string };
+type Item = { icon: any; title: string; desc: string };
+type Guide = {
+  heroTitle: string;
+  heroSub: string;
+  roleAdmin: string;
+  roleSudo: string;
+  quickTitle: string;
+  canTitle: string;
+  quick: { admin: Item[]; sudo: Item[] };
+  can: { admin: Item[]; sudo: Item[] };
+  subTitle: string;
+  subBody: string;
+  subCode: string;
+  tokens: string[];
+  tokenNote: string;
+  apiTitle: string;
+  apiBody: string;
+  apiCode: string;
+  apiLinks: string;
+};
 
-type Doc = { title: string; intro: string; sections: { id: string; title: string; blocks: Block[] }[] };
-
-const DOC: Record<"tr" | "en", Doc> = {
+const G: Record<"tr" | "en", Guide> = {
   tr: {
-    title: "Dokümantasyon",
-    intro:
-      "Alexen panelinin tüm bölümleri ve REST API kullanımı. Bir konuyu soldaki içindekilerden seçebilir ya da sayfada gezinebilirsin.",
-    sections: [
-      {
-        id: "roller",
-        title: "Roller ve izinler",
-        blocks: [
-          { p: "Üç rol vardır: creator (sunucunun sahibi), sudo yöneticiler ve bayiler (reseller)." },
-          {
-            ul: [
-              "Creator: her şeyi yapabilir; lisans ve tehlikeli/kaldırma işlemleri yalnızca creator'a özeldir. Creator ve kullanıcıları sudo'lardan gizlidir.",
-              "Sudo: creator ile aynı yetkilere sahiptir (lisans ve uninstall hariç); diğer sudo'ları da yönetebilir.",
-              "Bayi (admin): kendi kullanıcılarını yönetir; kullanıcı sayısı/trafik kotası ve host-grupları ile sınırlanır.",
-            ],
-          },
-          { h: "Bayi izinleri (sudo/creator açar-kapatır)" },
-          {
-            ul: [
-              "Config kopyalayabilir: kapalıyken bayi kullanıcıların config (kod) linklerini kopyalayamaz — ama abonelik (sub) adresini yine kopyalayabilir.",
-              "IP/cihaz limitini değiştirebilir: kapalıyken limitler salt-okunur olur ve bayi bir kullanıcının cihazını/IP'sini silemez, engelini kaldıramaz.",
-            ],
-          },
-          { p: "Bayi listesinde her bayinin kaç kullanıcı açtığı/sildiği gösterilir." },
-        ],
-      },
-      {
-        id: "kullanicilar",
-        title: "Kullanıcılar",
-        blocks: [
-          { p: "Kullanıcı oluştururken protokolleri, bitiş tarihini, veri limitini ve isteğe bağlı IP/cihaz limitini belirlersin." },
-          {
-            ul: [
-              "IP limiti: aynı anda bağlı IP sayısını sınırlar; fazlası, öncekilerden biri düşene kadar engellenir.",
-              "Cihaz (HWID) limiti: aboneliği kaç cihazın kullanabileceğini sınırlar; cihazlar kullanıcı bazında yönetilir.",
-              "Her kullanıcı için engellenen yeni IP ve reddedilen yeni cihaz sayıları kullanıcı penceresinde görünür.",
-              "Online IP'ler: kimin, hangi node ve inbound üzerinden bağlı olduğunu canlı görürsün; bir IP'yi tek tıkla düşürebilirsin.",
-            ],
-          },
-        ],
-      },
-      {
-        id: "abonelik",
-        title: "Abonelik ve sub sayfası",
-        blocks: [
-          { p: "Her kullanıcının bir abonelik (sub) linki vardır. Abonelik sayfasının başına, kullanıcının durumuna göre (varsayılan, süresi dolmuş, limitli, devre dışı, yakında dolacak) bir mesaj şablonu koyabilirsin." },
-          { p: "Şablonlarda yönergeler ve yer tutucular kullanılır. Yönerge satırları aynı zamanda HTTP başlığı olur:" },
-          { code: "#profile-title: Şirketim\n#announce: Merhaba {username}\nLimit: {used} / {limit} · Kalan: {remaining}\n#support-url: https://siten.com/destek?t={token}" },
-          { p: "Kullanılabilir yer tutucular:" },
-          {
-            ul: [
-              "{username} {used} {limit} {remaining} {expiretime} {days} {status}",
-              "{token}: kullanıcının kendi abonelik token'ı — kendi destek linkinde kullanıcıyı tanımlamak için idealdir.",
-            ],
-          },
-          { p: "Yönergenin başına base64: yazarsan değer base64 olarak kodlanır. Domain ayarlarından abonelik linkinin domain, path ve son ekini özelleştirebilirsin." },
-        ],
-      },
-      {
-        id: "sunucular",
-        title: "Node'lar, host'lar ve gruplar",
-        blocks: [
-          {
-            ul: [
-              "Node: trafiği taşıyan uzak sunucular; panelden kurulur/yönetilir.",
-              "Host'lar: her inbound için istemcilere verilecek adres/port/şablon ayarları.",
-              "Host grupları: bir bayinin yalnızca izin verdiğin host'ları dağıtmasını sağlar.",
-              "Core ve outbound ayarları, preroute (tünelleme) ve otomatik-değişim de node bölümündedir.",
-            ],
-          },
-        ],
-      },
-      {
-        id: "diger",
-        title: "External config, etkinlik, yedek ve güncelleme",
-        blocks: [
-          {
-            ul: [
-              "External config: her abonelik linkinin altına eklenen ek config'ler; yedek URL'ler, rastgele URL ve protokol filtresi desteklenir. Bayi bazında da ayarlanabilir.",
-              "Etkinlik günlüğü: her giriş ve her değişiklik (kim, ne zaman, hangi cihaz/IP). Tür (ör. 'başarısız giriş'), kullanıcı veya IP ile aranabilir.",
-              "Yedek ve güncelleme: panelden yedek alıp geri yükleyebilir, yeni sürüme güncelleyebilirsin (güncelleme önce yedek alır, başarısız olursa eskiye döner).",
-            ],
-          },
-        ],
-      },
-      {
-        id: "api",
-        title: "REST API",
-        blocks: [
-          { p: "Panel tam bir REST API sunar. Çoğu uç bir bearer token ister. Önce giriş yapıp token al, sonra Authorization başlığında gönder:" },
-          { code: "curl -X POST https://PANELINIZ/api/admin/token \\\n     -d 'username=<admin>&password=<sifre>'\n# -> {\"access_token\": \"...\", \"token_type\": \"bearer\"}\n\ncurl https://PANELINIZ/api/users \\\n     -H 'Authorization: Bearer <access_token>'" },
-          { p: "/sub/... altındaki abonelik uçları herkese açıktır ve URL'deki token ile doğrulanır." },
-          { p: "Tam uç listesi ve makine-okur şema GitHub deposundadır: docs/API.md ve docs/openapi.json (Postman/Insomnia veya Redoc'a aktarabilirsin). İnteraktif Swagger arayüzünü açmak için paneli DOCS=True ile başlatın (/docs ve /redoc)." },
-        ],
-      },
-    ],
+    heroTitle: "Kullanım Kılavuzu",
+    heroSub: "Alexen'i rolüne göre nasıl kullanacağını birkaç adımda öğren. Rolünü aşağıdan seçebilirsin.",
+    roleAdmin: "Bayi (Admin)",
+    roleSudo: "Sudo yönetici",
+    quickTitle: "Hızlı başlangıç",
+    canTitle: "Neler yapabilirsin",
+    quick: {
+      admin: [
+        { icon: UserPlusIcon, title: "Kullanıcı oluştur", desc: "Protokol, bitiş tarihi ve veri limitini seç. İstersen IP ve cihaz (HWID) limiti koy." },
+        { icon: LinkIcon, title: "Abonelik linkini ver", desc: "Kullanıcı satırından sub adresini kopyala ya da QR'ı göster; müşteri kendi uygulamasına ekler." },
+        { icon: SignalIcon, title: "Kullanımı izle", desc: "Online IP'leri, trafiği ve engellenen yeni IP/cihaz sayısını kullanıcı penceresinde gör." },
+        { icon: NoSymbolIcon, title: "Gerekirse müdahale et", desc: "İznin varsa bir IP'yi düşürebilir, cihazı silebilir ya da limiti değiştirebilirsin." },
+      ],
+      sudo: [
+        { icon: ServerStackIcon, title: "Node ekle", desc: "Trafiği taşıyan sunucuları panelden kur ve bağla; çekirdek ve outbound ayarları da burada." },
+        { icon: RectangleGroupIcon, title: "Host ve grupları ayarla", desc: "Her inbound için adres/port/şablon belirle; host grupları ile bir bayinin hangi hostları vereceğini sınırla." },
+        { icon: ShieldCheckIcon, title: "Bayi oluştur", desc: "Admin ekle; kullanıcı/trafik kotası, host grubu ve izinleri (config kopyalama, limit düzenleme) ver." },
+        { icon: Cog6ToothIcon, title: "Abonelik ve domaini ayarla", desc: "Durum bazlı sub şablonları, domain/path ve external configler." },
+        { icon: CloudArrowDownIcon, title: "Yedekle ve güncelle", desc: "Panelden yedek al/geri yükle ve yeni sürüme güncelle (önce yedek alır, başarısız olursa döner)." },
+      ],
+    },
+    can: {
+      admin: [
+        { icon: DevicePhoneMobileIcon, title: "IP & cihaz limiti", desc: "Aynı anda bağlı IP ve cihaz sayısını kullanıcı başına sınırla." },
+        { icon: SignalIcon, title: "Online IP'ler", desc: "Kimin, hangi node/inbound üzerinden bağlı olduğunu canlı gör." },
+        { icon: DocumentDuplicateIcon, title: "Config / sub kopyala", desc: "İznin açıksa config linklerini; her durumda sub adresini kopyalayabilirsin." },
+        { icon: LinkIcon, title: "Abonelik yönetimi", desc: "Sub linkini yenile (revoke), kullanımı sıfırla, sonraki planı aktif et." },
+      ],
+      sudo: [
+        { icon: ShieldCheckIcon, title: "Roller & izinler", desc: "Sudo ve bayileri yönet; bayi izinlerini tek tek aç/kapat." },
+        { icon: ShareIcon, title: "Preroute / tünel", desc: "Çıkışları zincirle, tüneller kur ve test et." },
+        { icon: ChartPieIcon, title: "İstatistik & genel bakış", desc: "Trafik, online, node kullanımını izle." },
+        { icon: ClockIcon, title: "Etkinlik günlüğü", desc: "Her giriş ve değişiklik; tür, kullanıcı veya IP ile ara." },
+      ],
+    },
+    subTitle: "Abonelik mesajı ve yer tutucular",
+    subBody: "Abonelik sayfasının başına kullanıcının durumuna göre bir mesaj koyabilirsin. Yönerge satırları aynı zamanda HTTP başlığı olur:",
+    subCode: "#profile-title: Şirketim\n#announce: Merhaba {username}\nLimit: {used} / {limit} · Kalan: {remaining}\n#support-url: https://siten.com/destek?t={token}",
+    tokens: ["{username}", "{used}", "{limit}", "{remaining}", "{expiretime}", "{days}", "{status}", "{token}"],
+    tokenNote: "{token} kullanıcının kendi abonelik token'ıdır — kendi destek linkinde kullanıcıyı tanımlamak için idealdir.",
+    apiTitle: "REST API",
+    apiBody: "Panel tam bir REST API sunar. Çoğu uç bir bearer token ister: önce giriş yapıp token al, sonra Authorization başlığında gönder.",
+    apiCode: "curl -X POST https://PANELINIZ/api/admin/token \\\n     -d 'username=<admin>&password=<sifre>'\n\ncurl https://PANELINIZ/api/users \\\n     -H 'Authorization: Bearer <access_token>'",
+    apiLinks: "Tam referans ve şema:",
   },
   en: {
-    title: "Documentation",
-    intro:
-      "A complete guide to every part of the Alexen panel plus REST API usage. Pick a topic from the table of contents or scroll through.",
-    sections: [
-      {
-        id: "roles",
-        title: "Roles & permissions",
-        blocks: [
-          { p: "There are three roles: creator (the server owner), sudo admins, and resellers (admins)." },
-          {
-            ul: [
-              "Creator: can do everything; license and dangerous/uninstall actions are creator-only. The creator and its users are hidden from sudo admins.",
-              "Sudo: same powers as the creator (except license and uninstall); can also manage other sudo admins.",
-              "Reseller (admin): manages its own users; bounded by a user-count/traffic quota and host groups.",
-            ],
-          },
-          { h: "Reseller permissions (toggled by a sudo/creator)" },
-          {
-            ul: [
-              "Can copy configs: when off, the reseller cannot copy users' config links — but can still copy the subscription (sub) link.",
-              "Can edit IP/device limits: when off, the limits are read-only and the reseller cannot delete a user's devices/IPs or unblock them.",
-            ],
-          },
-          { p: "The admins list shows how many users each reseller created/deleted." },
-        ],
-      },
-      {
-        id: "users",
-        title: "Users",
-        blocks: [
-          { p: "When creating a user you set the protocols, expiry, data limit, and optional IP/device limits." },
-          {
-            ul: [
-              "IP limit: caps simultaneously connected IPs; extra ones are blocked until an earlier one disconnects.",
-              "Device (HWID) limit: caps how many devices can use a subscription; devices are managed per user.",
-              "Each user shows how many new IPs were blocked and new devices rejected.",
-              "Online IPs: see who is connected, on which node and inbound, in real time; kick one IP with a click.",
-            ],
-          },
-        ],
-      },
-      {
-        id: "subscription",
-        title: "Subscription & sub page",
-        blocks: [
-          { p: "Every user has a subscription (sub) link. You can prepend a message template to the sub page per user state (default, expired, limited, disabled, near-expire)." },
-          { p: "Templates use directives and placeholders; directive lines also become HTTP headers:" },
-          { code: "#profile-title: My Company\n#announce: Hello {username}\nLimit: {used} / {limit} · Left: {remaining}\n#support-url: https://yoursite.com/help?t={token}" },
-          { p: "Available placeholders:" },
-          {
-            ul: [
-              "{username} {used} {limit} {remaining} {expiretime} {days} {status}",
-              "{token}: the user's own subscription token — ideal for identifying the user inside your own support link.",
-            ],
-          },
-          { p: "Prefix a directive value with base64: to base64-encode it. Customize the sub link's domain, path and suffix from Domain settings." },
-        ],
-      },
-      {
-        id: "servers",
-        title: "Nodes, hosts & groups",
-        blocks: [
-          {
-            ul: [
-              "Node: the remote servers that carry traffic; installed/managed from the panel.",
-              "Hosts: the address/port/template clients are given for each inbound.",
-              "Host groups: let a reseller hand out only the hosts you allow.",
-              "Core & outbound settings, preroute (tunneling) and auto-change also live under the node area.",
-            ],
-          },
-        ],
-      },
-      {
-        id: "other",
-        title: "External configs, activity, backup & update",
-        blocks: [
-          {
-            ul: [
-              "External configs: extra configs appended to each link subscription; fallback URLs, a random URL and a protocol filter are supported. Can be set per reseller too.",
-              "Activity log: every sign-in and change (who, when, which device/IP). Search by type (e.g. 'failed login'), user or IP.",
-              "Backup & update: back up and restore from the panel, and update to a new version (it backs up first and rolls back if an update fails).",
-            ],
-          },
-        ],
-      },
-      {
-        id: "api",
-        title: "REST API",
-        blocks: [
-          { p: "The panel exposes a full REST API. Most endpoints need a bearer token: log in, then send it in the Authorization header:" },
-          { code: "curl -X POST https://YOUR-PANEL/api/admin/token \\\n     -d 'username=<admin>&password=<password>'\n# -> {\"access_token\": \"...\", \"token_type\": \"bearer\"}\n\ncurl https://YOUR-PANEL/api/users \\\n     -H 'Authorization: Bearer <access_token>'" },
-          { p: "Subscription endpoints under /sub/... are public and authenticated by the token in the URL." },
-          { p: "The full endpoint list and machine-readable schema live in the GitHub repo: docs/API.md and docs/openapi.json (import into Postman/Insomnia or Redoc). To enable the interactive Swagger UI, start the panel with DOCS=True (/docs and /redoc)." },
-        ],
-      },
-    ],
+    heroTitle: "User Guide",
+    heroSub: "Learn how to run Alexen for your role in a few steps. Pick your role below.",
+    roleAdmin: "Reseller (Admin)",
+    roleSudo: "Sudo admin",
+    quickTitle: "Quick start",
+    canTitle: "What you can do",
+    quick: {
+      admin: [
+        { icon: UserPlusIcon, title: "Create a user", desc: "Choose protocols, expiry and data limit. Optionally set an IP and device (HWID) limit." },
+        { icon: LinkIcon, title: "Hand over the sub link", desc: "Copy the sub address from the user's row or show the QR; the customer adds it to their app." },
+        { icon: SignalIcon, title: "Watch usage", desc: "See online IPs, traffic, and how many new IPs/devices were blocked in the user dialog." },
+        { icon: NoSymbolIcon, title: "Step in when needed", desc: "If allowed, kick an IP, remove a device, or change a limit." },
+      ],
+      sudo: [
+        { icon: ServerStackIcon, title: "Add a node", desc: "Install and connect the servers that carry traffic; core and outbound settings live here too." },
+        { icon: RectangleGroupIcon, title: "Set up hosts & groups", desc: "Define address/port/template per inbound; host groups limit which hosts a reseller can hand out." },
+        { icon: ShieldCheckIcon, title: "Create a reseller", desc: "Add an admin; set the user/traffic quota, host group, and permissions (copy configs, edit limits)." },
+        { icon: Cog6ToothIcon, title: "Configure subs & domain", desc: "Per-state sub templates, domain/path, and external configs." },
+        { icon: CloudArrowDownIcon, title: "Back up & update", desc: "Back up/restore from the panel and update to a new version (it backs up first and rolls back on failure)." },
+      ],
+    },
+    can: {
+      admin: [
+        { icon: DevicePhoneMobileIcon, title: "IP & device limits", desc: "Cap simultaneous IPs and devices per user." },
+        { icon: SignalIcon, title: "Online IPs", desc: "See who is connected, on which node/inbound, live." },
+        { icon: DocumentDuplicateIcon, title: "Copy config / sub", desc: "If permitted, copy config links; the sub address is always copyable." },
+        { icon: LinkIcon, title: "Subscription actions", desc: "Revoke the sub link, reset usage, activate the next plan." },
+      ],
+      sudo: [
+        { icon: ShieldCheckIcon, title: "Roles & permissions", desc: "Manage sudo admins and resellers; toggle reseller permissions." },
+        { icon: ShareIcon, title: "Preroute / tunnels", desc: "Chain exits, build tunnels and test them." },
+        { icon: ChartPieIcon, title: "Stats & overview", desc: "Track traffic, online counts and node usage." },
+        { icon: ClockIcon, title: "Activity log", desc: "Every sign-in and change; search by type, user or IP." },
+      ],
+    },
+    subTitle: "Subscription message & placeholders",
+    subBody: "Prepend a message to the sub page per user state. Directive lines also become HTTP headers:",
+    subCode: "#profile-title: My Company\n#announce: Hello {username}\nLimit: {used} / {limit} · Left: {remaining}\n#support-url: https://yoursite.com/help?t={token}",
+    tokens: ["{username}", "{used}", "{limit}", "{remaining}", "{expiretime}", "{days}", "{status}", "{token}"],
+    tokenNote: "{token} is the user's own subscription token — ideal for identifying the user inside your own support link.",
+    apiTitle: "REST API",
+    apiBody: "The panel exposes a full REST API. Most endpoints need a bearer token: log in, then send it in the Authorization header.",
+    apiCode: "curl -X POST https://YOUR-PANEL/api/admin/token \\\n     -d 'username=<admin>&password=<password>'\n\ncurl https://YOUR-PANEL/api/users \\\n     -H 'Authorization: Bearer <access_token>'",
+    apiLinks: "Full reference and schema:",
   },
 };
 
-const RenderBlock: FC<{ block: Block }> = ({ block }) => {
-  if ("h" in block)
-    return (
-      <Heading size="sm" mt={3} mb={1}>
-        {block.h}
-      </Heading>
-    );
-  if ("p" in block)
-    return (
-      <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.300" }} lineHeight="tall">
-        {block.p}
+const StepRow: FC<{ n: number; item: Item }> = ({ n, item }) => (
+  <HStack align="flex-start" spacing={4}>
+    <Box position="relative" flexShrink={0}>
+      <Box
+        w="40px"
+        h="40px"
+        borderRadius="12px"
+        bg="color-mix(in srgb, var(--chakra-colors-primary-500) 14%, transparent)"
+        color="primary.500"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        _dark={{ color: "primary.200" }}
+      >
+        <Icon as={item.icon} boxSize="20px" />
+      </Box>
+      <Box
+        position="absolute"
+        top="-6px"
+        right="-6px"
+        w="19px"
+        h="19px"
+        borderRadius="full"
+        bg="primary.500"
+        color="white"
+        fontSize="11px"
+        fontWeight="bold"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        {n}
+      </Box>
+    </Box>
+    <Box pt={0.5}>
+      <Text fontWeight="semibold" fontSize="sm">
+        {item.title}
       </Text>
-    );
-  if ("ul" in block)
-    return (
-      <UnorderedList spacing={1.5} pl={2}>
-        {block.ul.map((li, i) => (
-          <ListItem key={i} fontSize="sm" color="gray.600" _dark={{ color: "gray.300" }} lineHeight="tall">
-            {li}
-          </ListItem>
-        ))}
-      </UnorderedList>
-    );
-  return (
-    <Code
-      display="block"
-      whiteSpace="pre-wrap"
-      p={3}
-      borderRadius="10px"
-      fontSize="xs"
-      w="full"
-      overflowX="auto"
-    >
-      {block.code}
-    </Code>
-  );
-};
+      <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.400" }} lineHeight="tall">
+        {item.desc}
+      </Text>
+    </Box>
+  </HStack>
+);
+
+const Card: FC<{ item: Item }> = ({ item }) => (
+  <GridItem
+    className="alexen-page"
+    borderWidth="1px"
+    borderRadius="14px"
+    p={4}
+    _hover={{ borderColor: "primary.400" }}
+    transition="border-color .15s"
+  >
+    <Icon as={item.icon} boxSize="22px" color="primary.500" _dark={{ color: "primary.200" }} mb={2} />
+    <Text fontWeight="semibold" fontSize="sm">
+      {item.title}
+    </Text>
+    <Text fontSize="xs" color="gray.600" _dark={{ color: "gray.400" }} lineHeight="tall">
+      {item.desc}
+    </Text>
+  </GridItem>
+);
+
+const CodeBlock: FC<{ children: string }> = ({ children }) => (
+  <Code display="block" whiteSpace="pre-wrap" p={3} borderRadius="10px" fontSize="xs" w="full" overflowX="auto">
+    {children}
+  </Code>
+);
 
 export const DocumentationPage: FC = () => {
   const { i18n } = useTranslation();
-  const lang = (i18n.language || "en").slice(0, 2);
-  const doc = DOC[(lang === "tr" ? "tr" : "en") as "tr" | "en"];
+  const { userData } = useGetUser();
+  const lang = (i18n.language || "en").slice(0, 2) === "tr" ? "tr" : "en";
+  const g = G[lang as "tr" | "en"];
+  const [role, setRole] = useState<"admin" | "sudo">(userData?.is_sudo ? "sudo" : "admin");
 
   return (
-    <VStack align="stretch" spacing={5} maxW="900px">
-      <Box>
-        <Heading size="lg" mb={1}>
-          {doc.title}
+    <VStack align="stretch" spacing={5} maxW="960px">
+      {/* hero */}
+      <Box
+        borderRadius="20px"
+        p={{ base: 5, md: 7 }}
+        color="white"
+        bgGradient="linear(135deg, primary.600, primary.400)"
+        position="relative"
+        overflow="hidden"
+      >
+        <Box position="absolute" top="-40px" right="-30px" opacity={0.18}>
+          <Icon as={ShieldCheckIcon} boxSize="170px" />
+        </Box>
+        <HStack spacing={3} mb={2}>
+          <Box w="38px" h="38px" borderRadius="11px" bg="whiteAlpha.300" display="flex" alignItems="center" justifyContent="center">
+            <Icon as={ShieldCheckIcon} boxSize="22px" />
+          </Box>
+          <Badge bg="whiteAlpha.300" color="white" borderRadius="full" px={2.5}>
+            Alexen
+          </Badge>
+        </HStack>
+        <Heading size="lg" letterSpacing="-0.01em">
+          {g.heroTitle}
         </Heading>
-        <Text fontSize="sm" color="gray.500">
-          {doc.intro}
+        <Text mt={1.5} maxW="560px" opacity={0.92} fontSize="sm">
+          {g.heroSub}
         </Text>
+        {/* role toggle */}
+        <HStack mt={4} spacing={1} bg="whiteAlpha.200" p={1} borderRadius="12px" w="fit-content">
+          {(["admin", "sudo"] as const).map((r) => (
+            <Button
+              key={r}
+              size="sm"
+              variant="unstyled"
+              px={4}
+              h="32px"
+              borderRadius="9px"
+              fontWeight="semibold"
+              fontSize="sm"
+              color={role === r ? "primary.600" : "white"}
+              bg={role === r ? "white" : "transparent"}
+              _hover={{ bg: role === r ? "white" : "whiteAlpha.300" }}
+              onClick={() => setRole(r)}
+            >
+              {r === "admin" ? g.roleAdmin : g.roleSudo}
+            </Button>
+          ))}
+        </HStack>
       </Box>
 
-      {/* table of contents */}
-      <Box className="alexen-page" borderWidth="1px" borderRadius="16px" p={4}>
-        <VStack align="stretch" spacing={1}>
-          {doc.sections.map((s, i) => (
-            // the app uses hash-based routing, so an href="#id" would be taken as a route
-            // and error — scroll to the section by id instead, without touching the hash.
-            <Link
-              key={s.id}
-              fontSize="sm"
-              color="primary.500"
-              fontWeight="medium"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById(s.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-            >
-              {i + 1}. {s.title}
-            </Link>
+      {/* quick start — a real sequence, so numbered */}
+      <Box className="alexen-page" borderWidth="1px" borderRadius="16px" p={{ base: 4, md: 6 }}>
+        <Heading size="md" mb={4}>
+          {g.quickTitle}
+        </Heading>
+        <VStack align="stretch" spacing={4}>
+          {g.quick[role].map((it, i) => (
+            <StepRow key={it.title} n={i + 1} item={it} />
           ))}
         </VStack>
       </Box>
 
-      {doc.sections.map((s) => (
-        <Box key={s.id} id={s.id} className="alexen-page" borderWidth="1px" borderRadius="16px" p={5} scrollMarginTop="80px">
-          <Heading size="md" mb={3}>
-            {s.title}
-          </Heading>
-          <VStack align="stretch" spacing={2.5}>
-            {s.blocks.map((b, i) => (
-              <Fragment key={i}>
-                <RenderBlock block={b} />
-              </Fragment>
-            ))}
-          </VStack>
-        </Box>
-      ))}
+      {/* what you can do */}
+      <Box>
+        <Heading size="md" mb={3}>
+          {g.canTitle}
+        </Heading>
+        <Grid templateColumns={{ base: "1fr", sm: "1fr 1fr" }} gap={3}>
+          {g.can[role].map((it) => (
+            <Card key={it.title} item={it} />
+          ))}
+        </Grid>
+      </Box>
 
-      <Text fontSize="xs" color="gray.500" textAlign="center">
-        <Badge colorScheme="primary" variant="subtle" mr={2}>
-          Alexen
-        </Badge>
-        github.com/Alexander-official/alexen-panel · docs/API.md
-      </Text>
+      {/* subscriptions & token */}
+      <Box className="alexen-page" borderWidth="1px" borderRadius="16px" p={{ base: 4, md: 6 }}>
+        <HStack spacing={2} mb={2}>
+          <Icon as={LinkIcon} boxSize="18px" color="primary.500" _dark={{ color: "primary.200" }} />
+          <Heading size="md">{g.subTitle}</Heading>
+        </HStack>
+        <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.400" }} mb={3} lineHeight="tall">
+          {g.subBody}
+        </Text>
+        <CodeBlock>{g.subCode}</CodeBlock>
+        <HStack mt={3} spacing={2} flexWrap="wrap">
+          {g.tokens.map((p) => (
+            <Code key={p} fontSize="xs" px={2} py={0.5} borderRadius="full">
+              {p}
+            </Code>
+          ))}
+        </HStack>
+        <Text mt={2} fontSize="xs" color="gray.500">
+          {g.tokenNote}
+        </Text>
+      </Box>
+
+      {/* API */}
+      <Box className="alexen-page" borderWidth="1px" borderRadius="16px" p={{ base: 4, md: 6 }}>
+        <HStack spacing={2} mb={2}>
+          <Icon as={CommandLineIcon} boxSize="18px" color="primary.500" _dark={{ color: "primary.200" }} />
+          <Heading size="md">{g.apiTitle}</Heading>
+        </HStack>
+        <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.400" }} mb={3} lineHeight="tall">
+          {g.apiBody}
+        </Text>
+        <CodeBlock>{g.apiCode}</CodeBlock>
+        <Text mt={3} fontSize="sm">
+          {g.apiLinks}{" "}
+          <Link color="primary.500" href="https://alexander-official.github.io/alexen-panel/api.html" isExternal>
+            API reference
+          </Link>{" "}
+          ·{" "}
+          <Link color="primary.500" href="https://github.com/Alexander-official/alexen-panel/blob/main/docs/API.md" isExternal>
+            docs/API.md
+          </Link>
+        </Text>
+      </Box>
+
+      <HStack justify="center" spacing={2} color="gray.500" fontSize="xs" pb={2}>
+        <Icon as={KeyIcon} boxSize="14px" />
+        <Text>github.com/Alexander-official/alexen-panel</Text>
+      </HStack>
     </VStack>
   );
 };

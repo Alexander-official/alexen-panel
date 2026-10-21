@@ -2,13 +2,14 @@
 // from here. The server's updater does the work (backup, download, build, restart, check,
 // the old version back if it fails); this page asks for it and shows how it goes. The panel
 // restarts during an update, so the page keeps asking until it answers again.
-import { Badge, Box, Button, HStack, Icon, Spinner, Text, useToast, VStack } from "@chakra-ui/react";
+import { Badge, Box, Button, HStack, Icon, IconButton, Spinner, Text, useToast, VStack } from "@chakra-ui/react";
 import {
   ArrowPathIcon,
   CheckCircleIcon,
   CloudArrowDownIcon,
   ExclamationTriangleIcon,
   SparklesIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import dayjs from "dayjs";
 import { FC, useEffect, useRef, useState } from "react";
@@ -71,6 +72,8 @@ export const UpdatePage: FC = () => {
   const queryClient = useQueryClient();
   const [asked, setAsked] = useState<"" | "check" | "update">("");
   const [restarting, setRestarting] = useState(false);
+  // the "updated to vX" confirmation clears itself after an hour; let it be closed now too
+  const [doneHidden, setDoneHidden] = useState(false);
   const loaded = useRef<string | null>(null);
 
   const busy = (d?: UpdateState) => !!d && (d.state === "checking" || d.state === "updating" || !!d.pending);
@@ -274,11 +277,13 @@ export const UpdatePage: FC = () => {
         </Box>
       )}
 
-      {data.state === "done" && !updating && !updatedTo && recent(data.finished_at) && (
+      {data.state === "done" && !updating && !updatedTo && !doneHidden && recent(data.finished_at) && (
         <Box {...card} borderColor="green.400">
           <HStack spacing={2}>
             <Icon as={CheckCircleIcon} boxSize="20px" color="green.400" />
-            <Text fontWeight="semibold">{t("update.done", { version: data.current })}</Text>
+            <Text fontWeight="semibold" flex={1}>{t("update.done", { version: data.current })}</Text>
+            <Text fontSize="xs" color="gray.500">{t("update.doneHint")}</Text>
+            <IconButton aria-label={t("close")} size="xs" variant="ghost" icon={<Icon as={XMarkIcon} boxSize="16px" />} onClick={() => setDoneHidden(true)} />
           </HStack>
         </Box>
       )}

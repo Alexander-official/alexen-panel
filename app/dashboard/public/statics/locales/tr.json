@@ -1633,5 +1633,7 @@
   "userDialog.ipBlocks": "Engellenen yeni IP",
   "userDialog.deviceRejects": "Reddedilen yeni cihaz",
   "activity.noMatch": "Eşleşen etkinlik yok.",
-  "docs.title": "Dokümantasyon"
+  "docs.title": "Dokümantasyon",
+  "close": "Kapat",
+  "update.doneHint": "(1 saat sonra kendiliğinden kaybolur)"
 }

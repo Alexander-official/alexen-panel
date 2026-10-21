@@ -1633,5 +1633,7 @@
   "userDialog.ipBlocks": "Böklenen täze IP",
   "userDialog.deviceRejects": "Ret edilen enjam",
   "activity.noMatch": "Gabat gelýän hereket ýok.",
-  "docs.title": "Dokumentasiýa"
+  "docs.title": "Dokumentasiýa",
+  "close": "Ýap",
+  "update.doneHint": "(bir sagatdan soň ýitýär)"
 }

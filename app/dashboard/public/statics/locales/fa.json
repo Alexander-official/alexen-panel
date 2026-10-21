@@ -1635,5 +1635,7 @@
   "userDialog.ipBlocks": "مسدودی IP جدید",
   "userDialog.deviceRejects": "رد دستگاه جدید",
   "activity.noMatch": "فعالیت منطبقی یافت نشد.",
-  "docs.title": "مستندات"
+  "docs.title": "مستندات",
+  "close": "بستن",
+  "update.doneHint": "(بعد از یک ساعت خودکار پاک می‌شود)"
 }

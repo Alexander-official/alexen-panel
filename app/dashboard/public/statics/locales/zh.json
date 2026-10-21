@@ -1631,5 +1631,7 @@
   "userDialog.ipBlocks": "新IP拦截",
   "userDialog.deviceRejects": "新设备拒绝",
   "activity.noMatch": "没有匹配的记录。",
-  "docs.title": "文档"
+  "docs.title": "文档",
+  "close": "关闭",
+  "update.doneHint": "（一小时后自动消失）"
 }

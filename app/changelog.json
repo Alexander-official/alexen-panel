@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.16.2",
+    "date": "2026-10-21",
+    "tr": [
+      "Dokümantasyon yenilendi: göz alıcı, rol seçicili (Bayi/Sudo) kullanım kılavuzu — hızlı başlangıç adımları, neler yapabilirsin, abonelik/{token} ve API",
+      "Güncelleme bölümündeki 'güncellendi' bilgisine kapatma düğmesi eklendi (zaten 1 saatte kendiliğinden kayboluyor)"
+    ],
+    "en": [
+      "Reworked Documentation into an eye-catching, role-aware (reseller/sudo) user guide — quick-start steps, what you can do, subscription/{token} and API",
+      "The 'updated' note on the Update page can now be dismissed (it already auto-clears after an hour)"
+    ]
+  },
+  {
     "version": "1.16.1",
     "date": "2026-10-21",
     "tr": [
