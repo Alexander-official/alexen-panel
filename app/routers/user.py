@@ -47,6 +47,24 @@ class _delete_lock:
 router = APIRouter(tags=["User"], prefix="/api", responses={401: responses._401})
 
 
+def _can_copy(admin: Admin, db: Session) -> bool:
+    """a sudo/creator always; a reseller only when the sudo/creator allowed it"""
+    if admin.is_sudo:
+        return True
+    dbadmin = crud.get_admin(db, admin.username)
+    return bool(getattr(dbadmin, "can_copy_configs", True)) if dbadmin else True
+
+
+def _strip_configs(user):
+    """hide the copyable configs from an admin without the permission"""
+    try:
+        user.links = []
+        user.subscription_url = ""
+    except Exception:
+        pass
+    return user
+
+
 @router.post("/user", response_model=UserResponse, responses={400: responses._400, 409: responses._409})
 def add_user(
     new_user: UserCreate,
@@ -84,6 +102,10 @@ def add_user(
     if reason:
         raise HTTPException(status_code=403, detail=reason)
 
+    if not admin.is_sudo and not getattr(dbadmin, "can_edit_limits", True):
+        # no permission: the per-user IP / device limits fall back to the admin's caps
+        new_user.ip_limit = dbadmin.max_user_ip_limit or 0
+        new_user.hwid_limit = dbadmin.max_user_hwid_limit or 0
     new_user.ip_limit, new_user.hwid_limit = crud.clamp_user_limits_to_admin(
         dbadmin, new_user.ip_limit, new_user.hwid_limit)
 
@@ -101,8 +123,11 @@ def add_user(
 
 
 @router.get("/user/{username}", response_model=UserResponse, responses={403: responses._403, 404: responses._404})
-def get_user(dbuser: UserResponse = Depends(get_validated_user)):
+def get_user(dbuser: UserResponse = Depends(get_validated_user),
+             db: Session = Depends(get_db), admin: Admin = Depends(Admin.get_current)):
     """Get user information"""
+    if not _can_copy(admin, db):
+        _strip_configs(dbuser)
     return dbuser
 
 
@@ -141,6 +166,10 @@ def modify_user(
 
     if not admin.is_sudo:
         dbadmin = crud.get_admin(db, admin.username)
+        if not getattr(dbadmin, "can_edit_limits", True):
+            # no permission: the IP / device limits stay as they are
+            modified_user.ip_limit = dbuser.ip_limit
+            modified_user.hwid_limit = dbuser.hwid_limit
         modified_user.ip_limit, modified_user.hwid_limit = crud.clamp_user_limits_to_admin(
             dbadmin, modified_user.ip_limit, modified_user.hwid_limit)
 
@@ -290,6 +319,9 @@ def get_users(
         return_with_count=True,
     )
 
+    if not _can_copy(admin, db):
+        for u in users:
+            _strip_configs(u)
     return {"users": users, "total": count}
 
 
