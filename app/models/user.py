@@ -318,6 +318,8 @@ class UserResponse(User):
     used_traffic: int
     lifetime_used_traffic: int = 0
     created_at: datetime
+    ip_block_count: int = 0
+    hwid_reject_count: int = 0
     links: List[str] = []
     subscription_url: str = ""
     proxies: dict

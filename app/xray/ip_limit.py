@@ -27,6 +27,10 @@ UNSUPPORTED_RETRY_SECONDS = 600
 # every few seconds). user id -> ip -> unix time the hold ends (pushed on while it keeps trying)
 held: Dict[int, Dict[str, float]] = {}
 HOLD_SECONDS = 90
+# counting "new IP blocked" per user: IPs already counted this online session, and the
+# pending increments to flush to the DB in the next cycle (no DB writes in the hot path)
+_counted_block_ips: Dict[int, set] = {}
+_block_pending: Dict[int, int] = {}
 # manual kicks: user id -> ip -> unix time the block expires
 manual_bans: Dict[int, Dict[str, float]] = {}
 MANUAL_BAN_SECONDS = 300
@@ -73,9 +77,32 @@ def _over_limit(user_id: int, limit: int, now: float) -> list:
         if ip in seen:
             allowed.append(ip)
     blocked = [ip for ip in seen if ip not in allowed]
+    counted = _counted_block_ips.setdefault(user_id, set())
     for ip in blocked:
         hold[ip] = now + HOLD_SECONDS
+        if ip not in counted:
+            counted.add(ip)
+            _block_pending[user_id] = _block_pending.get(user_id, 0) + 1
     return blocked + [ip for ip in hold if ip not in seen]
+
+
+def _flush_block_counts() -> None:
+    """write the pending "new IP blocked" counts to the DB, once per cycle"""
+    if not _block_pending:
+        return
+    pending = dict(_block_pending)
+    _block_pending.clear()
+    try:
+        with GetDB() as db:
+            for uid, n in pending.items():
+                db.query(User).filter(User.id == uid).update(
+                    {User.ip_block_count: User.ip_block_count + n}, synchronize_session=False)
+            db.commit()
+    except Exception as e:
+        # don't lose the counts on a transient DB error
+        for uid, n in pending.items():
+            _block_pending[uid] = _block_pending.get(uid, 0) + n
+        logger.debug(f"ip block count flush: {e}")
 
 
 def _desired_rules(online_users: Dict[int, Dict[str, dict]]) -> Dict[str, Tuple[list, str]]:
@@ -110,6 +137,8 @@ def _desired_rules(online_users: Dict[int, Dict[str, dict]]) -> Dict[str, Tuple[
     # holds of users who went offline altogether run out on their own
     for user_id in [u for u, h in held.items() if not any(t > now for t in h.values())]:
         del held[user_id]
+        _counted_block_ips.pop(user_id, None)
+    _flush_block_counts()
 
     # manual kicks (expire on their own)
     for user_id in banned_user_ids:

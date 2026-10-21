@@ -1654,6 +1654,9 @@ def register_hwid_device(db: Session, dbuser: User, hwid: str, platform: Optiona
     if device is None:
         if dbuser.hwid_limit and db.query(UserHWIDDevice).filter(
                 UserHWIDDevice.user_id == dbuser.id).count() >= dbuser.hwid_limit:
+            # a new device was rejected (over the limit): count it
+            dbuser.hwid_reject_count = (dbuser.hwid_reject_count or 0) + 1
+            db.commit()
             return False
         device = UserHWIDDevice(user_id=dbuser.id, hwid=hwid)
         db.add(device)
