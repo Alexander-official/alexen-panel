@@ -54,6 +54,12 @@ export const SECTIONS: Section[] = [
     Component: named(() => import("components/ActivityPage"), "ActivityPage"),
   },
   {
+    path: "docs",
+    title: "docs.title",
+    sudo: false,
+    Component: named(() => import("components/DocumentationPage"), "DocumentationPage"),
+  },
+  {
     path: "overview",
     title: "overview.title",
     sudo: false,

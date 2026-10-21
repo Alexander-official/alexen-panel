@@ -53,6 +53,7 @@ import {
   ChatBubbleLeftRightIcon,
   CloudArrowDownIcon,
   ChatBubbleOvalLeftEllipsisIcon,
+  BookOpenIcon,
 } from "@heroicons/react/24/outline";
 import { BRAND_NAME } from "constants/Project";
 import { useDashboard } from "contexts/DashboardContext";
@@ -222,6 +223,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
     { title: t("activity.title"), path: "activity", icon: ic(ClockIcon) },
     { title: t("appearance.title"), path: "theme", icon: ic(SwatchIcon) },
     { title: t("profile.title"), path: "profile", icon: ic(UserCircleIcon) },
+    { title: t("docs.title"), path: "docs", icon: ic(BookOpenIcon) },
     ...(isSudo
       ? [
           { title: t("header.hostSettings"), path: "hosts", icon: ic(ListBulletIcon) },

@@ -1632,5 +1632,6 @@
   "admins.deleted": "sildi",
   "userDialog.ipBlocks": "Engellenen yeni IP",
   "userDialog.deviceRejects": "Reddedilen yeni cihaz",
-  "activity.noMatch": "Eşleşen etkinlik yok."
+  "activity.noMatch": "Eşleşen etkinlik yok.",
+  "docs.title": "Dokümantasyon"
 }

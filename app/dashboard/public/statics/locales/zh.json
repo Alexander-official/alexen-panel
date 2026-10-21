@@ -1630,5 +1630,6 @@
   "admins.deleted": "已删除",
   "userDialog.ipBlocks": "新IP拦截",
   "userDialog.deviceRejects": "新设备拒绝",
-  "activity.noMatch": "没有匹配的记录。"
+  "activity.noMatch": "没有匹配的记录。",
+  "docs.title": "文档"
 }

@@ -1634,5 +1634,6 @@
   "admins.deleted": "حذف",
   "userDialog.ipBlocks": "مسدودی IP جدید",
   "userDialog.deviceRejects": "رد دستگاه جدید",
-  "activity.noMatch": "فعالیت منطبقی یافت نشد."
+  "activity.noMatch": "فعالیت منطبقی یافت نشد.",
+  "docs.title": "مستندات"
 }

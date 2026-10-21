@@ -1632,5 +1632,6 @@
   "admins.deleted": "pozdy",
   "userDialog.ipBlocks": "Böklenen täze IP",
   "userDialog.deviceRejects": "Ret edilen enjam",
-  "activity.noMatch": "Gabat gelýän hereket ýok."
+  "activity.noMatch": "Gabat gelýän hereket ýok.",
+  "docs.title": "Dokumentasiýa"
 }

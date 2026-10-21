@@ -1639,5 +1639,6 @@
   "admins.deleted": "удалил",
   "userDialog.ipBlocks": "Блокировок новых IP",
   "userDialog.deviceRejects": "Отклонено устройств",
-  "activity.noMatch": "Нет подходящих событий."
+  "activity.noMatch": "Нет подходящих событий.",
+  "docs.title": "Документация"
 }

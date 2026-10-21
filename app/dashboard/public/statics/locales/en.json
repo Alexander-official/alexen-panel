@@ -1632,5 +1632,6 @@
   "admins.deleted": "deleted",
   "userDialog.ipBlocks": "New-IP blocks",
   "userDialog.deviceRejects": "New-device rejects",
-  "activity.noMatch": "No matching activity."
+  "activity.noMatch": "No matching activity.",
+  "docs.title": "Documentation"
 }
