@@ -1671,5 +1671,16 @@
   "extPanel.online": "Çevrimiçi",
   "extPanel.up": "Yükleme",
   "extPanel.down": "İndirme",
-  "extPanel.liveHint": "Canlı — birkaç saniyede bir yenilenir."
+  "extPanel.liveHint": "Canlı — birkaç saniyede bir yenilenir.",
+  "extPanel.import": "İçe aktar",
+  "extPanel.hostOverride": "Sunucu adresi (opsiyonel)",
+  "extPanel.portMap": "Port yeniden eşleme",
+  "extPanel.fake": "Sahte-lokasyon kopyaları",
+  "extPanel.fakeHelp": "satır başına host:port:etiket — her config'in farklı adreste ek kopyaları.",
+  "extPanel.importScope": "Kimler için",
+  "extPanel.everyone": "Herkes",
+  "extPanel.preview": "Önizle",
+  "extPanel.doImport": "İçe aktar",
+  "extPanel.imported": "{{count}} config içe aktarıldı",
+  "extPanel.previewCount": "{{count}} link"
 }

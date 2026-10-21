@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.19.0",
+    "date": "2026-10-21",
+    "tr": [
+      "Harici panel içe aktarma: 3x-ui/s-ui panelinin config’lerini seçtiğin bayilere ya da herkese kullanıcıların aboneliğine ekle; port yeniden eşleme (ör. 8443→443) ve sahte-lokasyon kopyaları (farklı adres/port) ile. Önce Önizle, sonra İçe aktar."
+    ],
+    "en": [
+      "External panel import: add a 3x-ui/s-ui panel’s configs into users’ subscriptions for chosen resellers or everyone, with port remap (e.g. 8443→443) and fake-location copies (a different address/port). Preview first, then Import."
+    ]
+  },
+  {
     "version": "1.18.0",
     "date": "2026-10-21",
     "tr": [

@@ -1673,5 +1673,16 @@
   "extPanel.online": "Online",
   "extPanel.up": "Up",
   "extPanel.down": "Down",
-  "extPanel.liveHint": "Live — refreshes every few seconds."
+  "extPanel.liveHint": "Live — refreshes every few seconds.",
+  "extPanel.import": "Import",
+  "extPanel.hostOverride": "Server host (optional)",
+  "extPanel.portMap": "Port remap",
+  "extPanel.fake": "Fake-location copies",
+  "extPanel.fakeHelp": "host:port:label per line — extra copies of each config at a different address.",
+  "extPanel.importScope": "Import for",
+  "extPanel.everyone": "Everyone",
+  "extPanel.preview": "Preview",
+  "extPanel.doImport": "Import",
+  "extPanel.imported": "{{count}} config(s) imported",
+  "extPanel.previewCount": "{{count}} link(s)"
 }

@@ -29,6 +29,7 @@ import {
   TrashIcon,
   QueueListIcon,
   ChartBarIcon,
+  ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import { FC, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -84,7 +85,39 @@ export const ExternalPanelsPage: FC = () => {
   const [inbounds, setInbounds] = useState<{ panel: Panel; items: any[] } | null>(null);
   const [stats, setStats] = useState<{ panel: Panel; data: any | null; error?: string } | null>(null);
   const [busy, setBusy] = useState<number | "form" | null>(null);
+  const [imp, setImp] = useState<
+    { panel: Panel; host: string; portMap: string; fake: string; all: boolean; admins: string[]; preview: any[] | null } | null
+  >(null);
   const statsRef = useRef<Panel | null>(null);
+
+  // "8443:443, 2053:443" -> {"8443":443}
+  const parsePortMap = (s: string): Record<string, number> => {
+    const m: Record<string, number> = {};
+    s.split(/[,\n]/).forEach((pair) => {
+      const [a, b] = pair.split(":").map((x) => x.trim());
+      if (a && b && !isNaN(+a) && !isNaN(+b)) m[a] = +b;
+    });
+    return m;
+  };
+  // "cdn.com:2096:CDN" per line -> [{host,port,label}]
+  const parseFake = (s: string) =>
+    s
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((l) => {
+        const [host, port, label] = l.split(":").map((x) => x.trim());
+        return { host, port: port ? +port : undefined, label: label || host };
+      })
+      .filter((f) => f.host);
+  const impBody = () =>
+    imp && {
+      host: imp.host.trim(),
+      port_map: parsePortMap(imp.portMap),
+      fake: parseFake(imp.fake),
+      scope_all: imp.all,
+      scope_admins: imp.all ? [] : imp.admins,
+    };
 
   // poll the open panel's live traffic/online every 4s
   useEffect(() => {
@@ -358,6 +391,10 @@ export const ExternalPanelsPage: FC = () => {
                   <Button size="xs" variant="outline" leftIcon={<ChartBarIcon width={14} />} onClick={() => setStats({ panel: p, data: null })}>
                     {t("extPanel.traffic")}
                   </Button>
+                  <Button size="xs" colorScheme="primary" variant="outline" leftIcon={<ArrowDownTrayIcon width={14} />}
+                    onClick={() => setImp({ panel: p, host: "", portMap: "", fake: "", all: false, admins: p.scope?.admins || [], preview: null })}>
+                    {t("extPanel.import")}
+                  </Button>
                   <IconButton aria-label="edit" size="xs" variant="ghost" icon={<PencilSquareIcon width={16} />} onClick={() => startEdit(p)} />
                   <IconButton aria-label="delete" size="xs" variant="ghost" colorScheme="red" icon={<TrashIcon width={16} />} onClick={() => remove(p)} />
                 </HStack>
@@ -451,6 +488,88 @@ export const ExternalPanelsPage: FC = () => {
               <Text mt={3} fontSize="xs" color="gray.500">{t("extPanel.liveHint")}</Text>
             </>
           )}
+        </Box>
+      )}
+
+      {imp && (
+        <Box className="alexen-page" borderWidth="1px" borderRadius="16px" p={5}>
+          <HStack mb={3}>
+            <Heading size="sm">{imp.panel.name} — {t("extPanel.import")}</Heading>
+            <Button size="xs" variant="ghost" ml="auto" onClick={() => setImp(null)}>
+              {t("close")}
+            </Button>
+          </HStack>
+          <VStack align="stretch" spacing={3}>
+            <HStack spacing={3} flexWrap="wrap" align="flex-start">
+              <FormControl flex="1" minW="200px">
+                <FormLabel fontSize="sm">{t("extPanel.hostOverride")}</FormLabel>
+                <Input size="sm" placeholder={imp.panel.address} value={imp.host} onChange={(e) => setImp({ ...imp, host: e.target.value })} />
+              </FormControl>
+              <FormControl flex="1" minW="200px">
+                <FormLabel fontSize="sm">{t("extPanel.portMap")}</FormLabel>
+                <Input size="sm" placeholder="8443:443, 2053:443" value={imp.portMap} onChange={(e) => setImp({ ...imp, portMap: e.target.value })} />
+              </FormControl>
+            </HStack>
+            <FormControl>
+              <FormLabel fontSize="sm">{t("extPanel.fake")}</FormLabel>
+              <Textarea size="sm" rows={2} fontFamily="mono" fontSize="xs" placeholder={"cdn.example.com:2096:CDN\nfake2.example.com:443:Alt"} value={imp.fake} onChange={(e) => setImp({ ...imp, fake: e.target.value })} />
+              <Text fontSize="xs" color="gray.500" mt={1}>{t("extPanel.fakeHelp")}</Text>
+            </FormControl>
+            <FormControl>
+              <FormLabel fontSize="sm">{t("extPanel.importScope")}</FormLabel>
+              <Checkbox size="sm" isChecked={imp.all} onChange={(e) => setImp({ ...imp, all: e.target.checked })} mb={1}>
+                {t("extPanel.everyone")}
+              </Checkbox>
+              {!imp.all && (
+                <Box maxH="120px" overflowY="auto" borderWidth="1px" borderRadius="10px" p={2}>
+                  {resellers.length === 0 ? (
+                    <Text fontSize="xs" color="gray.500">{t("extPanel.noResellers")}</Text>
+                  ) : (
+                    <VStack align="stretch" spacing={1}>
+                      {resellers.map((u) => (
+                        <Checkbox key={u} size="sm" isChecked={imp.admins.includes(u)}
+                          onChange={(e) => setImp({ ...imp, admins: e.target.checked ? [...imp.admins, u] : imp.admins.filter((x) => x !== u) })}>
+                          {u}
+                        </Checkbox>
+                      ))}
+                    </VStack>
+                  )}
+                </Box>
+              )}
+            </FormControl>
+            <HStack justify="flex-end">
+              <Button size="sm" variant="outline" isLoading={busy === "form"}
+                onClick={() => {
+                  setBusy("form");
+                  fetch(`/external-panels/${imp.panel.id}/import/preview`, { method: "POST", body: impBody() })
+                    .then((r: any) => setImp({ ...imp, preview: r.links || [] }))
+                    .catch(err)
+                    .finally(() => setBusy(null));
+                }}>
+                {t("extPanel.preview")}
+              </Button>
+              <Button size="sm" colorScheme="primary" isDisabled={!imp.all && imp.admins.length === 0}
+                onClick={() => {
+                  setBusy("form");
+                  fetch(`/external-panels/${imp.panel.id}/import`, { method: "POST", body: impBody() })
+                    .then((r: any) => { ok(t("extPanel.imported", { count: r.imported })); setImp(null); })
+                    .catch(err)
+                    .finally(() => setBusy(null));
+                }}>
+                {t("extPanel.doImport")}
+              </Button>
+            </HStack>
+            {imp.preview && (
+              <Box borderTopWidth="1px" pt={3}>
+                <Text fontSize="xs" color="gray.500" mb={2}>{t("extPanel.previewCount", { count: imp.preview.length })}</Text>
+                <VStack align="stretch" spacing={1} maxH="220px" overflowY="auto">
+                  {imp.preview.map((l: any, i: number) => (
+                    <Text key={i} fontSize="11px" fontFamily="mono" isTruncated>{l.link}</Text>
+                  ))}
+                </VStack>
+              </Box>
+            )}
+          </VStack>
         </Box>
       )}
     </VStack>

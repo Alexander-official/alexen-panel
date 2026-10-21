@@ -3,6 +3,7 @@ Sudo only. Passwords are stored encrypted (app.node_extras.encrypt) and never re
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app import node_extras
@@ -145,3 +146,74 @@ def panel_stats(panel_id: int, db: Session = Depends(get_db),
         raise HTTPException(400, str(e))
     db.commit()
     return data
+
+
+class ImportOptions(BaseModel):
+    host: str = ""                 # override server host (default: the panel's host)
+    port_map: dict = {}            # {"8443": 443}: hand out 443 for the real 8443
+    fake: list = []                # [{host,port,label}] extra "fake location" copies
+    scope_all: bool = False        # add to every user (the general external configs)
+    scope_admins: list = []        # else add to these admins' users
+
+
+@router.post("/{panel_id}/import/preview")
+def import_preview(panel_id: int, opts: ImportOptions, db: Session = Depends(get_db),
+                   admin: Admin = Depends(Admin.check_sudo_admin)):
+    """Generate the share links that would be imported (no changes made yet)."""
+    p = _get(db, panel_id)
+    try:
+        client = BaseClient.from_panel(p)
+        client.login()
+        links = client.share_links(host=opts.host, port_map=opts.port_map, fake=opts.fake)
+    except PanelError as e:
+        raise HTTPException(400, str(e))
+    return {"links": [{"remark": r, "link": l} for r, l in links]}
+
+
+@router.post("/{panel_id}/import")
+def import_configs(panel_id: int, opts: ImportOptions, db: Session = Depends(get_db),
+                   admin: Admin = Depends(Admin.check_sudo_admin)):
+    """Import the panel's configs as external configs for the chosen scope. Re-importing
+    replaces this panel's previous import (configs are tagged extpanel-<id>)."""
+    from datetime import datetime
+    from app.subscription import external as _external
+    p = _get(db, panel_id)
+    try:
+        client = BaseClient.from_panel(p)
+        client.login()
+        links = client.share_links(host=opts.host, port_map=opts.port_map, fake=opts.fake)
+    except PanelError as e:
+        p.last_error = str(e)
+        db.commit()
+        raise HTTPException(400, str(e))
+    if not links:
+        raise HTTPException(400, "The panel has no client configs to import")
+
+    cfg_id = f"extpanel-{panel_id}"
+    text = "\n".join(l for _, l in links)
+    cfg = _external.ExternalConfig(id=cfg_id, name=p.name, kind="links", links=text, position="bottom")
+
+    settings = _external.load(db)
+
+    def _put(lst):
+        return [c for c in lst if c.id != cfg_id] + [cfg]
+
+    targets = []
+    if opts.scope_all:
+        settings.configs = _put(settings.configs)
+        targets.append("all")
+    for name in (opts.scope_admins or []):
+        a = settings.admins.get(name) or _external.AdminExternal()
+        a.configs = _put(a.configs)
+        settings.admins[name] = a
+        targets.append(name)
+    if not targets:
+        raise HTTPException(400, "Choose a scope: everyone or at least one admin")
+
+    _external.save(db, settings)
+    from app.subscription import external_sources
+    external_sources.forget([cfg_id])
+    p.last_sync = datetime.utcnow()
+    p.last_error = None
+    db.commit()
+    return {"imported": len(links), "scope": targets}

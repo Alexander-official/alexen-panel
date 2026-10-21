@@ -10,7 +10,7 @@ Both flows were verified against live panels:
 `path` is the panel's web base path (3x-ui usually "/", s-ui "/app/").
 """
 import re
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 import requests
 
@@ -75,6 +75,11 @@ class BaseClient:
     def stats(self) -> Dict[str, Any]:
         """normalized live traffic/online; must be called after login()"""
         raise NotImplementedError
+
+    def share_links(self, host: str = "", port_map: dict = None, fake: list = None) -> List[Tuple[str, str]]:
+        """(remark, share link) for every client, with an optional host override, port
+        remap ({real_port: mapped_port}) and fake-location copies ([{host,port,label}])."""
+        return []
 
 
 class ThreeXUI(BaseClient):
@@ -146,6 +151,24 @@ class ThreeXUI(BaseClient):
                                 "online": email in online, "enable": cs.get("enable", True)})
         return {"total_up": total_up, "total_down": total_down, "online": len(online),
                 "inbounds": inbounds, "clients": clients}
+
+    def share_links(self, host: str = "", port_map: dict = None, fake: list = None) -> List[Tuple[str, str]]:
+        import urllib.parse as _u
+        from app.external_panels import links as _links
+        host = host or _u.urlparse(self.base).hostname or ""
+        port_map = port_map or {}
+        fake = fake or []
+        out: List[Tuple[str, str]] = []
+        for ib in self.raw_inbounds():
+            if ib.get("enable") is False:
+                continue
+            real = ib.get("port")
+            mapped = port_map.get(str(real)) or port_map.get(real) or real
+            out += _links.inbound_links(ib, host, mapped)
+            for f in fake:
+                out += _links.inbound_links(ib, f.get("host") or host, f.get("port") or mapped,
+                                            remark_suffix=f" ({f.get('label') or f.get('host') or 'alt'})")
+        return out
 
 
 class SUI(BaseClient):
