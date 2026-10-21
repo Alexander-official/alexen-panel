@@ -25,6 +25,7 @@ from . import (
     telegram,
     license,
     profile,
+    external_panel,
 )
 
 api_router = APIRouter()
@@ -56,6 +57,7 @@ routers = [
     telegram.router,
     license.router,
     profile.router,
+    external_panel.router,
 ]
 
 for router in routers:

@@ -506,3 +506,24 @@ class VPNIdentity(Base):
     ovpn_cert = Column(Text, nullable=False)
     ovpn_key = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ExternalPanel(Base):
+    """A 3x-ui / s-ui panel Alexen connects to: its users' inbounds can be imported
+    into our users' subscriptions, and its live traffic / online IPs shown here.
+    The password is stored encrypted (app.node_extras.encrypt)."""
+    __tablename__ = "external_panels"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(256, collation='NOCASE'), unique=True, nullable=False)
+    kind = Column(String(16), nullable=False)                 # "3xui" | "sui"
+    address = Column(String(512), nullable=False)             # base url, e.g. http://1.2.3.4:2053
+    panel_path = Column(String(128), nullable=False, server_default="/")  # 3xui "/", sui "/app/"
+    username = Column(String(128), nullable=False, server_default="")
+    password_enc = Column(String(1024), nullable=False, server_default="")
+    token = Column(String(2048), nullable=True)               # optional API token instead of login
+    scope = Column(JSON, nullable=False, default=dict, server_default="{}")  # {"admins":[...],"groups":[...]} empty=all
+    enabled = Column(Boolean, nullable=False, default=True, server_default="1")
+    last_sync = Column(DateTime, nullable=True)
+    last_error = Column(String(512), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
