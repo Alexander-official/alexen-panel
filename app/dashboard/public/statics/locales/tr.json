@@ -1666,5 +1666,10 @@
   "extPanel.noInbounds": "Bu panelde henüz inbound yok.",
   "extPanel.importSoon": "Bunları kullanıcıların aboneliğine aktarma ve canlı trafik sırada.",
   "extPanel.empty": "Henüz harici panel yok. Başlamak için bir tane ekle.",
-  "extPanel.allAdmins": "tüm adminler"
+  "extPanel.allAdmins": "tüm adminler",
+  "extPanel.traffic": "Trafik",
+  "extPanel.online": "Çevrimiçi",
+  "extPanel.up": "Yükleme",
+  "extPanel.down": "İndirme",
+  "extPanel.liveHint": "Canlı — birkaç saniyede bir yenilenir."
 }

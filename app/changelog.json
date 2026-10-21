@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.18.0",
+    "date": "2026-10-21",
+    "tr": [
+      "Harici panel: canlı trafik/çevrimiçi gösterimi — Harici panel > Trafik ile bağlı 3x-ui/s-ui panelinin toplam yükleme/indirme, çevrimiçi sayısı ve kullanıcı bazlı trafiği birkaç saniyede bir yenilenerek gösterilir"
+    ],
+    "en": [
+      "External panel: live traffic/online view — External panel > Traffic shows the connected 3x-ui/s-ui panel's total up/down, online count and per-client traffic, refreshed every few seconds"
+    ]
+  },
+  {
     "version": "1.17.1",
     "date": "2026-10-21",
     "tr": [

@@ -125,3 +125,23 @@ def panel_inbounds(panel_id: int, db: Session = Depends(get_db),
         return {"inbounds": client.raw_inbounds()}
     except PanelError as e:
         raise HTTPException(400, str(e))
+
+
+@router.get("/{panel_id}/stats")
+def panel_stats(panel_id: int, db: Session = Depends(get_db),
+                admin: Admin = Depends(Admin.check_sudo_admin)):
+    """Live traffic / online for the panel (poll this for near-real-time display)."""
+    from datetime import datetime
+    p = _get(db, panel_id)
+    try:
+        client = BaseClient.from_panel(p)
+        client.login()
+        data = client.stats()
+        p.last_sync = datetime.utcnow()
+        p.last_error = None
+    except PanelError as e:
+        p.last_error = str(e)
+        db.commit()
+        raise HTTPException(400, str(e))
+    db.commit()
+    return data

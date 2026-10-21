@@ -28,11 +28,13 @@ import {
   ServerStackIcon,
   TrashIcon,
   QueueListIcon,
+  ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { FC, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { fetch } from "service/http";
+import { formatBytes } from "utils/formatByte";
 
 type Scope = { admins: string[]; groups: string[] };
 type Panel = {
@@ -80,7 +82,29 @@ export const ExternalPanelsPage: FC = () => {
   const qc = useQueryClient();
   const [form, setForm] = useState<Form | null>(null);
   const [inbounds, setInbounds] = useState<{ panel: Panel; items: any[] } | null>(null);
+  const [stats, setStats] = useState<{ panel: Panel; data: any | null; error?: string } | null>(null);
   const [busy, setBusy] = useState<number | "form" | null>(null);
+  const statsRef = useRef<Panel | null>(null);
+
+  // poll the open panel's live traffic/online every 4s
+  useEffect(() => {
+    statsRef.current = stats?.panel || null;
+    if (!stats) return;
+    let stop = false;
+    const tick = () => {
+      const p = statsRef.current;
+      if (!p) return;
+      fetch(`/external-panels/${p.id}/stats`)
+        .then((d: any) => !stop && setStats((s) => (s && s.panel.id === p.id ? { panel: p, data: d } : s)))
+        .catch((e) => !stop && setStats((s) => (s && s.panel.id === p.id ? { panel: p, data: s.data, error: e?.response?._data?.detail || "error" } : s)));
+    };
+    tick();
+    const id = setInterval(tick, 4000);
+    return () => {
+      stop = true;
+      clearInterval(id);
+    };
+  }, [stats?.panel?.id]);
 
   const { data: panels = [], isLoading } = useQuery<Panel[]>("external-panels", () => fetch("/external-panels"));
   const { data: admins = [] } = useQuery<any[]>("admins-for-ext", () => fetch("/admins"));
@@ -331,6 +355,9 @@ export const ExternalPanelsPage: FC = () => {
                   <Button size="xs" variant="outline" leftIcon={<QueueListIcon width={14} />} onClick={() => showInbounds(p)}>
                     {t("extPanel.inbounds")}
                   </Button>
+                  <Button size="xs" variant="outline" leftIcon={<ChartBarIcon width={14} />} onClick={() => setStats({ panel: p, data: null })}>
+                    {t("extPanel.traffic")}
+                  </Button>
                   <IconButton aria-label="edit" size="xs" variant="ghost" icon={<PencilSquareIcon width={16} />} onClick={() => startEdit(p)} />
                   <IconButton aria-label="delete" size="xs" variant="ghost" colorScheme="red" icon={<TrashIcon width={16} />} onClick={() => remove(p)} />
                 </HStack>
@@ -376,6 +403,54 @@ export const ExternalPanelsPage: FC = () => {
           <Text fontSize="xs" color="gray.500">
             {t("extPanel.importSoon")}
           </Text>
+        </Box>
+      )}
+
+      {stats && (
+        <Box className="alexen-page" borderWidth="1px" borderRadius="16px" p={5}>
+          <HStack mb={3}>
+            <Heading size="sm">{stats.panel.name} — {t("extPanel.traffic")}</Heading>
+            <Spinner size="xs" color="primary.400" />
+            <Button size="xs" variant="ghost" ml="auto" onClick={() => setStats(null)}>
+              {t("close")}
+            </Button>
+          </HStack>
+          {stats.error && !stats.data ? (
+            <Text fontSize="sm" color="red.400">{stats.error}</Text>
+          ) : !stats.data ? (
+            <Text fontSize="sm" color="gray.500">…</Text>
+          ) : (
+            <>
+              <HStack spacing={6} mb={3} flexWrap="wrap">
+                <Box>
+                  <Text fontSize="xs" color="gray.500">{t("extPanel.online")}</Text>
+                  <Text fontSize="lg" fontWeight="bold" color="green.400">{stats.data.online ?? 0}</Text>
+                </Box>
+                <Box>
+                  <Text fontSize="xs" color="gray.500">↑ {t("extPanel.up")}</Text>
+                  <Text fontSize="lg" fontWeight="bold">{formatBytes(stats.data.total_up || 0)}</Text>
+                </Box>
+                <Box>
+                  <Text fontSize="xs" color="gray.500">↓ {t("extPanel.down")}</Text>
+                  <Text fontSize="lg" fontWeight="bold">{formatBytes(stats.data.total_down || 0)}</Text>
+                </Box>
+              </HStack>
+              {(stats.data.clients || []).length > 0 && (
+                <VStack align="stretch" spacing={1} maxH="300px" overflowY="auto">
+                  {stats.data.clients.map((c: any, i: number) => (
+                    <HStack key={i} fontSize="sm" borderWidth="1px" borderRadius="8px" px={3} py={1.5}>
+                      <Box w="8px" h="8px" borderRadius="full" bg={c.online ? "green.400" : "gray.400"} flexShrink={0} />
+                      <Text isTruncated>{c.name || "—"}</Text>
+                      <Text ml="auto" color="gray.500" fontFamily="mono" fontSize="xs">
+                        {formatBytes(c.total || 0)}
+                      </Text>
+                    </HStack>
+                  ))}
+                </VStack>
+              )}
+              <Text mt={3} fontSize="xs" color="gray.500">{t("extPanel.liveHint")}</Text>
+            </>
+          )}
         </Box>
       )}
     </VStack>

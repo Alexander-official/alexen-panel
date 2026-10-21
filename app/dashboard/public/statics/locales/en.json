@@ -1666,5 +1666,10 @@
   "extPanel.noInbounds": "This panel has no inbounds yet.",
   "extPanel.importSoon": "Importing these into users' subscriptions and live traffic are coming next.",
   "extPanel.empty": "No external panels yet. Add one to get started.",
-  "extPanel.allAdmins": "all admins"
+  "extPanel.allAdmins": "all admins",
+  "extPanel.traffic": "Traffic",
+  "extPanel.online": "Online",
+  "extPanel.up": "Up",
+  "extPanel.down": "Down",
+  "extPanel.liveHint": "Live — refreshes every few seconds."
 }
