@@ -1624,5 +1624,14 @@
   "external.protocolFilterHelp": "فقط این‌ها · خالی = همه",
   "admins.deleteTitle": "حذف ادمین",
   "admins.deleteConfirm": "«{{name}}» حذف شود؟ این عمل برگشت‌پذیر نیست.",
-  "admins.deleteUsersWarn": "کاربران این ادمین بدون مالک می‌مانند. اگر می‌خواهید حفظ شوند، ابتدا به ادمین دیگری منتقل کنید."
+  "admins.deleteUsersWarn": "کاربران این ادمین بدون مالک می‌مانند. اگر می‌خواهید حفظ شوند، ابتدا به ادمین دیگری منتقل کنید.",
+  "admins.permsTitle": "دسترسی‌ها",
+  "admins.permCopy": "می‌تواند کانفیگ‌ها را کپی کند",
+  "admins.permCopyHelp": "خاموش: دکمه‌های کپی مخفی می‌شوند",
+  "admins.permLimits": "می‌تواند محدودیت IP/دستگاه را تغییر دهد",
+  "admins.permLimitsHelp": "خاموش: این فیلدها فقط‌خواندنی هستند",
+  "admins.created": "ایجاد",
+  "admins.deleted": "حذف",
+  "userDialog.ipBlocks": "مسدودی IP جدید",
+  "userDialog.deviceRejects": "رد دستگاه جدید"
 }

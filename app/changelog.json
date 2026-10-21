@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.14.0",
+    "date": "2026-10-21",
+    "tr": [
+      "Bayi (admin) izinleri: sudo/creator her admin için 'config kopyalayabilir' ve 'IP/cihaz limitini değiştirebilir' iznini aç/kapatabilir; izin yoksa kopyalama düğmeleri gizlenir ve limitler salt-okunur olur",
+      "Admin başına sayaçlar: kaç kullanıcı açtı / sildi (Yöneticiler listesinde)",
+      "Her kullanıcı için: engellenen yeni IP sayısı ve reddedilen yeni cihaz sayısı (kullanıcı penceresinde)"
+    ],
+    "en": [
+      "Reseller (admin) permissions: a sudo/creator can toggle, per admin, 'can copy configs' and 'can edit IP/device limits'; without permission the copy buttons are hidden and the limits are read-only",
+      "Per-admin counters: how many users they created / deleted (on the Admins list)",
+      "Per-user: how many new IPs were blocked and new devices rejected (in the user dialog)"
+    ]
+  },
+  {
     "version": "1.13.1",
     "date": "2026-10-18",
     "tr": [

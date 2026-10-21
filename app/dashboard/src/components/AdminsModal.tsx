@@ -53,6 +53,10 @@ type AdminItem = {
   max_user_ip_limit: number | null;
   max_user_hwid_limit: number | null;
   host_groups: string[];
+  can_copy_configs?: boolean;
+  can_edit_limits?: boolean;
+  users_created?: number;
+  users_deleted?: number;
 };
 
 type FormState = {
@@ -66,6 +70,8 @@ type FormState = {
   max_user_ip_limit: string;
   max_user_hwid_limit: string;
   host_groups: string; // comma separated
+  can_copy_configs: boolean;
+  can_edit_limits: boolean;
 };
 
 const emptyForm: FormState = {
@@ -79,6 +85,8 @@ const emptyForm: FormState = {
   max_user_ip_limit: "",
   max_user_hwid_limit: "",
   host_groups: "",
+  can_copy_configs: true,
+  can_edit_limits: true,
 };
 
 // expire_date comes as UTC without a zone ("2026-10-14T18:59:59")
@@ -170,6 +178,8 @@ export const AdminsModal: FC = () => {
         ? String(admin.max_user_hwid_limit)
         : "",
       host_groups: (admin.host_groups || []).join(", "),
+      can_copy_configs: admin.can_copy_configs !== false,
+      can_edit_limits: admin.can_edit_limits !== false,
     });
     setEditing(admin.username);
     setShowForm(true);
@@ -207,6 +217,8 @@ export const AdminsModal: FC = () => {
         .split(",")
         .map((g) => g.trim())
         .filter(Boolean),
+      can_copy_configs: form.can_copy_configs,
+      can_edit_limits: form.can_edit_limits,
     };
     const req = editing
       ? fetch(`/admin/${editing}`, { method: "PUT", body })
@@ -447,6 +459,19 @@ export const AdminsModal: FC = () => {
                       {t("admins.hostGroupsPlaceholder")}
                     </Text>
                   </FormControl>
+                  <FormControl>
+                    <FormLabel fontSize="sm">{t("admins.permsTitle")}</FormLabel>
+                    <VStack align="stretch" spacing={2}>
+                      <Checkbox isChecked={form.can_copy_configs} onChange={(e) => setForm({ ...form, can_copy_configs: e.target.checked })}>
+                        <Text fontSize="sm">{t("admins.permCopy")}</Text>
+                        <Text fontSize="xs" color="gray.500">{t("admins.permCopyHelp")}</Text>
+                      </Checkbox>
+                      <Checkbox isChecked={form.can_edit_limits} onChange={(e) => setForm({ ...form, can_edit_limits: e.target.checked })}>
+                        <Text fontSize="sm">{t("admins.permLimits")}</Text>
+                        <Text fontSize="xs" color="gray.500">{t("admins.permLimitsHelp")}</Text>
+                      </Checkbox>
+                    </VStack>
+                  </FormControl>
                 </>
               )}
               {!form.is_sudo && <AdminSubProfile name={editing || ""} saveRef={profileSave} focus={subFirst} />}
@@ -519,6 +544,11 @@ export const AdminsModal: FC = () => {
                           {admin.host_groups?.length
                             ? ` · ${admin.host_groups.join(", ")}`
                             : ""}
+                        </Text>
+                      )}
+                      {((admin.users_created || 0) > 0 || (admin.users_deleted || 0) > 0) && (
+                        <Text fontSize="xs" color="gray.500">
+                          {t("admins.created")}: {admin.users_created || 0} · {t("admins.deleted")}: {admin.users_deleted || 0}
                         </Text>
                       )}
                       {!admin.is_sudo && (() => {

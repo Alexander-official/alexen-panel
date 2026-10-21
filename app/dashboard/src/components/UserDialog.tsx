@@ -237,6 +237,7 @@ const schema = z.discriminatedUnion("status", [
 
 export const UserDialog: FC<UserDialogProps> = () => {
   const { userData } = useGetUser();
+  const limitsLocked = !userData?.is_sudo && (userData as any)?.can_edit_limits === false;
   const maxIp =
     !userData?.is_sudo && (userData as any)?.max_user_ip_limit
       ? (userData as any).max_user_ip_limit
@@ -480,6 +481,8 @@ export const UserDialog: FC<UserDialogProps> = () => {
                     [t("userDialog.createdAt"), (editingUser as any).created_at ? dayjs.utc((editingUser as any).created_at).local().format("DD.MM.YYYY HH:mm") : "—"],
                     [t("userDialog.lastSubUpdate"), (editingUser as any).sub_updated_at ? dayjs.utc((editingUser as any).sub_updated_at).local().fromNow() : t("userDialog.never")],
                     [t("userDialog.subUpdateCount"), String((editingUser as any).sub_request_count ?? 0)],
+                    [t("userDialog.ipBlocks"), String((editingUser as any).ip_block_count ?? 0)],
+                    [t("userDialog.deviceRejects"), String((editingUser as any).hwid_reject_count ?? 0)],
                   ] as [string, string][]).map(([label, val], i) => (
                     <Box key={i} flex="1 1 120px" minW={0} px={3} py={2}>
                       <Text fontSize="2xs" color="gray.500" textTransform="uppercase" letterSpacing="wide" noOfLines={1}>
@@ -803,7 +806,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                                 if (maxIp && Number(v) > maxIp) v = String(maxIp);
                                 field.onChange(v);
                               }}
-                              disabled={disabled}
+                              disabled={disabled || limitsLocked}
                               value={field.value ? String(field.value) : ""}
                             />
                           )}
@@ -832,7 +835,7 @@ export const UserDialog: FC<UserDialogProps> = () => {
                                   v = String(maxHwid);
                                 field.onChange(v);
                               }}
-                              disabled={disabled}
+                              disabled={disabled || limitsLocked}
                               value={field.value ? String(field.value) : ""}
                             />
                           )}

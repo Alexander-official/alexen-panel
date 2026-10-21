@@ -1622,5 +1622,14 @@
   "external.protocolFilterHelp": "keep only these · empty = all",
   "admins.deleteTitle": "Delete admin",
   "admins.deleteConfirm": "Delete \"{{name}}\"? This can't be undone.",
-  "admins.deleteUsersWarn": "This admin's users lose their owner. Transfer them to another admin first if you want to keep them assigned."
+  "admins.deleteUsersWarn": "This admin's users lose their owner. Transfer them to another admin first if you want to keep them assigned.",
+  "admins.permsTitle": "Permissions",
+  "admins.permCopy": "Can copy user configs",
+  "admins.permCopyHelp": "off: the copy/subscription buttons are hidden for this admin",
+  "admins.permLimits": "Can edit IP / device limits",
+  "admins.permLimitsHelp": "off: those fields are read-only for this admin",
+  "admins.created": "created",
+  "admins.deleted": "deleted",
+  "userDialog.ipBlocks": "New-IP blocks",
+  "userDialog.deviceRejects": "New-device rejects"
 }
