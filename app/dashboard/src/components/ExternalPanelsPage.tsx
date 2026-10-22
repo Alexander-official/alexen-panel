@@ -13,6 +13,7 @@ import {
   IconButton,
   Input,
   Select,
+  SimpleGrid,
   Spinner,
   Switch,
   Text,
@@ -51,7 +52,7 @@ type Panel = {
   live: boolean;
   count_traffic: boolean;
   auto_provision: boolean;
-  prov_config: { auto?: boolean; inbounds?: number[]; scope_all?: boolean; admins?: string[]; name_mode?: string; name_template?: string };
+  prov_config: { auto?: boolean; inbounds?: number[]; scope_all?: boolean; admins?: string[]; name_mode?: string; name_template?: string; port_map?: Record<string, number>; host_over?: string };
   last_error: string | null;
   last_sync: string | null;
 };
@@ -84,6 +85,16 @@ const emptyForm: Form = {
   syncMode: "off",
   syncInterval: 60,
   countTraffic: false,
+};
+
+// "39319:443, 22983:443" -> {"39319":443}
+const parsePortMap = (s: string): Record<string, number> => {
+  const m: Record<string, number> = {};
+  (s || "").split(/[,\n]/).forEach((pair) => {
+    const [a, b] = pair.split(":").map((x) => x.trim());
+    if (a && b && !isNaN(+a) && !isNaN(+b)) m[a] = +b;
+  });
+  return m;
 };
 
 const fmtUptime = (sec: number): string => {
@@ -159,7 +170,7 @@ export const ExternalPanelsPage: FC = () => {
   const [stats, setStats] = useState<{ panel: Panel; data: any | null; error?: string } | null>(null);
   const [busy, setBusy] = useState<number | "form" | null>(null);
   const [prov, setProv] = useState<
-    { panel: Panel; inbounds: any[]; inboundIds: number[]; all: boolean; admins: string[]; nameMode: string; nameTemplate: string; auto: boolean } | null
+    { panel: Panel; inbounds: any[]; inboundIds: number[]; all: boolean; admins: string[]; nameMode: string; nameTemplate: string; auto: boolean; portMap: string; hostOver: string } | null
   >(null);
   const statsRef = useRef<Panel | null>(null);
 
@@ -176,6 +187,8 @@ export const ExternalPanelsPage: FC = () => {
           nameMode: pc.name_mode || "original",
           nameTemplate: pc.name_template || "",
           auto: pc.auto ?? false,
+          portMap: Object.entries(pc.port_map || {}).map(([k, v]) => `${k}:${v}`).join(", "),
+          hostOver: pc.host_over || "",
         });
       })
       .catch(err)
@@ -208,7 +221,8 @@ export const ExternalPanelsPage: FC = () => {
 
   const { data: panels = [], isLoading } = useQuery<Panel[]>("external-panels", () => fetch("/external-panels"));
   const { data: admins = [] } = useQuery<any[]>("admins-for-ext", () => fetch("/admins"));
-  const resellers = admins.filter((a) => !a.is_sudo).map((a) => a.username);
+  // every admin is selectable (incl. sudo/own account like alex77), so you can scope to your own users too
+  const resellers = admins.map((a) => a.username);
 
   const ok = (title: string): void => {
     toast({ status: "success", title, position: "top", duration: 3000 });
@@ -658,6 +672,18 @@ export const ExternalPanelsPage: FC = () => {
               </>
             )}
           </FormControl>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} mb={3}>
+            <FormControl>
+              <FormLabel fontSize="sm">{t("extPanel.portMap")}</FormLabel>
+              <Input size="sm" placeholder="39319:443, 22983:443" value={prov.portMap} onChange={(e) => setProv({ ...prov, portMap: e.target.value })} />
+              <Text fontSize="xs" color="gray.500" mt={1}>{t("extPanel.portMapHelp")}</Text>
+            </FormControl>
+            <FormControl>
+              <FormLabel fontSize="sm">{t("extPanel.hostOver")}</FormLabel>
+              <Input size="sm" placeholder={prov.panel.address.replace(/^https?:\/\//, "").split(":")[0]} value={prov.hostOver} onChange={(e) => setProv({ ...prov, hostOver: e.target.value })} />
+              <Text fontSize="xs" color="gray.500" mt={1}>{t("extPanel.hostOverHelp")}</Text>
+            </FormControl>
+          </SimpleGrid>
           <HStack mb={3} align="flex-start">
             <Switch isChecked={prov.auto} onChange={(e) => setProv({ ...prov, auto: e.target.checked })} />
             <Box>
@@ -671,7 +697,7 @@ export const ExternalPanelsPage: FC = () => {
               isLoading={busy === "form"}
               onClick={() => {
                 setBusy("form");
-                fetch(`/external-panels/${prov.panel.id}/provision`, { method: "POST", body: { inbound_ids: prov.inboundIds, scope_all: prov.all, scope_admins: prov.all ? [] : prov.admins, name_mode: prov.nameMode, name_template: prov.nameTemplate, auto: prov.auto } })
+                fetch(`/external-panels/${prov.panel.id}/provision`, { method: "POST", body: { inbound_ids: prov.inboundIds, scope_all: prov.all, scope_admins: prov.all ? [] : prov.admins, name_mode: prov.nameMode, name_template: prov.nameTemplate, auto: prov.auto, port_map: parsePortMap(prov.portMap), host_over: prov.hostOver.trim() } })
                   .then((r: any) => { ok(t("extPanel.provisioned", { created: r.created, exists: r.exists, failed: r.failed })); setProv(null); })
                   .catch(err)
                   .finally(() => setBusy(null));

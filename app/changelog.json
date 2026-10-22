@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.28.0",
+    "date": "2026-10-22",
+    "tr": [
+      "Harici panel push: artık TÜM adminler seçilebiliyor (sudo/kendi hesabın alex77 dahil) — kendi kullanıcılarını da kapsayabilirsin.",
+      "Port/adres değiştirme eklendi: provision'da 'Port değiştir' (ör. 39319:443, 22983:443) ve 'Adres değiştir' (temiz IP/CDN) ile kullanıcının subuna farklı port/host verilir — panele dokunulmaz, uuid/parametreler korunur, adres değişince eski adres sni olarak kalır (sertifika bozulmaz)."
+    ],
+    "en": [
+      "External-panel push: ALL admins are now selectable (including sudo/your own account like alex77) — so you can scope to your own users too.",
+      "Added port/host override: in provision, 'Port remap' (e.g. 39319:443, 22983:443) and 'Host override' (clean IP/CDN) hand out a different port/host in the user's sub — the panel is untouched, uuid/params are kept, and when the host changes the old one is kept as sni so the cert still matches."
+    ]
+  },
+  {
     "version": "1.27.0",
     "date": "2026-10-22",
     "tr": [

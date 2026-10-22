@@ -164,6 +164,8 @@ class ProvisionOptions(BaseModel):
     name_mode: str = "original"   # "original" | "custom" | "random_geo" (app/subscription/external.py)
     name_template: str = ""        # for "custom": {USERNAME} {RANDOM} {FLAG} {COUNTRY} {CAPITAL} {GEO}
     auto: bool = False             # keep provisioning new scoped users automatically (until changed)
+    port_map: dict = {}            # {"39319": 443}: hand out a different port in the user's sub
+    host_over: str = ""            # replace the server host in the user's sub (e.g. a CDN/clean IP)
 
 
 def _is_conflict(msg: str) -> bool:
@@ -259,7 +261,9 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
     # and so re-opening the form restores the choice. Stays until the sudo changes it.
     p.prov_config = {"auto": bool(opts.auto), "inbounds": inbound_ids_int, "scope_all": bool(opts.scope_all),
                      "admins": list(opts.scope_admins or []), "name_mode": opts.name_mode or "original",
-                     "name_template": opts.name_template or ""}
+                     "name_template": opts.name_template or "",
+                     "port_map": {str(k): int(v) for k, v in (opts.port_map or {}).items() if str(v).isdigit()},
+                     "host_over": (opts.host_over or "").strip()}
     p.last_sync = datetime.utcnow()
     p.last_error = (errors[0] if errors else None)
     db.commit()
