@@ -232,6 +232,24 @@ def setup_format_variables(extra_data: dict) -> dict:
     status_emoji = STATUS_EMOJIS.get(extra_data.get("status")) or ""
     status_text = STATUS_TEXTS.get(extra_data.get("status")) or ""
 
+    # the user's own id/password — lets a provisioned external-panel config template
+    # (vless/hysteria2 with {EXT_UUID}) resolve to this user's identity in their sub
+    ext_uuid = ""
+    try:
+        proxies = extra_data.get("proxies") or {}
+        values = proxies.values() if isinstance(proxies, dict) else (proxies or [])
+        dicts = [v if isinstance(v, dict) else (v.dict() if hasattr(v, "dict") else getattr(v, "__dict__", {}) or {}) for v in values]
+        # same priority as the provision side (external_panel._user_secret): id, then password, then auth
+        for field in ("id", "password", "auth"):
+            for d in dicts:
+                if d.get(field):
+                    ext_uuid = str(d[field])
+                    break
+            if ext_uuid:
+                break
+    except Exception:
+        pass
+
     format_variables = defaultdict(
         lambda: "<missing>",
         {
@@ -247,6 +265,7 @@ def setup_format_variables(extra_data: dict) -> dict:
             "TIME_LEFT": time_left,
             "STATUS_EMOJI": status_emoji,
             "STATUS_TEXT": status_text,
+            "EXT_UUID": ext_uuid,
         },
     )
 

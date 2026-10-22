@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.22.0",
+    "date": "2026-10-22",
+    "tr": [
+      "Harici panel “Kullanıcıları panelde aç” artık configi kullanıcıların SUBUNA da ekliyor: seçilen her inbound için, o sunucunun configi her kullanıcının kendi UUID’siyle abonelik linkine düşer (vless/hysteria2/trojan). Panelde oluşturulan client ile uuid birebir aynı."
+    ],
+    "en": [
+      "External panel “Create users on panel” now also adds the config to users’ SUBS: for each chosen inbound, that server’s config lands in every user’s subscription filled with their own UUID (vless/hysteria2/trojan), matching the client created on the panel."
+    ]
+  },
+  {
     "version": "1.21.0",
     "date": "2026-10-22",
     "tr": [

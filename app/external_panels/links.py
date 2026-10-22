@@ -101,6 +101,24 @@ def _stream_query(ss: dict) -> Dict[str, str]:
     return {k: v for k, v in q.items() if v not in (None, "")}
 
 
+_SENTINEL = "EXTUUIDSENTINEL0000"
+
+
+def inbound_template_links(inbound: dict, host: str, port: Optional[int] = None) -> List[str]:
+    """Links for an inbound with the client secret as the {EXT_UUID} placeholder, so each
+    Alexen user's sub fills in their own uuid (which matches the client we create on the panel).
+    vless/hysteria2/trojan carry the secret in cleartext (works); vmess is base64 → skipped."""
+    synth = dict(inbound)
+    s = dict(_obj(inbound.get("settings")))
+    s["clients"] = [{"id": _SENTINEL, "password": _SENTINEL, "email": ""}]
+    synth["settings"] = json.dumps(s)
+    out = []
+    for _, link in inbound_links(synth, host, port):
+        if _SENTINEL in link:
+            out.append(link.replace(_SENTINEL, "{EXT_UUID}"))
+    return out
+
+
 def inbound_links(inbound: dict, host: str, port: Optional[int] = None,
                   remark_suffix: str = "") -> List[Tuple[str, str]]:
     """(remark, link) per enabled client of a 3x-ui inbound. host/port override the real ones."""

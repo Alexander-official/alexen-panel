@@ -178,14 +178,12 @@ class ProvisionOptions(BaseModel):
 
 
 def _user_secret(u) -> str:
-    for pr in (u.proxies or []):
-        st = pr.settings or {}
-        if isinstance(st, dict) and st.get("id"):
-            return st["id"]
-    for pr in (u.proxies or []):
-        st = pr.settings or {}
-        if isinstance(st, dict) and st.get("password"):
-            return st["password"]
+    # same priority as share.setup_format_variables' EXT_UUID: id, then password, then auth
+    dicts = [(pr.settings or {}) for pr in (u.proxies or []) if isinstance(pr.settings, dict)]
+    for field in ("id", "password", "auth"):
+        for st in dicts:
+            if st.get(field):
+                return st[field]
     return ""
 
 
@@ -229,11 +227,46 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
                 failed += 1
                 if len(errors) < 3 and msg:
                     errors.append(msg)
+
+    # stage 2: give each provisioned user that server's config in their own sub — one template
+    # external-config per inbound, with {EXT_UUID} filled per user (== the uuid we created above)
+    import urllib.parse as _u
+    from app.external_panels import links as _links
+    from app.subscription import external as _external
+    host = _u.urlparse(p.address).hostname or ""
+    inbs = {ib.get("id"): ib for ib in client.raw_inbounds()}
+    prefix = f"extpanel-prov-{panel_id}-"
+    new_cfgs = []
+    for i, ib_id in enumerate(opts.inbound_ids):
+        ib = inbs.get(int(ib_id))
+        if not ib:
+            continue
+        tlinks = _links.inbound_template_links(ib, host, ib.get("port"))
+        if not tlinks:
+            continue
+        name = ib.get("remark") or ib.get("tag") or f"inbound-{ib.get('port')}"
+        new_cfgs.append(_external.ExternalConfig(id=f"{prefix}{i}", name=f"{p.name}: {name}",
+                                                 kind="links", links="\n".join(tlinks), position="bottom"))
+    if new_cfgs:
+        settings = _external.load(db)
+
+        def _put(lst):
+            return [c for c in lst if not c.id.startswith(prefix)] + new_cfgs
+        if opts.scope_all:
+            settings.configs = _put(settings.configs)
+        for nm in (opts.scope_admins or []):
+            a = settings.admins.get(nm) or _external.AdminExternal()
+            a.configs = _put(a.configs)
+            settings.admins[nm] = a
+        _external.save(db, settings)
+        from app.subscription import external_sources
+        external_sources.forget([c.id for c in new_cfgs])
+
     p.last_sync = datetime.utcnow()
     p.last_error = (errors[0] if errors else None)
     db.commit()
     return {"users": len(users), "created": created, "exists": exists,
-            "failed": failed, "skipped": skipped, "errors": errors}
+            "failed": failed, "skipped": skipped, "errors": errors, "configs": len(new_cfgs)}
 
 
 @router.post("/{panel_id}/import")

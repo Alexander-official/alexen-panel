@@ -195,13 +195,19 @@ def _visible(cfg: ExternalConfig, active: bool, host_groups: Optional[list]) -> 
 
 
 def _fill(link: str, variables: dict) -> str:
-    """put user placeholders ({USERNAME}...) into the remark part only"""
+    """fill {KEY} placeholders: in the remark (e.g. {USERNAME}) and in the base URL too
+    (e.g. an external-panel template's {EXT_UUID} in the credential slot). Real config URLs
+    don't contain braces, so substituting the base is safe."""
     if "#" not in link:
+        for key, value in variables.items():
+            link = link.replace("{%s}" % key, str(value))
         return link
     base, remark = link.split("#", 1)
     text = urllib.parse.unquote(remark)
     for key, value in variables.items():
-        text = text.replace("{%s}" % key, str(value))
+        token = "{%s}" % key
+        base = base.replace(token, str(value))
+        text = text.replace(token, str(value))
     return f"{base}#{urllib.parse.quote(text)}"
 
 
