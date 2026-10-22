@@ -86,10 +86,19 @@ class BaseClient:
         (positioned/ordered) on its own in External configs."""
         return []
 
-    def add_client(self, inbound_id: int, email: str, secret: str) -> Tuple[bool, str]:
-        """Create a client on the panel's inbound reusing `secret` as both uuid and password
-        (so the Alexen user's uuid matches). Returns (ok, msg). 'already in use' counts as ok."""
+    def add_client(self, inbound_ids, email: str, secret: str) -> Tuple[bool, str]:
+        """Create a client on ALL the given inbound(s) in one shot, reusing `secret` as both
+        uuid and password (so the Alexen user's uuid matches). `inbound_ids` is a list (a single
+        int is accepted too). Returns (ok, msg)."""
         return (False, "not supported")
+
+    def del_client(self, email: str) -> bool:
+        """Remove the client (by email) from the panel — from every inbound it's on."""
+        return False
+
+    def server_status(self) -> dict:
+        """VPS/server status (cpu, mem, disk, xray, uptime, net...). Empty if unavailable."""
+        return {}
 
 
 class ThreeXUI(BaseClient):
@@ -134,6 +143,27 @@ class ThreeXUI(BaseClient):
             raise PanelError(data.get("msg") or "couldn't list inbounds")
         return data.get("obj") or []
 
+    def server_status(self) -> dict:
+        """VPS/server status: cpu, mem, disk, xray state/version, uptime, loads, net rate, public IP."""
+        try:
+            r = self.s.get(self.url("panel/api/server/status"),
+                           headers={"X-CSRF-Token": getattr(self, "csrf", ""), "Origin": self.base},
+                           timeout=self.timeout)
+            o = (r.json() or {}).get("obj") or {}
+        except Exception:
+            return {}
+        if not o:
+            return {}
+        return {
+            "cpu": o.get("cpu"), "cpuCores": o.get("cpuCores"),
+            "mem": o.get("mem") or {}, "swap": o.get("swap") or {}, "disk": o.get("disk") or {},
+            "xray": o.get("xray") or {}, "panelVersion": o.get("panelVersion"),
+            "uptime": o.get("uptime"), "loads": o.get("loads") or [],
+            "tcpCount": o.get("tcpCount"), "udpCount": o.get("udpCount"),
+            "netIO": o.get("netIO") or {}, "netTraffic": o.get("netTraffic") or {},
+            "publicIP": o.get("publicIP") or {},
+        }
+
     def _onlines(self) -> list:
         try:
             r = self.s.post(self.url("panel/api/inbounds/onlines"),
@@ -160,7 +190,7 @@ class ThreeXUI(BaseClient):
                                 "total": (cs.get("up", 0) or 0) + (cs.get("down", 0) or 0),
                                 "online": email in online, "enable": cs.get("enable", True)})
         return {"total_up": total_up, "total_down": total_down, "online": len(online),
-                "inbounds": inbounds, "clients": clients}
+                "inbounds": inbounds, "clients": clients, "server": self.server_status()}
 
     def share_links(self, host: str = "", port_map: dict = None, fake: list = None) -> List[Tuple[str, str]]:
         import urllib.parse as _u
@@ -201,11 +231,13 @@ class ThreeXUI(BaseClient):
                 groups.append((name, ls))
         return groups
 
-    def add_client(self, inbound_id: int, email: str, secret: str) -> Tuple[bool, str]:
+    def add_client(self, inbound_ids, email: str, secret: str) -> Tuple[bool, str]:
+        ids = inbound_ids if isinstance(inbound_ids, (list, tuple)) else [inbound_ids]
+        ids = [int(i) for i in ids]
         body = {"client": {"email": email, "id": secret, "password": secret, "enable": True,
                            "totalGB": 0, "expiryTime": 0, "limitIp": 0, "limitHwid": 0,
                            "tgId": 0, "subId": "", "flow": ""},
-                "inboundIds": [inbound_id]}
+                "inboundIds": ids}
         try:
             r = self.s.post(self.url("panel/api/clients/add"),
                             headers={"X-CSRF-Token": getattr(self, "csrf", ""), "Origin": self.base},
@@ -219,6 +251,15 @@ class ThreeXUI(BaseClient):
         if "already in use" in msg or "already exists" in msg:
             return (True, "exists")
         return (False, msg or "add failed")
+
+    def del_client(self, email: str) -> bool:
+        try:
+            r = self.s.post(self.url(f"panel/api/clients/del/{email}?keepTraffic=0"),
+                            headers={"X-CSRF-Token": getattr(self, "csrf", ""), "Origin": self.base},
+                            timeout=self.timeout)
+            return bool(r.json().get("success"))
+        except Exception:
+            return False
 
 
 class SUI(BaseClient):

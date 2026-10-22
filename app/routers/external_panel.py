@@ -198,6 +198,7 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
         p.last_error = str(e)
         db.commit()
         raise HTTPException(400, str(e))
+    ids = [int(x) for x in opts.inbound_ids]
     created = exists = failed = skipped = 0
     errors = []
     for u in users:
@@ -205,15 +206,19 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
         if not sec:
             skipped += 1
             continue
-        for ib in opts.inbound_ids:
-            ok, msg = client.add_client(int(ib), u.username, sec)
-            if ok:
-                exists += 1 if msg == "exists" else 0
-                created += 0 if msg == "exists" else 1
-            else:
-                failed += 1
-                if len(errors) < 3 and msg:
-                    errors.append(msg)
+        # one call adds the user to ALL chosen inbounds (same uuid, one email). 3x-ui needs the
+        # email unique panel-wide, so a user already there (e.g. from an earlier run on fewer
+        # inbounds) is removed first and re-added across all inbounds — idempotent and complete.
+        ok, msg = client.add_client(ids, u.username, sec)
+        if (not ok and "in use" in (msg or "")) or msg == "exists":
+            client.del_client(u.username)
+            ok, msg = client.add_client(ids, u.username, sec)
+        if ok:
+            created += 1
+        else:
+            failed += 1
+            if len(errors) < 3 and msg:
+                errors.append(msg)
 
     # stage 2: give each provisioned user that server's config in their own sub — one template
     # external-config per inbound, with {EXT_UUID} filled per user (== the uuid we created above)

@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.25.0",
+    "date": "2026-10-22",
+    "tr": [
+      "Push düzeltmesi: 'Kullanıcıları panelde aç' artık kullanıcıyı SEÇİLEN TÜM inbound'lara ekliyor (eskiden yalnızca ilki/hysteria eklenirdi — 3x-ui aynı email'i ikinci inbound'a kabul etmiyordu). Tek çağrıda tüm inbound'lara, aynı UUID ile; zaten varsa önce silinip tüm inbound'lara yeniden eklenir (idempotent).",
+      "Harici panel: VPS durumu canlı gösteriliyor — Trafik ekranında Xray durumu+sürümü, CPU, RAM, disk, yük, ağ hızı, uptime, genel IP ve panel sürümü (panelin senkron hızıyla güncellenir)."
+    ],
+    "en": [
+      "Push fix: 'Create users on panel' now adds the user to ALL selected inbounds (it used to add only the first/hysteria — 3x-ui rejects the same email on a second inbound). One call to all inbounds with the same UUID; if already present it's removed first and re-added across all inbounds (idempotent).",
+      "External panel: live VPS status — the Traffic view shows Xray state+version, CPU, RAM, disk, load, network rate, uptime, public IP and panel version (refreshes at the panel's sync rate)."
+    ]
+  },
+  {
     "version": "1.24.0",
     "date": "2026-10-22",
     "tr": [

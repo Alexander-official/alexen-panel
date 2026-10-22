@@ -89,9 +89,11 @@ def _sync_one(panel_id: int) -> None:
                 if a:
                     a.users_usage = (a.users_usage or 0) + val
 
+        # trimmed snapshot (no per-client list — that can be 200+ rows every few seconds);
+        # the Traffic view polls /stats live for the client list while it's open
         p.last_stats = {
             "total_up": data.get("total_up", 0), "total_down": data.get("total_down", 0),
-            "online": data.get("online", 0), "clients": clients,
+            "online": data.get("online", 0), "server": data.get("server") or {},
             "totals": totals, "at": now_dt.isoformat(),
         }
         p.last_sync = now_dt

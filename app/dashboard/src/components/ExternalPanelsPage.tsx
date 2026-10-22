@@ -84,6 +84,70 @@ const emptyForm: Form = {
   countTraffic: false,
 };
 
+const fmtUptime = (sec: number): string => {
+  sec = Math.max(0, Math.floor(sec || 0));
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  return (d ? `${d}g ` : "") + (h || d ? `${h}s ` : "") + `${m}d`;
+};
+
+const Meter: FC<{ label: string; used: number; total: number }> = ({ label, used, total }) => {
+  const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+  const color = pct >= 90 ? "red.400" : pct >= 70 ? "orange.400" : "green.400";
+  return (
+    <Box minW="130px" flex="1">
+      <HStack justify="space-between" mb={0.5}>
+        <Text fontSize="xs" color="gray.500">{label}</Text>
+        <Text fontSize="xs" fontWeight="semibold">{pct}%</Text>
+      </HStack>
+      <Box h="5px" borderRadius="full" bg="blackAlpha.200" _dark={{ bg: "whiteAlpha.200" }} overflow="hidden">
+        <Box h="100%" w={`${pct}%`} bg={color} borderRadius="full" />
+      </Box>
+      <Text fontSize="2xs" color="gray.500" mt={0.5}>{formatBytes(used)} / {formatBytes(total)}</Text>
+    </Box>
+  );
+};
+
+const ServerStatus: FC<{ s: any }> = ({ s }) => {
+  const { t } = useTranslation();
+  const xrayUp = s.xray?.state === "running";
+  const loads = Array.isArray(s.loads) ? s.loads : [];
+  return (
+    <Box {...{ borderWidth: "1px", borderRadius: "12px" }} p={3} mb={3} borderColor="light-border" _dark={{ borderColor: "gray.700" }}>
+      <HStack mb={2} flexWrap="wrap" spacing={3}>
+        <Text fontSize="xs" fontWeight="bold" color="gray.500">{t("extPanel.srvTitle")}</Text>
+        <Badge colorScheme={xrayUp ? "green" : "red"}>Xray {xrayUp ? t("extPanel.srvRunning") : t("extPanel.srvStopped")}{s.xray?.version ? ` ${s.xray.version}` : ""}</Badge>
+        {s.panelVersion && <Badge variant="subtle">3x-ui {s.panelVersion}</Badge>}
+        {s.publicIP?.ipv4 && s.publicIP.ipv4 !== "N/A" && <Text fontSize="xs" fontFamily="mono" color="gray.500">{s.publicIP.ipv4}</Text>}
+        {s.uptime != null && <Text fontSize="xs" color="gray.500" ml="auto">{t("extPanel.srvUptime")}: {fmtUptime(s.uptime)}</Text>}
+      </HStack>
+      <HStack spacing={4} flexWrap="wrap" align="flex-start">
+        <Box minW="110px">
+          <Text fontSize="xs" color="gray.500">CPU{s.cpuCores ? ` (${s.cpuCores})` : ""}</Text>
+          <Text fontSize="md" fontWeight="bold">{Math.round(s.cpu || 0)}%</Text>
+        </Box>
+        <Meter label="RAM" used={s.mem?.current || 0} total={s.mem?.total || 0} />
+        <Meter label={t("extPanel.srvDisk")} used={s.disk?.current || 0} total={s.disk?.total || 0} />
+        <Box minW="110px">
+          <Text fontSize="xs" color="gray.500">{t("extPanel.srvLoad")}</Text>
+          <Text fontSize="sm" fontFamily="mono">{loads.map((x: number) => (+x).toFixed(2)).join(" ") || "—"}</Text>
+        </Box>
+        <Box minW="120px">
+          <Text fontSize="xs" color="gray.500">{t("extPanel.srvNet")}</Text>
+          <Text fontSize="sm" fontFamily="mono">↑{formatBytes(s.netIO?.up || 0)}/s ↓{formatBytes(s.netIO?.down || 0)}/s</Text>
+        </Box>
+        {(s.tcpCount != null || s.udpCount != null) && (
+          <Box minW="90px">
+            <Text fontSize="xs" color="gray.500">TCP / UDP</Text>
+            <Text fontSize="sm" fontFamily="mono">{s.tcpCount ?? 0} / {s.udpCount ?? 0}</Text>
+          </Box>
+        )}
+      </HStack>
+    </Box>
+  );
+};
+
 export const ExternalPanelsPage: FC = () => {
   const { t } = useTranslation();
   const toast = useToast();
@@ -492,6 +556,9 @@ export const ExternalPanelsPage: FC = () => {
                   <Text fontSize="lg" fontWeight="bold">{formatBytes(stats.data.total_down || 0)}</Text>
                 </Box>
               </HStack>
+              {stats.data.server && Object.keys(stats.data.server).length > 0 && (
+                <ServerStatus s={stats.data.server} />
+              )}
               {(stats.data.clients || []).length > 0 && (
                 <VStack align="stretch" spacing={1} maxH="300px" overflowY="auto">
                   {stats.data.clients.map((c: any, i: number) => (
