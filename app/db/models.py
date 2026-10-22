@@ -524,6 +524,12 @@ class ExternalPanel(Base):
     token = Column(String(2048), nullable=True)               # optional API token instead of login
     scope = Column(JSON, nullable=False, default=dict, server_default="{}")  # {"admins":[...],"groups":[...]} empty=all
     enabled = Column(Boolean, nullable=False, default=True, server_default="1")
+    # background sync of traffic/online: 0 = off (manual only), else refresh every N seconds;
+    # live = refresh fast (~3s). count_traffic adds the external usage into Alexen users' quota.
+    sync_interval = Column(Integer, nullable=False, default=0, server_default="0")
+    live = Column(Boolean, nullable=False, default=False, server_default="0")
+    count_traffic = Column(Boolean, nullable=False, default=False, server_default="0")
+    last_stats = Column(JSON, nullable=True)   # cached snapshot from the last sync (for display)
     last_sync = Column(DateTime, nullable=True)
     last_error = Column(String(512), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

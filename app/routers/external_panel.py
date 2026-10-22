@@ -27,6 +27,7 @@ def _to_response(p: ExternalPanel) -> ExternalPanelResponse:
         id=p.id, name=p.name, kind=p.kind, address=p.address, panel_path=p.panel_path,
         scope=p.scope or {}, enabled=p.enabled, username=p.username or "",
         has_password=bool(p.password_enc), has_token=bool(p.token),
+        sync_interval=p.sync_interval or 0, live=bool(p.live), count_traffic=bool(p.count_traffic),
         last_sync=p.last_sync, last_error=p.last_error, created_at=p.created_at,
     )
 
@@ -52,6 +53,7 @@ def create_panel(body: ExternalPanelCreate, db: Session = Depends(get_db),
         name=body.name, kind=body.kind, address=body.address, panel_path=body.panel_path,
         username=body.username or "", password_enc=node_extras.encrypt(body.password or ""),
         token=body.token or None, scope=body.scope.model_dump(), enabled=body.enabled,
+        sync_interval=body.sync_interval or 0, live=bool(body.live), count_traffic=bool(body.count_traffic),
     )
     db.add(p)
     db.commit()
@@ -63,7 +65,8 @@ def create_panel(body: ExternalPanelCreate, db: Session = Depends(get_db),
 def modify_panel(panel_id: int, body: ExternalPanelModify, db: Session = Depends(get_db),
                  admin: Admin = Depends(Admin.check_sudo_admin)):
     p = _get(db, panel_id)
-    for field in ("name", "kind", "address", "panel_path", "enabled", "username"):
+    for field in ("name", "kind", "address", "panel_path", "enabled", "username",
+                  "sync_interval", "live", "count_traffic"):
         v = getattr(body, field)
         if v is not None:
             setattr(p, field, v)
@@ -148,29 +151,9 @@ def panel_stats(panel_id: int, db: Session = Depends(get_db),
     return data
 
 
-class ImportOptions(BaseModel):
-    host: str = ""                 # override server host (default: the panel's host)
-    port_map: dict = {}            # {"8443": 443}: hand out 443 for the real 8443
-    fake: list = []                # [{host,port,label}] extra "fake location" copies
-    scope_all: bool = False        # add to every user (the general external configs)
-    scope_admins: list = []        # else add to these admins' users
-    position: str = "bottom"       # where the imported configs sit: "top" | "bottom"
-    name_mode: str = "original"    # "original" | "custom" | "random_geo"
-    name_template: str = ""
-
-
-@router.post("/{panel_id}/import/preview")
-def import_preview(panel_id: int, opts: ImportOptions, db: Session = Depends(get_db),
-                   admin: Admin = Depends(Admin.check_sudo_admin)):
-    """Generate the share links that would be imported (no changes made yet)."""
-    p = _get(db, panel_id)
-    try:
-        client = BaseClient.from_panel(p)
-        client.login()
-        links = client.share_links(host=opts.host, port_map=opts.port_map, fake=opts.fake)
-    except PanelError as e:
-        raise HTTPException(400, str(e))
-    return {"links": [{"remark": r, "link": l} for r, l in links]}
+# NOTE: the old "import" (pull) flow was removed on 2026-10-22. It dumped every external
+# client's literal link into one shared config that landed in EVERY user's subscription.
+# The integration is PUSH only now: "Create users on panel" (provision) below.
 
 
 class ProvisionOptions(BaseModel):
@@ -273,66 +256,3 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
     db.commit()
     return {"users": len(users), "created": created, "exists": exists,
             "failed": failed, "skipped": skipped, "errors": errors, "configs": len(new_cfgs)}
-
-
-@router.post("/{panel_id}/import")
-def import_configs(panel_id: int, opts: ImportOptions, db: Session = Depends(get_db),
-                   admin: Admin = Depends(Admin.check_sudo_admin)):
-    """Import the panel's configs as external configs for the chosen scope. Re-importing
-    replaces this panel's previous import (configs are tagged extpanel-<id>)."""
-    from datetime import datetime
-    from app.subscription import external as _external
-    p = _get(db, panel_id)
-    try:
-        client = BaseClient.from_panel(p)
-        client.login()
-        groups = client.share_links_grouped(host=opts.host, port_map=opts.port_map, fake=opts.fake)
-    except PanelError as e:
-        p.last_error = str(e)
-        db.commit()
-        raise HTTPException(400, str(e))
-    if not groups:
-        if p.kind == "sui":
-            raise HTTPException(400, "s-ui config import isn't supported yet — 3x-ui works. Coming soon.")
-        raise HTTPException(400, "No clients to import: this panel's inbounds have no users yet. "
-                                 "Add users to the inbound in the panel first. "
-                                 "(Supported protocols: vless, vmess, trojan, hysteria2.)")
-
-    prefix = f"extpanel-{panel_id}-"
-    pos = "top" if opts.position == "top" else "bottom"
-    # one external config per inbound, so each can be positioned/ordered in External configs
-    new_cfgs = [
-        _external.ExternalConfig(id=f"{prefix}{i}", name=f"{p.name}: {name}", kind="links",
-                                 links="\n".join(ls), position=pos,
-                                 name_mode=opts.name_mode or "original",
-                                 name_template=opts.name_template or "")
-        for i, (name, ls) in enumerate(groups)
-    ]
-    total = sum(len(ls) for _, ls in groups)
-
-    settings = _external.load(db)
-
-    def _put(lst):
-        # drop this panel's previous import (old single id + per-inbound ids), add the new set
-        kept = [c for c in lst if not (c.id == f"extpanel-{panel_id}" or c.id.startswith(prefix))]
-        return kept + new_cfgs
-
-    targets = []
-    if opts.scope_all:
-        settings.configs = _put(settings.configs)
-        targets.append("all")
-    for name in (opts.scope_admins or []):
-        a = settings.admins.get(name) or _external.AdminExternal()
-        a.configs = _put(a.configs)
-        settings.admins[name] = a
-        targets.append(name)
-    if not targets:
-        raise HTTPException(400, "Choose a scope: everyone or at least one admin")
-
-    _external.save(db, settings)
-    from app.subscription import external_sources
-    external_sources.forget([c.id for c in new_cfgs])
-    p.last_sync = datetime.utcnow()
-    p.last_error = None
-    db.commit()
-    return {"imported": total, "inbounds": len(groups), "scope": targets}

@@ -20,6 +20,17 @@ class ExternalPanelBase(BaseModel):
     panel_path: str = "/"
     scope: ExternalPanelScope = ExternalPanelScope()
     enabled: bool = True
+    sync_interval: int = 0       # 0 = off (manual), else refresh traffic/online every N seconds
+    live: bool = False           # live mode: refresh fast (~3s), ignores sync_interval
+    count_traffic: bool = False  # add the external usage into Alexen users' quota
+
+    @field_validator("sync_interval")
+    @classmethod
+    def _interval(cls, v):
+        v = int(v or 0)
+        if v and v < 10:   # a sane floor; live mode is the way to go faster
+            v = 10
+        return min(v, 86400)
 
     @field_validator("kind")
     @classmethod
@@ -61,6 +72,9 @@ class ExternalPanelModify(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None  # empty/None keeps the stored one
     token: Optional[str] = None
+    sync_interval: Optional[int] = None
+    live: Optional[bool] = None
+    count_traffic: Optional[bool] = None
 
     @field_validator("kind")
     @classmethod
@@ -81,6 +95,9 @@ class ExternalPanelResponse(BaseModel):
     username: str = ""
     has_password: bool = False
     has_token: bool = False
+    sync_interval: int = 0
+    live: bool = False
+    count_traffic: bool = False
     last_sync: Optional[datetime] = None
     last_error: Optional[str] = None
     created_at: Optional[datetime] = None

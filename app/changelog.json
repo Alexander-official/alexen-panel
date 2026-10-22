@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.24.0",
+    "date": "2026-10-22",
+    "tr": [
+      "Harici panel: senkron ayarı eklendi — her panel için Kapalı / Her N saniyede / Canlı seçebilirsin; arka planda trafiği+online'ı çeker (Trafik ekranı kapalıyken bile) ve kullanıcıları online gösterir. İsteğe bağlı 'Trafiği Alexen kotasına işle' anahtarıyla harici kullanım, eşleşen kullanıcının ve bayisinin kotasına eklenir (varsayılan kapalı, yalnızca artış eklenir).",
+      "Harici panel 'İçe aktar' (pull) özelliği KALDIRILDI: paneldeki tüm clientlerin kodunu tek config'e doldurup herkesin subuna dağıtıyordu. Entegrasyon artık yalnızca PUSH ('Kullanıcıları panelde aç')."
+    ],
+    "en": [
+      "External panel: sync setting added — per panel choose Off / Every N seconds / Live; it pulls traffic+online in the background (even with the Traffic view closed) and marks users online. Optional 'Count traffic into Alexen quota' toggle adds the external usage to each matched user's and reseller's quota (off by default, only positive deltas).",
+      "External panel 'Import' (pull) REMOVED: it dumped every client's config into one shared config that landed in every user's subscription. Integration is now PUSH only ('Create users on panel')."
+    ]
+  },
+  {
     "version": "1.23.0",
     "date": "2026-10-22",
     "tr": [
