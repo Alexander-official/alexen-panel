@@ -99,18 +99,13 @@ def _sync_one(panel_id: int) -> None:
             db.commit()
             return
 
-        clients = data.get("clients", []) or []
-        totals: dict = {}
-        online_emails = set()
-        for c in clients:
-            email = (c.get("name") or "").strip()
-            if not email:
-                continue
-            totals[email] = int(c.get("total") or ((c.get("up", 0) or 0) + (c.get("down", 0) or 0)))
-            if c.get("online"):
-                online_emails.add(email)
+        by_inbound = data.get("by_inbound", []) or []
+        online_emails = set((c.get("name") or "").strip() for c in (data.get("clients") or []) if c.get("online"))
+        all_emails = set()
+        for ib in by_inbound:
+            all_emails.update((ib.get("clients") or {}).keys())
 
-        users = db.query(User).filter(User.username.in_(list(totals.keys()))).all() if totals else []
+        users = db.query(User).filter(User.username.in_(list(all_emails))).all() if all_emails else []
         by_name = {u.username: u for u in users}
         now_dt = datetime.utcnow()
 
@@ -119,37 +114,60 @@ def _sync_one(panel_id: int) -> None:
             if u:
                 u.online_at = now_dt
 
-        if p.count_traffic:
-            prev = (p.last_stats or {}).get("totals", {}) if isinstance(p.last_stats, dict) else {}
-            admin_add: dict = {}
-            for email, total in totals.items():
+        # per-inbound usage deltas (cumulative counters → delta since last sync). We attribute each
+        # to a persistent, FK-free inbound_tag "🌐 <panel> · <protocol>", so it shows in statistics
+        # (per-protocol) and SURVIVES deleting the panel. Quota (used_traffic) is only touched when
+        # count_traffic is on; the stats attribution is always recorded.
+        prev = (p.last_stats or {}).get("by_inbound_totals", {}) if isinstance(p.last_stats, dict) else {}
+        new_prev: dict = {}
+        usage_params = []   # [{uid, tag, value}] for UserInboundUsage
+        hist: dict = {}     # {tag: bytes} for the hourly charts
+        admin_add: dict = {}
+        for ib in by_inbound:
+            tag = f"🌐 {p.name} · {ib.get('protocol') or '?'}"
+            key = str(ib.get("id"))
+            prev_clients = prev.get(key) or {}
+            cur_clients = ib.get("clients") or {}
+            for email, total in cur_clients.items():
+                total = int(total)
+                new_prev.setdefault(key, {})[email] = total
                 u = by_name.get(email)
                 if not u:
                     continue
-                # first time we see a client, its cumulative counter is the baseline (delta 0),
-                # so we never dump the whole historical total into the quota at once
-                old = int(prev.get(email, total))
+                old = int(prev_clients.get(email, total))  # first sight = baseline (no retro dump)
                 delta = total - old
                 if delta > 0:
-                    u.used_traffic = (u.used_traffic or 0) + delta
+                    usage_params.append({"uid": u.id, "tag": tag, "value": delta})
+                    hist[tag] = hist.get(tag, 0) + delta
                     u.online_at = now_dt
-                    if u.admin_id:
-                        admin_add[u.admin_id] = admin_add.get(u.admin_id, 0) + delta
+                    if p.count_traffic:
+                        u.used_traffic = (u.used_traffic or 0) + delta
+                        if u.admin_id:
+                            admin_add[u.admin_id] = admin_add.get(u.admin_id, 0) + delta
+        if p.count_traffic:
             for admin_id, val in admin_add.items():
                 a = db.query(Admin).filter(Admin.id == admin_id).first()
                 if a:
                     a.users_usage = (a.users_usage or 0) + val
 
-        # trimmed snapshot (no per-client list — that can be 200+ rows every few seconds);
-        # the Traffic view polls /stats live for the client list while it's open
         p.last_stats = {
             "total_up": data.get("total_up", 0), "total_down": data.get("total_down", 0),
             "online": data.get("online", 0), "server": data.get("server") or {},
-            "totals": totals, "at": now_dt.isoformat(),
+            "by_inbound_totals": new_prev, "at": now_dt.isoformat(),
         }
         p.last_sync = now_dt
         p.last_error = None
         db.commit()
+
+        # persistent per-protocol stats (own session; survives panel deletion — plain-string tags)
+        if usage_params:
+            try:
+                from app.jobs.record_usages import record_user_inbound_stats
+                record_user_inbound_stats(usage_params)
+                from app import stats_history
+                stats_history.record_inbounds(hist)
+            except Exception as e:
+                logger.warning(f"external panel {p.id} stats record: {e}")
 
         try:
             _auto_provision(db, p, client)

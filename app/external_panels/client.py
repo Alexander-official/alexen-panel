@@ -179,6 +179,8 @@ class ThreeXUI(BaseClient):
             r = self.s.post(self.url("panel/api/inbounds/onlines"),
                             headers={"X-CSRF-Token": getattr(self, "csrf", ""), "Origin": self.base},
                             timeout=self.timeout)
+            if "application/json" not in (r.headers.get("content-type") or ""):
+                return []
             return r.json().get("obj") or []
         except Exception:
             return []
@@ -187,20 +189,28 @@ class ThreeXUI(BaseClient):
         inbs = self.raw_inbounds()
         online = set(self._onlines())
         total_up = total_down = 0
-        inbounds, clients = [], []
+        inbounds, clients, by_inbound = [], [], []
         for ib in inbs:
             up, down = ib.get("up", 0) or 0, ib.get("down", 0) or 0
             total_up += up
             total_down += down
             inbounds.append({"name": ib.get("remark") or ib.get("tag") or "", "port": ib.get("port"),
                              "protocol": ib.get("protocol"), "up": up, "down": down})
+            per = {}
             for cs in (ib.get("clientStats") or []):
                 email = cs.get("email", "")
+                tot = (cs.get("up", 0) or 0) + (cs.get("down", 0) or 0)
                 clients.append({"name": email, "up": cs.get("up", 0) or 0, "down": cs.get("down", 0) or 0,
-                                "total": (cs.get("up", 0) or 0) + (cs.get("down", 0) or 0),
-                                "online": email in online, "enable": cs.get("enable", True)})
+                                "total": tot, "online": email in online, "enable": cs.get("enable", True)})
+                if email:
+                    per[email] = tot
+            # per-inbound client totals, so usage can be attributed per server/protocol
+            by_inbound.append({"id": ib.get("id"), "protocol": ib.get("protocol"),
+                               "remark": ib.get("remark") or ib.get("tag") or "",
+                               "port": ib.get("port"), "clients": per})
         return {"total_up": total_up, "total_down": total_down, "online": len(online),
-                "inbounds": inbounds, "clients": clients, "server": self.server_status()}
+                "inbounds": inbounds, "clients": clients, "by_inbound": by_inbound,
+                "server": self.server_status()}
 
     def share_links(self, host: str = "", port_map: dict = None, fake: list = None) -> List[Tuple[str, str]]:
         import urllib.parse as _u

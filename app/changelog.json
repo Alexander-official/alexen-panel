@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.29.0",
+    "date": "2026-10-22",
+    "tr": [
+      "Harici panel kullanımı artık İSTATİSTİKLERE işleniyor: senkronda her kullanıcının harici paneldeki trafiği, '🌐 <panel> · <protokol>' etiketiyle kullanıcının kullanım dökümüne, genel bakışa ve saatlik grafiklere yazılır — hangi sunucu/protokolü ne kadar kullandığı görünür. Bu kayıtlar paneli silsen bile İSTATİSTİKLERDE KALIR (etikete bağlı, panele değil). Kullanıcı harici panelden bağlanınca online olarak işaretlenir. (Kotaya ekleme hâlâ 'Trafiği Alexen kotasına işle' anahtarına bağlı; istatistik her zaman tutulur. Senkronun açık/canlı olması gerekir.)"
+    ],
+    "en": [
+      "External-panel usage is now recorded into STATISTICS: on each sync, every user's traffic on the external panel is written under a '🌐 <panel> · <protocol>' tag into the user's usage breakdown, the overview and the hourly charts — so you can see which server/protocol they used and how much. These records STAY IN STATISTICS even if you delete the panel (keyed to the tag, not the panel). A user is marked online when connected via the external panel. (Adding to quota still follows the 'Count traffic into Alexen quota' switch; stats are always kept. Sync must be on/live.)"
+    ]
+  },
+  {
     "version": "1.28.0",
     "date": "2026-10-22",
     "tr": [

@@ -68,7 +68,10 @@ def stats_overview(db: Session = Depends(get_db), admin: Admin = Depends(Admin.g
     inbounds = sorted(
         (InboundTraffic(
             inbound_tag=tag,
-            protocol=(xray.config.inbounds_by_tag.get(tag) or {}).get("protocol"),
+            # external-panel usage is recorded under "🌐 <panel> · <protocol>" tags that aren't in
+            # the local Xray config; take the protocol from the tag so it still shows a label
+            protocol=((xray.config.inbounds_by_tag.get(tag) or {}).get("protocol")
+                      or (tag.rsplit("·", 1)[-1].strip() if tag.startswith("🌐") and "·" in tag else None)),
             used_traffic=int(total or 0),
         ) for tag, total in inbound_rows),
         key=lambda i: i.used_traffic, reverse=True,
@@ -88,6 +91,12 @@ def stats_overview(db: Session = Depends(get_db), admin: Admin = Depends(Admin.g
     for i in inbounds:
         if i.inbound_tag in xray.config.inbounds_by_tag:
             transports[transport_of(i.inbound_tag)]["used"] += i.used_traffic
+        elif i.inbound_tag.startswith("🌐") and i.used_traffic:
+            # external-panel usage: its own "<protocol> (external)" transport bucket
+            key = f"{i.protocol or 'external'} (external)"
+            t = transports.setdefault(key, {"protocols": set(), "inbounds": 0, "used": 0, "ips": 0})
+            t["protocols"].add(i.protocol or "external")
+            t["used"] += i.used_traffic
     from app.xray import online as _online
     visible = set(user_ids)
     for uid, ips in _online.online_users.items():
