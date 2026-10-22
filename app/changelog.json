@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.26.2",
+    "date": "2026-10-22",
+    "tr": [
+      "Push sonrası harici panelin Xray'i otomatik yeniden yükleniyor — toplu client eklendikten sonra yeni kullanıcılar anında canlı oluyor (eskiden client'lar eklenir ama Xray reload olmadığı için bağlanmazdı; elle yeniden başlatmak gerekiyordu). Otomatik modda yeni kullanıcı eklenince de reload yapılıyor."
+    ],
+    "en": [
+      "After push, the external panel's Xray is reloaded automatically — newly-added clients go live immediately (previously clients were added but wouldn't connect until Xray was restarted by hand). Auto mode also reloads when it adds new users."
+    ]
+  },
+  {
     "version": "1.26.1",
     "date": "2026-10-22",
     "tr": [

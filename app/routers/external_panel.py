@@ -272,6 +272,14 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
         from app.subscription import external_sources
         external_sources.forget([c.id for c in new_cfgs])
 
+    # reload the panel's Xray so the just-added clients become live immediately
+    # (bulk clients/add doesn't always trigger a reload on its own)
+    if created:
+        try:
+            client.restart_xray()
+        except Exception:
+            pass
+
     # remember the selection so auto-provision (the sync job) can keep new users in sync,
     # and so re-opening the form restores the choice. Stays until the sudo changes it.
     p.prov_config = {"auto": bool(opts.auto), "inbounds": inbound_ids_int, "scope_all": bool(opts.scope_all),

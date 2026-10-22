@@ -74,6 +74,10 @@ def _auto_provision(db, p, client) -> None:
         if ok:
             added += 1
     if added:
+        try:
+            client.restart_xray()  # make the new clients live
+        except Exception:
+            pass
         logger.info(f"external panel {p.id} auto-provision: added {added} new user(s)")
 
 

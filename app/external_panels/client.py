@@ -100,6 +100,10 @@ class BaseClient:
         """VPS/server status (cpu, mem, disk, xray, uptime, net...). Empty if unavailable."""
         return {}
 
+    def restart_xray(self) -> bool:
+        """Reload the panel's Xray so freshly-added clients become live. No-op by default."""
+        return False
+
 
 class ThreeXUI(BaseClient):
     kind = "3xui"
@@ -257,6 +261,15 @@ class ThreeXUI(BaseClient):
             r = self.s.post(self.url(f"panel/api/clients/del/{email}?keepTraffic=0"),
                             headers={"X-CSRF-Token": getattr(self, "csrf", ""), "Origin": self.base},
                             timeout=self.timeout)
+            return bool(r.json().get("success"))
+        except Exception:
+            return False
+
+    def restart_xray(self) -> bool:
+        try:
+            r = self.s.post(self.url("panel/api/server/restartXrayService"),
+                            headers={"X-CSRF-Token": getattr(self, "csrf", ""), "Origin": self.base},
+                            timeout=30)
             return bool(r.json().get("success"))
         except Exception:
             return False
