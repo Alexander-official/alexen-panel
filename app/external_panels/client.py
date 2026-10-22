@@ -10,6 +10,7 @@ Both flows were verified against live panels:
 `path` is the panel's web base path (3x-ui usually "/", s-ui "/app/").
 """
 import re
+import urllib.parse
 from typing import List, Dict, Any, Tuple
 
 import requests
@@ -86,10 +87,11 @@ class BaseClient:
         (positioned/ordered) on its own in External configs."""
         return []
 
-    def add_client(self, inbound_ids, email: str, secret: str) -> Tuple[bool, str]:
-        """Create a client on ALL the given inbound(s) in one shot, reusing `secret` as both
-        uuid and password (so the Alexen user's uuid matches). `inbound_ids` is a list (a single
-        int is accepted too). Returns (ok, msg)."""
+    def add_client(self, inbound_ids, email: str, secret: str = None,
+                   sub_id: str = None, group: str = None) -> Tuple[bool, str]:
+        """Create a client on ALL the given inbound(s) in one shot. With secret=None the panel
+        generates its own per-protocol secrets (recommended); sub_id lets us fetch the panel's
+        own share links later via sub_links(). `inbound_ids` is a list (a single int works too)."""
         return (False, "not supported")
 
     def del_client(self, email: str) -> bool:
@@ -103,6 +105,10 @@ class BaseClient:
     def restart_xray(self) -> bool:
         """Reload the panel's Xray so freshly-added clients become live. No-op by default."""
         return False
+
+    def sub_links(self, sub_id: str) -> List[str]:
+        """The panel's own share links for a client (by subId). Empty if unsupported."""
+        return []
 
 
 class ThreeXUI(BaseClient):
@@ -235,13 +241,20 @@ class ThreeXUI(BaseClient):
                 groups.append((name, ls))
         return groups
 
-    def add_client(self, inbound_ids, email: str, secret: str) -> Tuple[bool, str]:
+    def add_client(self, inbound_ids, email: str, secret: str = None,
+                   sub_id: str = None, group: str = None) -> Tuple[bool, str]:
         ids = inbound_ids if isinstance(inbound_ids, (list, tuple)) else [inbound_ids]
         ids = [int(i) for i in ids]
-        body = {"client": {"email": email, "id": secret, "password": secret, "enable": True,
-                           "totalGB": 0, "expiryTime": 0, "limitIp": 0, "limitHwid": 0,
-                           "tgId": 0, "subId": "", "flow": ""},
-                "inboundIds": ids}
+        client = {"email": email, "enable": True, "totalGB": 0, "expiryTime": 0,
+                  "limitIp": 0, "limitHwid": 0, "tgId": 0, "flow": ""}
+        if sub_id:
+            client["subId"] = sub_id
+        if group:
+            client["group"] = group
+        if secret:  # when None, let the panel generate its own per-protocol secrets (macros2 way)
+            client["id"] = secret
+            client["password"] = secret
+        body = {"client": client, "inboundIds": ids}
         try:
             r = self.s.post(self.url("panel/api/clients/add"),
                             headers={"X-CSRF-Token": getattr(self, "csrf", ""), "Origin": self.base},
@@ -273,6 +286,19 @@ class ThreeXUI(BaseClient):
             return bool(r.json().get("success"))
         except Exception:
             return False
+
+    def sub_links(self, sub_id: str) -> List[str]:
+        """The panel's OWN share links for a client (by subId) — byte-perfect, always valid."""
+        try:
+            r = self.s.get(self.url(f"panel/api/clients/subLinks/{urllib.parse.quote(sub_id, safe='')}"),
+                           headers={"X-CSRF-Token": getattr(self, "csrf", ""), "Origin": self.base},
+                           timeout=self.timeout)
+            j = r.json()
+            if not j.get("success"):
+                return []
+            return [l for l in (j.get("obj") or []) if isinstance(l, str) and "://" in l]
+        except Exception:
+            return []
 
 
 class SUI(BaseClient):

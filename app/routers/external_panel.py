@@ -185,10 +185,12 @@ def _user_secret(u) -> str:
 @router.post("/{panel_id}/provision")
 def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends(get_db),
                     admin: Admin = Depends(Admin.check_sudo_admin)):
-    """Create the scoped Alexen users AS CLIENTS on the external panel's chosen inbound(s),
-    reusing each user's uuid (so identities match). Stage 1 of the push integration."""
+    """Create the scoped Alexen users AS CLIENTS on the external panel's chosen inbound(s).
+    We let the panel assign the uuids and give each client a deterministic subId; the user's
+    subscription then pulls the panel's OWN share links for that subId (always valid)."""
     from datetime import datetime
     from app.db.models import User as _User, Admin as _DBA
+    from app.external_panels import live as _eplive
     p = _get(db, panel_id)
     if not opts.inbound_ids:
         raise HTTPException(400, "Choose at least one inbound on the panel")
@@ -210,17 +212,14 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
     created = exists = failed = skipped = 0
     errors = []
     for u in users:
-        sec = _user_secret(u)
-        if not sec:
-            skipped += 1
-            continue
-        # one call adds the user to ALL chosen inbounds (same uuid, one email). 3x-ui needs the
-        # email unique panel-wide, so a user already there (e.g. from an earlier run on fewer
-        # inbounds) is removed first and re-added across all inbounds — idempotent and complete.
-        ok, msg = client.add_client(inbound_ids_int, u.username, sec)
+        # one call adds the user to ALL chosen inbounds. We don't set a uuid (the panel assigns
+        # its own per-protocol secrets); a deterministic subId lets the sub pull the panel's own
+        # links. 3x-ui needs the email unique panel-wide, so an existing one is removed + re-added.
+        sid = _eplive.subid(u.username)
+        ok, msg = client.add_client(inbound_ids_int, u.username, sub_id=sid, group=_eplive.GROUP)
         if msg == "exists" or (not ok and _is_conflict(msg)):
             client.del_client(u.username)
-            ok, msg = client.add_client(inbound_ids_int, u.username, sec)
+            ok, msg = client.add_client(inbound_ids_int, u.username, sub_id=sid, group=_eplive.GROUP)
         if ok:
             created += 1
         else:
@@ -228,49 +227,25 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
             if len(errors) < 3 and msg:
                 errors.append(msg)
 
-    # stage 2: give each provisioned user that server's config in their own sub — one template
-    # external-config per inbound, with {EXT_UUID} filled per user (== the uuid we created above)
-    import urllib.parse as _u
-    from app.external_panels import links as _links
+    # the subscription now pulls each user's links LIVE from the panel's own subLinks, so there is
+    # no stored template any more — clear this panel's old prov template configs from every scope
     from app.subscription import external as _external
-    host = _u.urlparse(p.address).hostname or ""
-    inbs = {ib.get("id"): ib for ib in client.raw_inbounds()}
     prefix = f"extpanel-prov-{panel_id}-"
-    new_cfgs = []
-    for i, ib_id in enumerate(opts.inbound_ids):
-        ib = inbs.get(int(ib_id))
-        if not ib:
-            continue
-        tlinks = _links.inbound_template_links(ib, host, ib.get("port"))
-        if not tlinks:
-            continue
-        name = ib.get("remark") or ib.get("tag") or f"inbound-{ib.get('port')}"
-        new_cfgs.append(_external.ExternalConfig(id=f"{prefix}{i}", name=f"{p.name}: {name}",
-                                                 kind="links", links="\n".join(tlinks), position="bottom",
-                                                 name_mode=opts.name_mode or "original",
-                                                 name_template=opts.name_template or ""))
-    if new_cfgs:
-        settings = _external.load(db)
+    settings = _external.load(db)
+    changed = False
 
-        def _strip(lst):
-            # drop THIS panel's previous prov configs (from any earlier run/scope)
-            return [c for c in lst if not c.id.startswith(prefix)]
-
-        # first clear this panel's prov configs from EVERY scope, so changing the scope
-        # (e.g. from specific admins to everyone) never leaves stale duplicates in a sub
-        settings.configs = _strip(settings.configs)
-        for a in settings.admins.values():
-            a.configs = _strip(a.configs)
-        # then add the new set to the chosen scope only
-        if opts.scope_all:
-            settings.configs = settings.configs + new_cfgs
-        for nm in (opts.scope_admins or []):
-            a = settings.admins.get(nm) or _external.AdminExternal()
-            a.configs = a.configs + new_cfgs
-            settings.admins[nm] = a
+    def _strip(lst):
+        nonlocal changed
+        kept = [c for c in lst if not c.id.startswith(prefix)]
+        if len(kept) != len(lst):
+            changed = True
+        return kept
+    settings.configs = _strip(settings.configs)
+    for a in settings.admins.values():
+        a.configs = _strip(a.configs)
+    if changed:
         _external.save(db, settings)
-        from app.subscription import external_sources
-        external_sources.forget([c.id for c in new_cfgs])
+    _eplive.forget_panel(panel_id)
 
     # reload the panel's Xray so the just-added clients become live immediately
     # (bulk clients/add doesn't always trigger a reload on its own)
@@ -289,4 +264,4 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
     p.last_error = (errors[0] if errors else None)
     db.commit()
     return {"users": len(users), "created": created, "exists": exists,
-            "failed": failed, "skipped": skipped, "errors": errors, "configs": len(new_cfgs)}
+            "failed": failed, "skipped": skipped, "errors": errors, "configs": len(inbound_ids_int)}

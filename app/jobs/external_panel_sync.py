@@ -26,15 +26,6 @@ _last_run: dict = {}   # panel_id -> last stats sync (time.monotonic)
 _last_auto: dict = {}  # panel_id -> last auto-provision pass (time.monotonic)
 
 
-def _secret(u) -> str:
-    for field in ("id", "password", "auth"):
-        for pr in (u.proxies or []):
-            st = pr.settings or {}
-            if isinstance(st, dict) and st.get(field):
-                return st[field]
-    return ""
-
-
 def _auto_provision(db, p, client) -> None:
     """Add any scoped Alexen user not yet on the panel to all configured inbounds. Only adds
     (never removes — the panel may hold the seller's own clients too). Runs at most every AUTO_EVERY."""
@@ -59,18 +50,17 @@ def _auto_provision(db, p, client) -> None:
             for c in s.get("clients", []):
                 if c.get("email"):
                     present.add(c["email"])
+    from app.external_panels import live as _eplive
     inbs = sorted(want_inbounds)
     added = 0
     for u in users:
         if u.username in present:
             continue
-        sec = _secret(u)
-        if not sec:
-            continue
-        ok, msg = client.add_client(inbs, u.username, sec)
+        sid = _eplive.subid(u.username)
+        ok, msg = client.add_client(inbs, u.username, sub_id=sid, group=_eplive.GROUP)
         if msg == "exists" or (not ok and any(w in (msg or "").lower() for w in ("in use", "duplicate", "exist"))):
             client.del_client(u.username)
-            ok, _ = client.add_client(inbs, u.username, sec)
+            ok, _ = client.add_client(inbs, u.username, sub_id=sid, group=_eplive.GROUP)
         if ok:
             added += 1
     if added:

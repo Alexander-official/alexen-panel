@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.27.0",
+    "date": "2026-10-22",
+    "tr": [
+      "Harici panel push tamamen yeniden yazıldı (çalışan yöntem): artık kullanıcının UUID'sini zorlamıyoruz — panel kendi UUID'lerini üretiyor, biz her kullanıcıya sabit bir subId veriyoruz ve config'leri panelin KENDİ abonelik çıktısından (subLinks) canlı çekiyoruz. Böylece linkler birebir panelinki (hysteria2 security=tls, vless encryption=none vb.) ve her zaman geçerli — reconstruct hatası yok. İsim modu (orijinal/özel/rastgele ülke) ve kapsam canlı linklere uygulanıyor; panel yavaş/erişilemezse abonelik beklemez (30 sn önbellek)."
+    ],
+    "en": [
+      "External-panel push rewritten to the method that actually works: we no longer force the user's UUID — the panel assigns its own, we give each user a stable subId, and the configs are pulled LIVE from the panel's OWN subscription output (subLinks). Links are therefore byte-identical to the panel's (hysteria2 security=tls, vless encryption=none, etc.) and always valid — no reconstruction bugs. Name mode (original/custom/random country) and scope apply to the live links; a slow/unreachable panel never holds up a subscription (30s cache)."
+    ]
+  },
+  {
     "version": "1.26.3",
     "date": "2026-10-22",
     "tr": [

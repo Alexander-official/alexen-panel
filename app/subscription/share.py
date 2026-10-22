@@ -133,6 +133,13 @@ def generate_subscription(
             variables=setup_format_variables(user.__dict__),
             admin=admin.username if admin else "",
         )
+        # provisioned external-panel configs, pulled live from each panel's own subscription
+        if status in ("active", "on_hold"):
+            try:
+                from app.external_panels import live as _eplive
+                links = links + _eplive.user_links(user.username, admin.username if admin else "")
+            except Exception:
+                pass
         if prefix_lines:
             links = list(prefix_lines) + links
         config = "\n".join(links)
