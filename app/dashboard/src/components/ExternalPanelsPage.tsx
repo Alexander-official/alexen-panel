@@ -50,6 +50,8 @@ type Panel = {
   sync_interval: number;
   live: boolean;
   count_traffic: boolean;
+  auto_provision: boolean;
+  prov_config: { auto?: boolean; inbounds?: number[]; scope_all?: boolean; admins?: string[]; name_mode?: string; name_template?: string };
   last_error: string | null;
   last_sync: string | null;
 };
@@ -157,14 +159,25 @@ export const ExternalPanelsPage: FC = () => {
   const [stats, setStats] = useState<{ panel: Panel; data: any | null; error?: string } | null>(null);
   const [busy, setBusy] = useState<number | "form" | null>(null);
   const [prov, setProv] = useState<
-    { panel: Panel; inbounds: any[]; inboundIds: number[]; all: boolean; admins: string[]; nameMode: string; nameTemplate: string } | null
+    { panel: Panel; inbounds: any[]; inboundIds: number[]; all: boolean; admins: string[]; nameMode: string; nameTemplate: string; auto: boolean } | null
   >(null);
   const statsRef = useRef<Panel | null>(null);
 
   const openProvision = (p: Panel) => {
     setBusy(p.id);
     fetch(`/external-panels/${p.id}/inbounds`)
-      .then((r: any) => setProv({ panel: p, inbounds: r.inbounds || [], inboundIds: [], all: false, admins: p.scope?.admins || [], nameMode: "original", nameTemplate: "" }))
+      .then((r: any) => {
+        const pc = p.prov_config || {};
+        setProv({
+          panel: p, inbounds: r.inbounds || [],
+          inboundIds: pc.inbounds || [],
+          all: pc.scope_all ?? false,
+          admins: pc.admins || p.scope?.admins || [],
+          nameMode: pc.name_mode || "original",
+          nameTemplate: pc.name_template || "",
+          auto: pc.auto ?? false,
+        });
+      })
       .catch(err)
       .finally(() => setBusy(null));
   };
@@ -458,6 +471,12 @@ export const ExternalPanelsPage: FC = () => {
                         {t("extPanel.disabled")}
                       </Badge>
                     )}
+                    {p.auto_provision && (
+                      <Badge colorScheme="green" variant="subtle">{t("extPanel.autoBadge")}</Badge>
+                    )}
+                    {p.live && (
+                      <Badge colorScheme="green">{t("extPanel.syncLive")}</Badge>
+                    )}
                   </HStack>
                   <Text fontSize="xs" color="gray.500" isTruncated maxW="360px">
                     {p.address}
@@ -639,13 +658,20 @@ export const ExternalPanelsPage: FC = () => {
               </>
             )}
           </FormControl>
+          <HStack mb={3} align="flex-start">
+            <Switch isChecked={prov.auto} onChange={(e) => setProv({ ...prov, auto: e.target.checked })} />
+            <Box>
+              <Text fontSize="sm">{t("extPanel.autoProvision")}</Text>
+              <Text fontSize="xs" color="gray.500">{t("extPanel.autoProvisionHelp")}</Text>
+            </Box>
+          </HStack>
           <HStack justify="flex-end">
             <Button size="sm" colorScheme="green"
               isDisabled={prov.inboundIds.length === 0 || (!prov.all && prov.admins.length === 0)}
               isLoading={busy === "form"}
               onClick={() => {
                 setBusy("form");
-                fetch(`/external-panels/${prov.panel.id}/provision`, { method: "POST", body: { inbound_ids: prov.inboundIds, scope_all: prov.all, scope_admins: prov.all ? [] : prov.admins, name_mode: prov.nameMode, name_template: prov.nameTemplate } })
+                fetch(`/external-panels/${prov.panel.id}/provision`, { method: "POST", body: { inbound_ids: prov.inboundIds, scope_all: prov.all, scope_admins: prov.all ? [] : prov.admins, name_mode: prov.nameMode, name_template: prov.nameTemplate, auto: prov.auto } })
                   .then((r: any) => { ok(t("extPanel.provisioned", { created: r.created, exists: r.exists, failed: r.failed })); setProv(null); })
                   .catch(err)
                   .finally(() => setBusy(null));

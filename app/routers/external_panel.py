@@ -28,6 +28,7 @@ def _to_response(p: ExternalPanel) -> ExternalPanelResponse:
         scope=p.scope or {}, enabled=p.enabled, username=p.username or "",
         has_password=bool(p.password_enc), has_token=bool(p.token),
         sync_interval=p.sync_interval or 0, live=bool(p.live), count_traffic=bool(p.count_traffic),
+        auto_provision=bool((p.prov_config or {}).get("auto")), prov_config=p.prov_config or {},
         last_sync=p.last_sync, last_error=p.last_error, created_at=p.created_at,
     )
 
@@ -162,6 +163,7 @@ class ProvisionOptions(BaseModel):
     scope_admins: list = []
     name_mode: str = "original"   # "original" | "custom" | "random_geo" (app/subscription/external.py)
     name_template: str = ""        # for "custom": {USERNAME} {RANDOM} {FLAG} {COUNTRY} {CAPITAL} {GEO}
+    auto: bool = False             # keep provisioning new scoped users automatically (until changed)
 
 
 def _user_secret(u) -> str:
@@ -198,7 +200,7 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
         p.last_error = str(e)
         db.commit()
         raise HTTPException(400, str(e))
-    ids = [int(x) for x in opts.inbound_ids]
+    inbound_ids_int = [int(x) for x in opts.inbound_ids]
     created = exists = failed = skipped = 0
     errors = []
     for u in users:
@@ -209,7 +211,7 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
         # one call adds the user to ALL chosen inbounds (same uuid, one email). 3x-ui needs the
         # email unique panel-wide, so a user already there (e.g. from an earlier run on fewer
         # inbounds) is removed first and re-added across all inbounds — idempotent and complete.
-        ok, msg = client.add_client(ids, u.username, sec)
+        ok, msg = client.add_client(inbound_ids_int, u.username, sec)
         if (not ok and "in use" in (msg or "")) or msg == "exists":
             client.del_client(u.username)
             ok, msg = client.add_client(ids, u.username, sec)
@@ -256,6 +258,11 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
         from app.subscription import external_sources
         external_sources.forget([c.id for c in new_cfgs])
 
+    # remember the selection so auto-provision (the sync job) can keep new users in sync,
+    # and so re-opening the form restores the choice. Stays until the sudo changes it.
+    p.prov_config = {"auto": bool(opts.auto), "inbounds": inbound_ids_int, "scope_all": bool(opts.scope_all),
+                     "admins": list(opts.scope_admins or []), "name_mode": opts.name_mode or "original",
+                     "name_template": opts.name_template or ""}
     p.last_sync = datetime.utcnow()
     p.last_error = (errors[0] if errors else None)
     db.commit()

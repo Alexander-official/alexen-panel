@@ -8,6 +8,7 @@ the Alexen users' (and their admin's) quota.
 
 Matching is by email == Alexen username (that's how provision creates the clients).
 """
+import json
 import logging
 import time
 from datetime import datetime
@@ -20,7 +21,60 @@ from app.external_panels.client import BaseClient, PanelError
 logger = logging.getLogger("uvicorn.error")
 
 TICK = 3  # seconds; live panels sync every tick, others every sync_interval
-_last_run: dict = {}  # panel_id -> last run (time.monotonic)
+AUTO_EVERY = 60  # seconds between auto-provision passes (adding newly-created users)
+_last_run: dict = {}   # panel_id -> last stats sync (time.monotonic)
+_last_auto: dict = {}  # panel_id -> last auto-provision pass (time.monotonic)
+
+
+def _secret(u) -> str:
+    for field in ("id", "password", "auth"):
+        for pr in (u.proxies or []):
+            st = pr.settings or {}
+            if isinstance(st, dict) and st.get(field):
+                return st[field]
+    return ""
+
+
+def _auto_provision(db, p, client) -> None:
+    """Add any scoped Alexen user not yet on the panel to all configured inbounds. Only adds
+    (never removes — the panel may hold the seller's own clients too). Runs at most every AUTO_EVERY."""
+    prov = p.prov_config or {}
+    if not (prov.get("auto") and prov.get("inbounds")):
+        return
+    now = time.monotonic()
+    if (now - _last_auto.get(p.id, 0.0)) < AUTO_EVERY:
+        return
+    _last_auto[p.id] = now
+    q = db.query(User)
+    if not prov.get("scope_all"):
+        aids = [a.id for a in db.query(Admin).filter(Admin.username.in_(prov.get("admins") or [])).all()]
+        q = q.filter(User.admin_id.in_(aids))
+    users = q.all()
+    want_inbounds = set(int(x) for x in prov["inbounds"])
+    present = set()
+    for ib in client.raw_inbounds():
+        if int(ib.get("id")) in want_inbounds:
+            s = ib.get("settings")
+            s = json.loads(s) if isinstance(s, str) else (s or {})
+            for c in s.get("clients", []):
+                if c.get("email"):
+                    present.add(c["email"])
+    inbs = sorted(want_inbounds)
+    added = 0
+    for u in users:
+        if u.username in present:
+            continue
+        sec = _secret(u)
+        if not sec:
+            continue
+        ok, msg = client.add_client(inbs, u.username, sec)
+        if (not ok and "in use" in (msg or "")) or msg == "exists":
+            client.del_client(u.username)
+            ok, _ = client.add_client(inbs, u.username, sec)
+        if ok:
+            added += 1
+    if added:
+        logger.info(f"external panel {p.id} auto-provision: added {added} new user(s)")
 
 
 def _due(p, now: float) -> bool:
@@ -29,9 +83,12 @@ def _due(p, now: float) -> bool:
     if p.live:
         return True
     iv = p.sync_interval or 0
-    if iv <= 0:
-        return False
-    return (now - _last_run.get(p.id, 0.0)) >= iv
+    if iv > 0 and (now - _last_run.get(p.id, 0.0)) >= iv:
+        return True
+    # auto-provision panels still need periodic passes even when display sync is off
+    if (p.prov_config or {}).get("auto") and (now - _last_auto.get(p.id, 0.0)) >= AUTO_EVERY:
+        return True
+    return False
 
 
 def _sync_one(panel_id: int) -> None:
@@ -99,6 +156,12 @@ def _sync_one(panel_id: int) -> None:
         p.last_sync = now_dt
         p.last_error = None
         db.commit()
+
+        try:
+            _auto_provision(db, p, client)
+            db.commit()
+        except Exception as e:
+            logger.warning(f"external panel {p.id} auto-provision: {e}")
 
 
 def sync_all() -> None:

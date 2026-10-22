@@ -529,6 +529,9 @@ class ExternalPanel(Base):
     sync_interval = Column(Integer, nullable=False, default=0, server_default="0")
     live = Column(Boolean, nullable=False, default=False, server_default="0")
     count_traffic = Column(Boolean, nullable=False, default=False, server_default="0")
+    # remembered provision selection + auto-provision flag:
+    # {"auto":bool, "inbounds":[int], "scope_all":bool, "admins":[str], "name_mode":str, "name_template":str}
+    prov_config = Column(JSON, nullable=True)
     last_stats = Column(JSON, nullable=True)   # cached snapshot from the last sync (for display)
     last_sync = Column(DateTime, nullable=True)
     last_error = Column(String(512), nullable=True)

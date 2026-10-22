@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.26.0",
+    "date": "2026-10-22",
+    "tr": [
+      "Otomatik push: 'Kullanıcıları panelde aç' penceresinde 'Otomatik' anahtarı — paneli bir kez ayarlayıp inbound'ları seçtikten sonra, yeni eklenen (kapsamdaki) kullanıcılar bu inbound'lara arka planda otomatik oluşturulur. Her seferinde elle çalıştırmaya gerek yok; sen seçimi değiştirene kadar geçerli. Seçimin (inbound/kapsam/isim) hatırlanır ve pencereyi açınca geri gelir.",
+      "External panel bölümü artık Türkmence/Rusça/Farsça/Çince'ye de tam çevrildi (önceden bu dillerde İngilizce kalmıştı)."
+    ],
+    "en": [
+      "Auto push: an 'Auto' switch in 'Create users on panel' — set the panel and pick inbounds once, and newly-added (scoped) users are created on those inbounds automatically in the background. No need to re-run each time; stays until you change the selection. Your choice (inbounds/scope/name) is remembered and restored when you reopen the dialog.",
+      "External panel section is now fully translated into Turkmen/Russian/Persian/Chinese too (it was left in English in those languages)."
+    ]
+  },
+  {
     "version": "1.25.0",
     "date": "2026-10-22",
     "tr": [

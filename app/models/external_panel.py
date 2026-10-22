@@ -98,6 +98,8 @@ class ExternalPanelResponse(BaseModel):
     sync_interval: int = 0
     live: bool = False
     count_traffic: bool = False
+    auto_provision: bool = False
+    prov_config: Dict = {}
     last_sync: Optional[datetime] = None
     last_error: Optional[str] = None
     created_at: Optional[datetime] = None
