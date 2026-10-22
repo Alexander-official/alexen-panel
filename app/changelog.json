@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.20.4",
+    "date": "2026-10-22",
+    "tr": [
+      "Harici panel içe aktarma artık hysteria2 (3x-ui hysteria v2) linklerini de üretiyor (sni/alpn/insecure/obfs-salamander ile). Not: inbound’da client/kullanıcı yoksa aktaracak bir şey olmaz — önce panelde kullanıcı olmalı"
+    ],
+    "en": [
+      "External panel import now also generates hysteria2 links (3x-ui hysteria v2) with sni/alpn/insecure/salamander obfs. Note: an inbound with no clients has nothing to import — add users in the panel first"
+    ]
+  },
+  {
     "version": "1.20.3",
     "date": "2026-10-22",
     "tr": [

@@ -6,8 +6,13 @@ with an optional host override and port remap (e.g. the real 8443 handed out as 
 """
 import base64
 import json
+import re
 import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple
+
+
+def _is_ip(host: str) -> bool:
+    return bool(host) and bool(re.match(r"^\d{1,3}(\.\d{1,3}){3}$", host)) or ":" in (host or "")
 
 
 def _obj(v: Any) -> dict:
@@ -139,6 +144,25 @@ def inbound_links(inbound: dict, host: str, port: Optional[int] = None,
             if ss.get("security") == "tls":
                 vm["sni"] = (ss.get("tlsSettings", {}) or {}).get("serverName", "")
             link = "vmess://" + base64.b64encode(json.dumps(vm).encode()).decode()
+        elif protocol in ("hysteria", "hysteria2") and (settings.get("version") == 2 or (ss.get("hysteriaSettings", {}) or {}).get("version") == 2 or protocol == "hysteria2"):
+            tls = ss.get("tlsSettings", {}) or {}
+            hs = ss.get("hysteriaSettings", {}) or {}
+            q: Dict[str, str] = {}
+            sni = tls.get("serverName")
+            if sni:
+                q["sni"] = sni
+            alpn = tls.get("alpn")
+            if alpn:
+                q["alpn"] = ",".join(alpn) if isinstance(alpn, list) else alpn
+            q["insecure"] = "1" if (not sni or _is_ip(sni)) else "0"
+            obfs = hs.get("obfs") or settings.get("obfs")
+            if isinstance(obfs, dict) and obfs.get("type"):
+                q["obfs"] = obfs.get("type")
+                if obfs.get("password"):
+                    q["obfs-password"] = obfs.get("password")
+            pw = c.get("password") or c.get("auth") or c.get("id") or ""
+            query = urllib.parse.urlencode(q, safe="/,")
+            link = f"hysteria2://{urllib.parse.quote(str(pw))}@{host}:{real_port}?{query}#{urllib.parse.quote(remark)}"
         else:
             continue
         out.append((remark, link))
