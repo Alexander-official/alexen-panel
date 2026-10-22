@@ -87,17 +87,17 @@ export const ExternalPanelsPage: FC = () => {
   const [stats, setStats] = useState<{ panel: Panel; data: any | null; error?: string } | null>(null);
   const [busy, setBusy] = useState<number | "form" | null>(null);
   const [imp, setImp] = useState<
-    { panel: Panel; host: string; portMap: string; fake: string; all: boolean; admins: string[]; position: string; preview: any[] | null } | null
+    { panel: Panel; host: string; portMap: string; fake: string; all: boolean; admins: string[]; position: string; nameMode: string; nameTemplate: string; preview: any[] | null } | null
   >(null);
   const [prov, setProv] = useState<
-    { panel: Panel; inbounds: any[]; inboundIds: number[]; all: boolean; admins: string[] } | null
+    { panel: Panel; inbounds: any[]; inboundIds: number[]; all: boolean; admins: string[]; nameMode: string; nameTemplate: string } | null
   >(null);
   const statsRef = useRef<Panel | null>(null);
 
   const openProvision = (p: Panel) => {
     setBusy(p.id);
     fetch(`/external-panels/${p.id}/inbounds`)
-      .then((r: any) => setProv({ panel: p, inbounds: r.inbounds || [], inboundIds: [], all: false, admins: p.scope?.admins || [] }))
+      .then((r: any) => setProv({ panel: p, inbounds: r.inbounds || [], inboundIds: [], all: false, admins: p.scope?.admins || [], nameMode: "original", nameTemplate: "" }))
       .catch(err)
       .finally(() => setBusy(null));
   };
@@ -130,6 +130,8 @@ export const ExternalPanelsPage: FC = () => {
       scope_all: imp.all,
       scope_admins: imp.all ? [] : imp.admins,
       position: imp.position,
+      name_mode: imp.nameMode,
+      name_template: imp.nameTemplate,
     };
 
   // poll the open panel's live traffic/online every 4s
@@ -405,7 +407,7 @@ export const ExternalPanelsPage: FC = () => {
                     {t("extPanel.traffic")}
                   </Button>
                   <Button size="xs" colorScheme="primary" variant="outline" leftIcon={<ArrowDownTrayIcon width={14} />}
-                    onClick={() => setImp({ panel: p, host: "", portMap: "", fake: "", all: false, admins: p.scope?.admins || [], position: "bottom", preview: null })}>
+                    onClick={() => setImp({ panel: p, host: "", portMap: "", fake: "", all: false, admins: p.scope?.admins || [], position: "bottom", nameMode: "original", nameTemplate: "", preview: null })}>
                     {t("extPanel.import")}
                   </Button>
                   <Button size="xs" colorScheme="green" variant="outline" leftIcon={<ArrowUpTrayIcon width={14} />}
@@ -545,6 +547,20 @@ export const ExternalPanelsPage: FC = () => {
               <Text fontSize="xs" color="gray.500" mt={1}>{t("extPanel.manageHint")}</Text>
             </FormControl>
             <FormControl>
+              <FormLabel fontSize="sm">{t("external.nameMode")}</FormLabel>
+              <Select size="sm" value={imp.nameMode} onChange={(e) => setImp({ ...imp, nameMode: e.target.value })}>
+                <option value="original">{t("external.nameModeOriginal")}</option>
+                <option value="random_geo">🇩🇪 {t("external.nameModeGeo")}</option>
+                <option value="custom">{t("external.nameModeCustom")}</option>
+              </Select>
+              {imp.nameMode === "custom" && (
+                <>
+                  <Input mt={2} size="sm" maxLength={128} placeholder="🇺🇸 Premium {RANDOM}" value={imp.nameTemplate} onChange={(e) => setImp({ ...imp, nameTemplate: e.target.value })} />
+                  <Text fontSize="xs" color="gray.500" mt={1}>{t("external.nameTemplateHelp")}</Text>
+                </>
+              )}
+            </FormControl>
+            <FormControl>
               <FormLabel fontSize="sm">{t("extPanel.importScope")}</FormLabel>
               <Checkbox size="sm" isChecked={imp.all} onChange={(e) => setImp({ ...imp, all: e.target.checked })} mb={1}>
                 {t("extPanel.everyone")}
@@ -649,13 +665,27 @@ export const ExternalPanelsPage: FC = () => {
               </Box>
             )}
           </FormControl>
+          <FormControl mb={3}>
+            <FormLabel fontSize="sm">{t("external.nameMode")}</FormLabel>
+            <Select size="sm" value={prov.nameMode} onChange={(e) => setProv({ ...prov, nameMode: e.target.value })}>
+              <option value="original">{t("external.nameModeOriginal")}</option>
+              <option value="random_geo">🇩🇪 {t("external.nameModeGeo")}</option>
+              <option value="custom">{t("external.nameModeCustom")}</option>
+            </Select>
+            {prov.nameMode === "custom" && (
+              <>
+                <Input mt={2} size="sm" maxLength={128} placeholder="🇺🇸 Premium {RANDOM}" value={prov.nameTemplate} onChange={(e) => setProv({ ...prov, nameTemplate: e.target.value })} />
+                <Text fontSize="xs" color="gray.500" mt={1}>{t("external.nameTemplateHelp")}</Text>
+              </>
+            )}
+          </FormControl>
           <HStack justify="flex-end">
             <Button size="sm" colorScheme="green"
               isDisabled={prov.inboundIds.length === 0 || (!prov.all && prov.admins.length === 0)}
               isLoading={busy === "form"}
               onClick={() => {
                 setBusy("form");
-                fetch(`/external-panels/${prov.panel.id}/provision`, { method: "POST", body: { inbound_ids: prov.inboundIds, scope_all: prov.all, scope_admins: prov.all ? [] : prov.admins } })
+                fetch(`/external-panels/${prov.panel.id}/provision`, { method: "POST", body: { inbound_ids: prov.inboundIds, scope_all: prov.all, scope_admins: prov.all ? [] : prov.admins, name_mode: prov.nameMode, name_template: prov.nameTemplate } })
                   .then((r: any) => { ok(t("extPanel.provisioned", { created: r.created, exists: r.exists, failed: r.failed })); setProv(null); })
                   .catch(err)
                   .finally(() => setBusy(null));

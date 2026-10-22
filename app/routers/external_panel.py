@@ -155,6 +155,8 @@ class ImportOptions(BaseModel):
     scope_all: bool = False        # add to every user (the general external configs)
     scope_admins: list = []        # else add to these admins' users
     position: str = "bottom"       # where the imported configs sit: "top" | "bottom"
+    name_mode: str = "original"    # "original" | "custom" | "random_geo"
+    name_template: str = ""
 
 
 @router.post("/{panel_id}/import/preview")
@@ -175,6 +177,8 @@ class ProvisionOptions(BaseModel):
     inbound_ids: list = []    # external inbound ids to create the Alexen users in
     scope_all: bool = False
     scope_admins: list = []
+    name_mode: str = "original"   # "original" | "custom" | "random_geo" (app/subscription/external.py)
+    name_template: str = ""        # for "custom": {USERNAME} {RANDOM} {FLAG} {COUNTRY} {CAPITAL} {GEO}
 
 
 def _user_secret(u) -> str:
@@ -246,7 +250,9 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
             continue
         name = ib.get("remark") or ib.get("tag") or f"inbound-{ib.get('port')}"
         new_cfgs.append(_external.ExternalConfig(id=f"{prefix}{i}", name=f"{p.name}: {name}",
-                                                 kind="links", links="\n".join(tlinks), position="bottom"))
+                                                 kind="links", links="\n".join(tlinks), position="bottom",
+                                                 name_mode=opts.name_mode or "original",
+                                                 name_template=opts.name_template or ""))
     if new_cfgs:
         settings = _external.load(db)
 
@@ -297,7 +303,9 @@ def import_configs(panel_id: int, opts: ImportOptions, db: Session = Depends(get
     # one external config per inbound, so each can be positioned/ordered in External configs
     new_cfgs = [
         _external.ExternalConfig(id=f"{prefix}{i}", name=f"{p.name}: {name}", kind="links",
-                                 links="\n".join(ls), position=pos)
+                                 links="\n".join(ls), position=pos,
+                                 name_mode=opts.name_mode or "original",
+                                 name_template=opts.name_template or "")
         for i, (name, ls) in enumerate(groups)
     ]
     total = sum(len(ls) for _, ls in groups)

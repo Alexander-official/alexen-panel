@@ -5,6 +5,7 @@ that are added to every user's subscription, above or below the panel's own
 configs, plus how the panel's own configs and the external ones are ordered.
 Stored in the settings table; cached here and refreshed when saved.
 """
+import hashlib
 import re
 import threading
 import urllib.parse
@@ -85,6 +86,13 @@ class ExternalConfig(BaseModel):
     position: str = "bottom"  # "top" | "bottom"
     only_active: bool = True  # hide from expired / limited / disabled users
     groups: List[str] = []  # empty = everyone; else only users of admins in these host groups
+    # how each link is named in the user's app (the remark after "#"):
+    #   "original"   = the link's own name (unchanged)
+    #   "custom"     = name_template, with placeholders {USERNAME} {RANDOM} {FLAG}
+    #                  {COUNTRY} {CAPITAL} {GEO} filled per user
+    #   "random_geo" = a random "<flag> <country> - <capital>", stable per user (hides the server)
+    name_mode: str = "original"
+    name_template: str = Field("", max_length=128)
 
     def link_list(self) -> List[str]:
         if self.kind == "subscription":
@@ -211,6 +219,63 @@ def _fill(link: str, variables: dict) -> str:
     return f"{base}#{urllib.parse.quote(text)}"
 
 
+# (flag, country, capital) pool for "random_geo" naming — popular VPN exit locations
+GEO_POOL = [
+    ("🇩🇪", "Germany", "Berlin"), ("🇳🇱", "Netherlands", "Amsterdam"), ("🇫🇷", "France", "Paris"),
+    ("🇬🇧", "United Kingdom", "London"), ("🇺🇸", "United States", "Washington"), ("🇨🇦", "Canada", "Ottawa"),
+    ("🇸🇪", "Sweden", "Stockholm"), ("🇫🇮", "Finland", "Helsinki"), ("🇳🇴", "Norway", "Oslo"),
+    ("🇩🇰", "Denmark", "Copenhagen"), ("🇨🇭", "Switzerland", "Bern"), ("🇦🇹", "Austria", "Vienna"),
+    ("🇵🇱", "Poland", "Warsaw"), ("🇨🇿", "Czechia", "Prague"), ("🇪🇸", "Spain", "Madrid"),
+    ("🇮🇹", "Italy", "Rome"), ("🇮🇪", "Ireland", "Dublin"), ("🇧🇪", "Belgium", "Brussels"),
+    ("🇷🇴", "Romania", "Bucharest"), ("🇵🇹", "Portugal", "Lisbon"), ("🇹🇷", "Türkiye", "Ankara"),
+    ("🇯🇵", "Japan", "Tokyo"), ("🇸🇬", "Singapore", "Singapore"), ("🇰🇷", "South Korea", "Seoul"),
+    ("🇭🇰", "Hong Kong", "Hong Kong"), ("🇦🇪", "UAE", "Abu Dhabi"), ("🇦🇺", "Australia", "Canberra"),
+    ("🇮🇳", "India", "New Delhi"), ("🇧🇷", "Brazil", "Brasília"), ("🇿🇦", "South Africa", "Pretoria"),
+]
+_RAND_ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no confusing 0/O/1/I
+
+
+def _digest(*parts) -> int:
+    return int(hashlib.sha256("|".join(str(p) for p in parts).encode()).hexdigest(), 16)
+
+
+def _rand_code(seed: str, n: int = 4) -> str:
+    h = _digest(seed)
+    out = []
+    for _ in range(n):
+        h, r = divmod(h, len(_RAND_ALPHA))
+        out.append(_RAND_ALPHA[r])
+    return "".join(out)
+
+
+def _set_remark(link: str, remark: str) -> str:
+    """replace a link's name (after "#"); vmess keeps its own (name is inside its base64)"""
+    if not remark or _scheme(link) == "vmess":
+        return link
+    base = link.split("#", 1)[0]
+    return f"{base}#{urllib.parse.quote(remark)}"
+
+
+def _name_link(link: str, cfg: "ExternalConfig", variables: dict, idx: int) -> str:
+    """name the link per the config's name_mode. Random choices are seeded from the user and
+    the config so they stay the same for a user across refreshes (but differ between users)."""
+    mode = getattr(cfg, "name_mode", "original") or "original"
+    if mode == "original":
+        return link
+    user = str(variables.get("USERNAME", ""))
+    seed = f"{user}:{cfg.id}:{idx}"
+    flag, country, capital = GEO_POOL[_digest(seed) % len(GEO_POOL)]
+    if mode == "random_geo":
+        return _set_remark(link, f"{flag} {country} - {capital}")
+    # "custom"
+    remark = cfg.name_template or ""
+    repl = {"USERNAME": user, "RANDOM": _rand_code(seed), "FLAG": flag,
+            "COUNTRY": country, "CAPITAL": capital, "GEO": f"{flag} {country} - {capital}"}
+    for key, value in repl.items():
+        remark = remark.replace("{%s}" % key, value)
+    return _set_remark(link, remark)
+
+
 def _labeled(link: str, label: str) -> str:
     if not label:
         return link
@@ -238,7 +303,8 @@ def apply(links: List[str], *, active: bool, host_groups: Optional[list], variab
     top, bottom = [], []
     for c in configs:
         target = top if c.position == "top" else bottom
-        target.extend((_fill(l, variables), "external") for l in c.link_list())
+        target.extend((_name_link(_fill(l, variables), c, variables, i), "external")
+                      for i, l in enumerate(c.link_list()))
 
     if s.external_sort == "protocol":
         rank = protocol_rank(s.protocol_order)
@@ -250,7 +316,8 @@ def apply(links: List[str], *, active: bool, host_groups: Optional[list], variab
     if mine and mine.enabled:
         for c in mine.configs:
             if _visible(c, active, None):
-                bottom.extend((_labeled(_fill(l, variables), mine.label), "admin") for l in c.link_list())
+                bottom.extend((_labeled(_name_link(_fill(l, variables), c, variables, i), mine.label), "admin")
+                              for i, l in enumerate(c.link_list()))
 
     result = top + own + bottom
     return result if tagged else [l for l, _ in result]

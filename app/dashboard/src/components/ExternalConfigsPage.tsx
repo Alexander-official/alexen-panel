@@ -62,6 +62,8 @@ type ExternalConfig = {
   position: "top" | "bottom";
   only_active: boolean;
   groups: string[];
+  name_mode?: "original" | "custom" | "random_geo";
+  name_template?: string;
 };
 type AdminExternal = { enabled: boolean; label: string; self_edit: boolean; include_general: boolean; configs: ExternalConfig[] };
 type ExternalSettings = {
@@ -119,6 +121,8 @@ const empty = (kind: ExternalConfig["kind"] = "subscription"): ExternalConfig =>
   position: "bottom",
   only_active: true,
   groups: [],
+  name_mode: "original",
+  name_template: "",
 });
 const icon = { width: 16, height: 16 };
 const PROTOCOL_LABEL: Record<string, string> = {
@@ -262,6 +266,26 @@ const ConfigForm: FC<{ value: ExternalConfig; groups: string[] | null; onChange:
           </Select>
         </FormControl>
       </SimpleGrid>
+
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+        <FormControl>
+          <FormLabel>{t("external.nameMode")}</FormLabel>
+          <Select size="sm" value={value.name_mode || "original"} onChange={(e) => set({ name_mode: e.target.value as any })}>
+            <option value="original">{t("external.nameModeOriginal")}</option>
+            <option value="random_geo">🇩🇪 {t("external.nameModeGeo")}</option>
+            <option value="custom">{t("external.nameModeCustom")}</option>
+          </Select>
+        </FormControl>
+        {value.name_mode === "custom" && (
+          <FormControl>
+            <FormLabel>{t("external.nameTemplate")}</FormLabel>
+            <Input size="sm" maxLength={128} value={value.name_template || ""} onChange={(e) => set({ name_template: e.target.value })} placeholder="🇺🇸 Premium {RANDOM}" />
+          </FormControl>
+        )}
+      </SimpleGrid>
+      {value.name_mode === "custom" && (
+        <Text fontSize="xs" color="gray.500" mt={-2}>{t("external.nameTemplateHelp")}</Text>
+      )}
 
       {isSub ? (
         <>

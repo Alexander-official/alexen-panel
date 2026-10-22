@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.23.0",
+    "date": "2026-10-22",
+    "tr": [
+      "Config isimlendirme: harici panel (push/import) ve External config’lerde her config’in kullanıcı uygulamasında görünen adını seçebilirsin — Orijinal, Özel (şablon: {USERNAME} {RANDOM} {FLAG} {COUNTRY} {CAPITAL} {GEO}) veya Rastgele ülke (her kullanıcıya rastgele “🇩🇪 Germany - Berlin” gibi, kullanıcı başına sabit). Sunucuyu gizler, her kullanıcıya özel görünür."
+    ],
+    "en": [
+      "Config naming: for external-panel (push/import) and External configs you can set how each config is named in the user’s app — Original, Custom (template: {USERNAME} {RANDOM} {FLAG} {COUNTRY} {CAPITAL} {GEO}), or Random country (each user gets a random “🇩🇪 Germany - Berlin”, stable per user). Hides the real server and looks unique per user."
+    ]
+  },
+  {
     "version": "1.22.0",
     "date": "2026-10-22",
     "tr": [
