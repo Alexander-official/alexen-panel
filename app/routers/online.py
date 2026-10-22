@@ -197,5 +197,17 @@ def get_user_online_ips(dbuser: UserResponse = Depends(get_validated_user)):
     for ip in blocked - set(user_ips):
         ips.append(OnlineIP(ip=ip, nodes=[], inbounds=[],
                             last_seen=datetime.utcfromtimestamp(0), blocked=True))
+    # connections through an external panel (pulled from its live stats, not our Xray)
+    try:
+        from app.external_panels import live as _eplive
+        for ext in _eplive.online_for(dbuser.username):
+            ips.append(OnlineIP(
+                ip=ext["host"], nodes=[f"🌐 {ext['panel']}"], inbounds=[],
+                last_seen=datetime.utcfromtimestamp(ext["last_seen"]),
+                connected_seconds=0,
+                protocol=(" / ".join(ext["protocols"]) + " · external") if ext["protocols"] else "external",
+            ))
+    except Exception:
+        pass
     ips.sort(key=lambda i: (not i.blocked, -i.last_seen.timestamp()))
     return UserOnlineIPs(username=dbuser.username, ip_limit=dbuser.ip_limit, ips=ips)

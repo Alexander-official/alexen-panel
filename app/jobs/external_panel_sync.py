@@ -99,73 +99,85 @@ def _sync_one(panel_id: int) -> None:
             db.commit()
             return
 
+        import time as _t
+        import urllib.parse as _u
         by_inbound = data.get("by_inbound", []) or []
-        online_emails = set((c.get("name") or "").strip() for c in (data.get("clients") or []) if c.get("online"))
-        all_emails = set()
-        for ib in by_inbound:
-            all_emails.update((ib.get("clients") or {}).keys())
+        host = _u.urlparse(p.address).hostname or p.name
+        protocols = sorted({(ib.get("protocol") or "?") for ib in by_inbound})
 
-        users = db.query(User).filter(User.username.in_(list(all_emails))).all() if all_emails else []
+        # 3x-ui tracks a client's traffic as ONE aggregate counter, repeated identically on every
+        # inbound it's on — so summing per-inbound double-counts. Take the MAX per user (= the real
+        # total) and the latest lastOnline across inbounds.
+        user_total: dict = {}
+        user_last: dict = {}
+        for ib in by_inbound:
+            for email, c in (ib.get("clients") or {}).items():
+                tot = int(c.get("total") or 0) if isinstance(c, dict) else int(c or 0)
+                lo = int(c.get("last") or 0) if isinstance(c, dict) else 0
+                if tot > user_total.get(email, -1):
+                    user_total[email] = tot
+                if lo > user_last.get(email, 0):
+                    user_last[email] = lo
+
+        users = db.query(User).filter(User.username.in_(list(user_total.keys()))).all() if user_total else []
         by_name = {u.username: u for u in users}
         now_dt = datetime.utcnow()
+        now_s = _t.time()
 
-        for email in online_emails:
-            u = by_name.get(email)
-            if u:
-                u.online_at = now_dt
-
-        # per-inbound usage deltas (cumulative counters → delta since last sync). We attribute each
-        # to a persistent, FK-free inbound_tag "🌐 <panel> · <protocol>", so it shows in statistics
-        # (per-protocol) and SURVIVES deleting the panel. Quota (used_traffic) is only touched when
-        # count_traffic is on; the stats attribution is always recorded.
-        prev = (p.last_stats or {}).get("by_inbound_totals", {}) if isinstance(p.last_stats, dict) else {}
-        new_prev: dict = {}
-        usage_params = []   # [{uid, tag, value}] for UserInboundUsage
-        hist: dict = {}     # {tag: bytes} for the hourly charts
+        prev = (p.last_stats or {}).get("user_totals", {}) if isinstance(p.last_stats, dict) else {}
+        tag = f"🌐 {p.name}"   # single persistent, FK-free tag per panel (per-protocol isn't available)
+        usage_params = []
+        hist_total = 0
         admin_add: dict = {}
-        for ib in by_inbound:
-            tag = f"🌐 {p.name} · {ib.get('protocol') or '?'}"
-            key = str(ib.get("id"))
-            prev_clients = prev.get(key) or {}
-            cur_clients = ib.get("clients") or {}
-            for email, total in cur_clients.items():
-                total = int(total)
-                new_prev.setdefault(key, {})[email] = total
-                u = by_name.get(email)
-                if not u:
-                    continue
-                old = int(prev_clients.get(email, total))  # first sight = baseline (no retro dump)
-                delta = total - old
-                if delta > 0:
-                    usage_params.append({"uid": u.id, "tag": tag, "value": delta})
-                    hist[tag] = hist.get(tag, 0) + delta
-                    u.online_at = now_dt
-                    if p.count_traffic:
-                        u.used_traffic = (u.used_traffic or 0) + delta
-                        if u.admin_id:
-                            admin_add[u.admin_id] = admin_add.get(u.admin_id, 0) + delta
+        online_now: dict = {}   # username -> last_seen epoch (for the online-IPs view)
+        for email, total in user_total.items():
+            u = by_name.get(email)
+            if not u:
+                continue
+            # online: the external client was seen within the last 3 minutes
+            lo_s = (user_last.get(email, 0) or 0) / 1000.0
+            if lo_s and (now_s - lo_s) < 180:
+                u.online_at = now_dt
+                online_now[email] = lo_s
+            old = int(prev.get(email, total))  # first sight = baseline (no retro dump)
+            delta = total - old
+            if delta > 0:
+                usage_params.append({"uid": u.id, "tag": tag, "value": delta})
+                hist_total += delta
+                u.online_at = now_dt
+                if p.count_traffic:
+                    u.used_traffic = (u.used_traffic or 0) + delta
+                    if u.admin_id:
+                        admin_add[u.admin_id] = admin_add.get(u.admin_id, 0) + delta
         if p.count_traffic:
             for admin_id, val in admin_add.items():
                 a = db.query(Admin).filter(Admin.id == admin_id).first()
                 if a:
                     a.users_usage = (a.users_usage or 0) + val
 
+        # publish who's online via this panel (read by the online-IPs view in online.py router)
+        try:
+            from app.external_panels import live as _eplive
+            _eplive.set_online(p.id, p.name, host, protocols, online_now)
+        except Exception:
+            pass
+
         p.last_stats = {
             "total_up": data.get("total_up", 0), "total_down": data.get("total_down", 0),
             "online": data.get("online", 0), "server": data.get("server") or {},
-            "by_inbound_totals": new_prev, "at": now_dt.isoformat(),
+            "user_totals": user_total, "at": now_dt.isoformat(),
         }
         p.last_sync = now_dt
         p.last_error = None
         db.commit()
 
-        # persistent per-protocol stats (own session; survives panel deletion — plain-string tags)
+        # persistent panel usage (own session; survives panel deletion — plain-string tag)
         if usage_params:
             try:
                 from app.jobs.record_usages import record_user_inbound_stats
                 record_user_inbound_stats(usage_params)
                 from app import stats_history
-                stats_history.record_inbounds(hist)
+                stats_history.record_inbounds({tag: hist_total})
             except Exception as e:
                 logger.warning(f"external panel {p.id} stats record: {e}")
 

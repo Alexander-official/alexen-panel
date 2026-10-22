@@ -203,8 +203,8 @@ class ThreeXUI(BaseClient):
                 clients.append({"name": email, "up": cs.get("up", 0) or 0, "down": cs.get("down", 0) or 0,
                                 "total": tot, "online": email in online, "enable": cs.get("enable", True)})
                 if email:
-                    per[email] = tot
-            # per-inbound client totals, so usage can be attributed per server/protocol
+                    per[email] = {"total": tot, "last": int(cs.get("lastOnline") or 0)}
+            # per-inbound client totals + lastOnline (ms), so usage/online can be attributed
             by_inbound.append({"id": ib.get("id"), "protocol": ib.get("protocol"),
                                "remark": ib.get("remark") or ib.get("tag") or "",
                                "port": ib.get("port"), "clients": per})

@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.30.0",
+    "date": "2026-10-22",
+    "tr": [
+      "Kullanıcı harici panelden bağlıyken artık online-IP / bağlantı ekranında gösteriliyor: '🌐 <panel>' (sunucu IP'si + protokoller, ör. 'hysteria / vless · external'), son görülmeye göre. Böylece 'online ama hangisini kullanıyor' belli oluyor.",
+      "Çift sayım düzeltildi: 3x-ui bir client'ın trafiğini her inbound'da aynı toplam olarak raporladığı için artık kullanıcı başına TEK sefer (en yüksek değer) sayılıyor; istatistik tek '🌐 <panel>' etiketinde (panel başına), kota da doğru."
+    ],
+    "en": [
+      "A user connected through an external panel now shows in the online-IPs / connections view as '🌐 <panel>' (server IP + protocols, e.g. 'hysteria / vless · external') by last-seen — so 'online but which one' is answered.",
+      "Fixed double-counting: 3x-ui reports a client's traffic as the same aggregate on every inbound, so usage is now counted ONCE per user (the max), under a single '🌐 <panel>' tag, and quota is correct."
+    ]
+  },
+  {
     "version": "1.29.0",
     "date": "2026-10-22",
     "tr": [

@@ -29,6 +29,30 @@ def subid(username: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, "alexen:" + username))
 
 
+# who is currently online via each external panel (written by the sync job, read by the
+# online-IPs view). panel_id -> {name, host, protocols, at, users: {username: last_seen_epoch}}
+_online_src: dict = {}
+
+
+def set_online(panel_id, name, host, protocols, users: dict) -> None:
+    _online_src[panel_id] = {"name": name, "host": host, "protocols": list(protocols or []),
+                             "at": time.time(), "users": dict(users or {})}
+
+
+def online_for(username: str) -> List[dict]:
+    """external panels this user is currently connected through (for the online-IPs view)"""
+    out = []
+    now = time.time()
+    for d in list(_online_src.values()):
+        if now - d.get("at", 0) > 300:   # ignore stale panel data (sync stopped)
+            continue
+        ls = (d.get("users") or {}).get(username)
+        if ls:
+            out.append({"panel": d["name"], "host": d["host"],
+                        "protocols": d["protocols"], "last_seen": ls})
+    return out
+
+
 def _link_hostport(line: str):
     try:
         if line.startswith("vmess://"):
