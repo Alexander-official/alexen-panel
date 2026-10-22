@@ -30,6 +30,7 @@ import {
   QueueListIcon,
   ChartBarIcon,
   ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
 } from "@heroicons/react/24/outline";
 import { FC, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -88,7 +89,18 @@ export const ExternalPanelsPage: FC = () => {
   const [imp, setImp] = useState<
     { panel: Panel; host: string; portMap: string; fake: string; all: boolean; admins: string[]; position: string; preview: any[] | null } | null
   >(null);
+  const [prov, setProv] = useState<
+    { panel: Panel; inbounds: any[]; inboundIds: number[]; all: boolean; admins: string[] } | null
+  >(null);
   const statsRef = useRef<Panel | null>(null);
+
+  const openProvision = (p: Panel) => {
+    setBusy(p.id);
+    fetch(`/external-panels/${p.id}/inbounds`)
+      .then((r: any) => setProv({ panel: p, inbounds: r.inbounds || [], inboundIds: [], all: false, admins: p.scope?.admins || [] }))
+      .catch(err)
+      .finally(() => setBusy(null));
+  };
 
   // "8443:443, 2053:443" -> {"8443":443}
   const parsePortMap = (s: string): Record<string, number> => {
@@ -396,6 +408,10 @@ export const ExternalPanelsPage: FC = () => {
                     onClick={() => setImp({ panel: p, host: "", portMap: "", fake: "", all: false, admins: p.scope?.admins || [], position: "bottom", preview: null })}>
                     {t("extPanel.import")}
                   </Button>
+                  <Button size="xs" colorScheme="green" variant="outline" leftIcon={<ArrowUpTrayIcon width={14} />}
+                    isLoading={busy === p.id} onClick={() => openProvision(p)}>
+                    {t("extPanel.provision")}
+                  </Button>
                   <IconButton aria-label="edit" size="xs" variant="ghost" icon={<PencilSquareIcon width={16} />} onClick={() => startEdit(p)} />
                   <IconButton aria-label="delete" size="xs" variant="ghost" colorScheme="red" icon={<TrashIcon width={16} />} onClick={() => remove(p)} />
                 </HStack>
@@ -583,6 +599,70 @@ export const ExternalPanelsPage: FC = () => {
               </Box>
             )}
           </VStack>
+        </Box>
+      )}
+
+      {prov && (
+        <Box className="alexen-page" borderWidth="1px" borderRadius="16px" p={5}>
+          <HStack mb={3}>
+            <Heading size="sm">{prov.panel.name} — {t("extPanel.provision")}</Heading>
+            <Button size="xs" variant="ghost" ml="auto" onClick={() => setProv(null)}>{t("close")}</Button>
+          </HStack>
+          <Text fontSize="xs" color="gray.500" mb={3}>{t("extPanel.provisionHelp")}</Text>
+          <FormControl mb={3}>
+            <FormLabel fontSize="sm">{t("extPanel.chooseInbounds")}</FormLabel>
+            <Box maxH="150px" overflowY="auto" borderWidth="1px" borderRadius="10px" p={2}>
+              {prov.inbounds.length === 0 ? (
+                <Text fontSize="xs" color="gray.500">{t("extPanel.noInbounds")}</Text>
+              ) : (
+                <VStack align="stretch" spacing={1}>
+                  {prov.inbounds.map((ib: any) => (
+                    <Checkbox key={ib.id} size="sm" isChecked={prov.inboundIds.includes(ib.id)}
+                      onChange={(e) => setProv({ ...prov, inboundIds: e.target.checked ? [...prov.inboundIds, ib.id] : prov.inboundIds.filter((x) => x !== ib.id) })}>
+                      {ib.remark || ib.tag || `#${ib.id}`} <Badge ml={1}>{ib.protocol}</Badge>{" "}
+                      <Text as="span" color="gray.500" fontFamily="mono">:{ib.port}</Text>
+                    </Checkbox>
+                  ))}
+                </VStack>
+              )}
+            </Box>
+          </FormControl>
+          <FormControl mb={3}>
+            <FormLabel fontSize="sm">{t("extPanel.importScope")}</FormLabel>
+            <Checkbox size="sm" isChecked={prov.all} onChange={(e) => setProv({ ...prov, all: e.target.checked })} mb={1}>
+              {t("extPanel.everyone")}
+            </Checkbox>
+            {!prov.all && (
+              <Box maxH="120px" overflowY="auto" borderWidth="1px" borderRadius="10px" p={2}>
+                {resellers.length === 0 ? (
+                  <Text fontSize="xs" color="gray.500">{t("extPanel.noResellers")}</Text>
+                ) : (
+                  <VStack align="stretch" spacing={1}>
+                    {resellers.map((u) => (
+                      <Checkbox key={u} size="sm" isChecked={prov.admins.includes(u)}
+                        onChange={(e) => setProv({ ...prov, admins: e.target.checked ? [...prov.admins, u] : prov.admins.filter((x) => x !== u) })}>
+                        {u}
+                      </Checkbox>
+                    ))}
+                  </VStack>
+                )}
+              </Box>
+            )}
+          </FormControl>
+          <HStack justify="flex-end">
+            <Button size="sm" colorScheme="green"
+              isDisabled={prov.inboundIds.length === 0 || (!prov.all && prov.admins.length === 0)}
+              isLoading={busy === "form"}
+              onClick={() => {
+                setBusy("form");
+                fetch(`/external-panels/${prov.panel.id}/provision`, { method: "POST", body: { inbound_ids: prov.inboundIds, scope_all: prov.all, scope_admins: prov.all ? [] : prov.admins } })
+                  .then((r: any) => { ok(t("extPanel.provisioned", { created: r.created, exists: r.exists, failed: r.failed })); setProv(null); })
+                  .catch(err)
+                  .finally(() => setBusy(null));
+              }}>
+              {t("extPanel.provision")}
+            </Button>
+          </HStack>
         </Box>
       )}
     </VStack>

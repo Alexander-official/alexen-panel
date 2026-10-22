@@ -171,6 +171,71 @@ def import_preview(panel_id: int, opts: ImportOptions, db: Session = Depends(get
     return {"links": [{"remark": r, "link": l} for r, l in links]}
 
 
+class ProvisionOptions(BaseModel):
+    inbound_ids: list = []    # external inbound ids to create the Alexen users in
+    scope_all: bool = False
+    scope_admins: list = []
+
+
+def _user_secret(u) -> str:
+    for pr in (u.proxies or []):
+        st = pr.settings or {}
+        if isinstance(st, dict) and st.get("id"):
+            return st["id"]
+    for pr in (u.proxies or []):
+        st = pr.settings or {}
+        if isinstance(st, dict) and st.get("password"):
+            return st["password"]
+    return ""
+
+
+@router.post("/{panel_id}/provision")
+def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends(get_db),
+                    admin: Admin = Depends(Admin.check_sudo_admin)):
+    """Create the scoped Alexen users AS CLIENTS on the external panel's chosen inbound(s),
+    reusing each user's uuid (so identities match). Stage 1 of the push integration."""
+    from datetime import datetime
+    from app.db.models import User as _User, Admin as _DBA
+    p = _get(db, panel_id)
+    if not opts.inbound_ids:
+        raise HTTPException(400, "Choose at least one inbound on the panel")
+    q = db.query(_User)
+    if not opts.scope_all:
+        if not opts.scope_admins:
+            raise HTTPException(400, "Choose everyone or at least one admin")
+        ids = [a.id for a in db.query(_DBA).filter(_DBA.username.in_(opts.scope_admins)).all()]
+        q = q.filter(_User.admin_id.in_(ids))
+    users = q.all()
+    try:
+        client = BaseClient.from_panel(p)
+        client.login()
+    except PanelError as e:
+        p.last_error = str(e)
+        db.commit()
+        raise HTTPException(400, str(e))
+    created = exists = failed = skipped = 0
+    errors = []
+    for u in users:
+        sec = _user_secret(u)
+        if not sec:
+            skipped += 1
+            continue
+        for ib in opts.inbound_ids:
+            ok, msg = client.add_client(int(ib), u.username, sec)
+            if ok:
+                exists += 1 if msg == "exists" else 0
+                created += 0 if msg == "exists" else 1
+            else:
+                failed += 1
+                if len(errors) < 3 and msg:
+                    errors.append(msg)
+    p.last_sync = datetime.utcnow()
+    p.last_error = (errors[0] if errors else None)
+    db.commit()
+    return {"users": len(users), "created": created, "exists": exists,
+            "failed": failed, "skipped": skipped, "errors": errors}
+
+
 @router.post("/{panel_id}/import")
 def import_configs(panel_id: int, opts: ImportOptions, db: Session = Depends(get_db),
                    admin: Admin = Depends(Admin.check_sudo_admin)):

@@ -86,6 +86,11 @@ class BaseClient:
         (positioned/ordered) on its own in External configs."""
         return []
 
+    def add_client(self, inbound_id: int, email: str, secret: str) -> Tuple[bool, str]:
+        """Create a client on the panel's inbound reusing `secret` as both uuid and password
+        (so the Alexen user's uuid matches). Returns (ok, msg). 'already in use' counts as ok."""
+        return (False, "not supported")
+
 
 class ThreeXUI(BaseClient):
     kind = "3xui"
@@ -195,6 +200,25 @@ class ThreeXUI(BaseClient):
             if ls:
                 groups.append((name, ls))
         return groups
+
+    def add_client(self, inbound_id: int, email: str, secret: str) -> Tuple[bool, str]:
+        body = {"client": {"email": email, "id": secret, "password": secret, "enable": True,
+                           "totalGB": 0, "expiryTime": 0, "limitIp": 0, "limitHwid": 0,
+                           "tgId": 0, "subId": "", "flow": ""},
+                "inboundIds": [inbound_id]}
+        try:
+            r = self.s.post(self.url("panel/api/clients/add"),
+                            headers={"X-CSRF-Token": getattr(self, "csrf", ""), "Origin": self.base},
+                            json=body, timeout=self.timeout)
+            data = r.json()
+        except Exception as e:
+            return (False, str(e))
+        if data.get("success"):
+            return (True, "")
+        msg = (data.get("msg") or "").strip()
+        if "already in use" in msg or "already exists" in msg:
+            return (True, "exists")
+        return (False, msg or "add failed")
 
 
 class SUI(BaseClient):

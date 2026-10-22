@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.21.0",
+    "date": "2026-10-22",
+    "tr": [
+      "Harici panel “Kullanıcıları panelde aç” (push): seçili Alexen kullanıcılarını, seçtiğin 3x-ui inbound(lar)ında client olarak oluşturur — UUID’ler Alexen’dekiyle AYNI. Hangi inbound ve hangi kapsam (herkes/bayiler) senin seçimin. Trafik/online Trafik sekmesinde görünür. (v3.x clients API ile.)"
+    ],
+    "en": [
+      "External panel “Create users on panel” (push): creates the selected Alexen users as clients on the chosen 3x-ui inbound(s) — UUIDs match Alexen’s. You pick the inbound(s) and scope (everyone/resellers). Traffic/online show in the Traffic tab. (Uses the v3.x clients API.)"
+    ]
+  },
+  {
     "version": "1.20.5",
     "date": "2026-10-22",
     "tr": [

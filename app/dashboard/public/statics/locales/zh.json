@@ -1696,5 +1696,9 @@
   "extPanel.position": "Position",
   "extPanel.posTop": "Top",
   "extPanel.posBottom": "Bottom",
-  "extPanel.manageHint": "Each inbound becomes its own entry on the External configs page, where you can reorder, reposition or disable it."
+  "extPanel.manageHint": "Each inbound becomes its own entry on the External configs page, where you can reorder, reposition or disable it.",
+  "extPanel.provision": "Create users on panel",
+  "extPanel.provisionHelp": "Creates the selected Alexen users AS CLIENTS on the chosen inbound(s) of this panel, reusing each user's UUID (identities match). Traffic/online then show in the Traffic tab.",
+  "extPanel.chooseInbounds": "Target inbound(s)",
+  "extPanel.provisioned": "Done: {{created}} created, {{exists}} already there, {{failed}} failed"
 }

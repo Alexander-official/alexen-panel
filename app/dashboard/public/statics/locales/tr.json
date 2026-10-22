@@ -1698,5 +1698,9 @@
   "extPanel.position": "Konum",
   "extPanel.posTop": "Üst",
   "extPanel.posBottom": "Alt",
-  "extPanel.manageHint": "Her inbound, External configs sayfasında ayrı bir girdi olur; orada sırasını, konumunu değiştirebilir veya kapatabilirsin."
+  "extPanel.manageHint": "Her inbound, External configs sayfasında ayrı bir girdi olur; orada sırasını, konumunu değiştirebilir veya kapatabilirsin.",
+  "extPanel.provision": "Kullanıcıları panelde aç",
+  "extPanel.provisionHelp": "Seçili Alexen kullanıcılarını bu panelin seçtiğin inbound(lar)ında CLIENT olarak oluşturur; her kullanıcının UUID'si aynen kullanılır (kimlikler eşleşir). Trafik/online Trafik sekmesinde görünür.",
+  "extPanel.chooseInbounds": "Hedef inbound(lar)",
+  "extPanel.provisioned": "Bitti: {{created}} oluşturuldu, {{exists}} zaten vardı, {{failed}} başarısız"
 }
