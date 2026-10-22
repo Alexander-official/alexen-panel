@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.26.1",
+    "date": "2026-10-22",
+    "tr": [
+      "Düzeltme: 'Kullanıcıları panelde aç' (herkes seçiliyken) 500 hatası veriyordu — giderildi. Ayrıca farklı kapsamlarda bırakılan eski push config'leri temizlenip tek sefer ekleniyor (abonelikte çift config yok), ve 'zaten var/duplicate' durumunda kullanıcı sil+yeniden eklenerek tüm inbound'lara düşürülüyor. Canlı panelde uçtan uca test edildi (iki inbound da dolu, uuid eşleşiyor)."
+    ],
+    "en": [
+      "Fix: 'Create users on panel' (with Everyone selected) returned a 500 — fixed. Stale push configs left in other scopes are now cleared and added once (no duplicate config in subs), and on 'already exists/duplicate' the user is removed and re-added across all inbounds. Tested end-to-end on the live panel (both inbounds populated, UUIDs match)."
+    ]
+  },
+  {
     "version": "1.26.0",
     "date": "2026-10-22",
     "tr": [

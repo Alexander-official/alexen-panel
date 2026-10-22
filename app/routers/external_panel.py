@@ -166,6 +166,12 @@ class ProvisionOptions(BaseModel):
     auto: bool = False             # keep provisioning new scoped users automatically (until changed)
 
 
+def _is_conflict(msg: str) -> bool:
+    """an add that failed because the client already exists (various 3x-ui wordings)"""
+    m = (msg or "").lower()
+    return any(w in m for w in ("in use", "duplicate", "already exist", "exists"))
+
+
 def _user_secret(u) -> str:
     # same priority as share.setup_format_variables' EXT_UUID: id, then password, then auth
     dicts = [(pr.settings or {}) for pr in (u.proxies or []) if isinstance(pr.settings, dict)]
@@ -212,9 +218,9 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
         # email unique panel-wide, so a user already there (e.g. from an earlier run on fewer
         # inbounds) is removed first and re-added across all inbounds — idempotent and complete.
         ok, msg = client.add_client(inbound_ids_int, u.username, sec)
-        if (not ok and "in use" in (msg or "")) or msg == "exists":
+        if msg == "exists" or (not ok and _is_conflict(msg)):
             client.del_client(u.username)
-            ok, msg = client.add_client(ids, u.username, sec)
+            ok, msg = client.add_client(inbound_ids_int, u.username, sec)
         if ok:
             created += 1
         else:
@@ -246,13 +252,21 @@ def provision_users(panel_id: int, opts: ProvisionOptions, db: Session = Depends
     if new_cfgs:
         settings = _external.load(db)
 
-        def _put(lst):
-            return [c for c in lst if not c.id.startswith(prefix)] + new_cfgs
+        def _strip(lst):
+            # drop THIS panel's previous prov configs (from any earlier run/scope)
+            return [c for c in lst if not c.id.startswith(prefix)]
+
+        # first clear this panel's prov configs from EVERY scope, so changing the scope
+        # (e.g. from specific admins to everyone) never leaves stale duplicates in a sub
+        settings.configs = _strip(settings.configs)
+        for a in settings.admins.values():
+            a.configs = _strip(a.configs)
+        # then add the new set to the chosen scope only
         if opts.scope_all:
-            settings.configs = _put(settings.configs)
+            settings.configs = settings.configs + new_cfgs
         for nm in (opts.scope_admins or []):
             a = settings.admins.get(nm) or _external.AdminExternal()
-            a.configs = _put(a.configs)
+            a.configs = a.configs + new_cfgs
             settings.admins[nm] = a
         _external.save(db, settings)
         from app.subscription import external_sources

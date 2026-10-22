@@ -68,7 +68,7 @@ def _auto_provision(db, p, client) -> None:
         if not sec:
             continue
         ok, msg = client.add_client(inbs, u.username, sec)
-        if (not ok and "in use" in (msg or "")) or msg == "exists":
+        if msg == "exists" or (not ok and any(w in (msg or "").lower() for w in ("in use", "duplicate", "exist"))):
             client.del_client(u.username)
             ok, _ = client.add_client(inbs, u.username, sec)
         if ok:
