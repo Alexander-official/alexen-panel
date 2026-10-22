@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.20.5",
+    "date": "2026-10-22",
+    "tr": [
+      "Harici panel içe aktarma hata mesajı netleşti: 3x-ui panelinde kullanıcı yoksa artık doğru uyarı veriyor (eskiden yanlışlıkla s-ui yazıyordu)"
+    ],
+    "en": [
+      "Clearer external-panel import error: a 3x-ui panel with no users now shows the right message (it wrongly said s-ui before)"
+    ]
+  },
+  {
     "version": "1.20.4",
     "date": "2026-10-22",
     "tr": [

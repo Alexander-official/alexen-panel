@@ -188,7 +188,11 @@ def import_configs(panel_id: int, opts: ImportOptions, db: Session = Depends(get
         db.commit()
         raise HTTPException(400, str(e))
     if not groups:
-        raise HTTPException(400, "The panel has no client configs to import (s-ui link import is not supported yet)")
+        if p.kind == "sui":
+            raise HTTPException(400, "s-ui config import isn't supported yet — 3x-ui works. Coming soon.")
+        raise HTTPException(400, "No clients to import: this panel's inbounds have no users yet. "
+                                 "Add users to the inbound in the panel first. "
+                                 "(Supported protocols: vless, vmess, trojan, hysteria2.)")
 
     prefix = f"extpanel-{panel_id}-"
     pos = "top" if opts.position == "top" else "bottom"
