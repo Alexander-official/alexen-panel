@@ -86,7 +86,7 @@ export const ExternalPanelsPage: FC = () => {
   const [stats, setStats] = useState<{ panel: Panel; data: any | null; error?: string } | null>(null);
   const [busy, setBusy] = useState<number | "form" | null>(null);
   const [imp, setImp] = useState<
-    { panel: Panel; host: string; portMap: string; fake: string; all: boolean; admins: string[]; preview: any[] | null } | null
+    { panel: Panel; host: string; portMap: string; fake: string; all: boolean; admins: string[]; position: string; preview: any[] | null } | null
   >(null);
   const statsRef = useRef<Panel | null>(null);
 
@@ -117,6 +117,7 @@ export const ExternalPanelsPage: FC = () => {
       fake: parseFake(imp.fake),
       scope_all: imp.all,
       scope_admins: imp.all ? [] : imp.admins,
+      position: imp.position,
     };
 
   // poll the open panel's live traffic/online every 4s
@@ -392,7 +393,7 @@ export const ExternalPanelsPage: FC = () => {
                     {t("extPanel.traffic")}
                   </Button>
                   <Button size="xs" colorScheme="primary" variant="outline" leftIcon={<ArrowDownTrayIcon width={14} />}
-                    onClick={() => setImp({ panel: p, host: "", portMap: "", fake: "", all: false, admins: p.scope?.admins || [], preview: null })}>
+                    onClick={() => setImp({ panel: p, host: "", portMap: "", fake: "", all: false, admins: p.scope?.admins || [], position: "bottom", preview: null })}>
                     {t("extPanel.import")}
                   </Button>
                   <IconButton aria-label="edit" size="xs" variant="ghost" icon={<PencilSquareIcon width={16} />} onClick={() => startEdit(p)} />
@@ -514,6 +515,18 @@ export const ExternalPanelsPage: FC = () => {
               <FormLabel fontSize="sm">{t("extPanel.fake")}</FormLabel>
               <Textarea size="sm" rows={2} fontFamily="mono" fontSize="xs" placeholder={"cdn.example.com:2096:CDN\nfake2.example.com:443:Alt"} value={imp.fake} onChange={(e) => setImp({ ...imp, fake: e.target.value })} />
               <Text fontSize="xs" color="gray.500" mt={1}>{t("extPanel.fakeHelp")}</Text>
+            </FormControl>
+            <FormControl>
+              <FormLabel fontSize="sm">{t("extPanel.position")}</FormLabel>
+              <HStack spacing={2}>
+                {([["bottom", t("extPanel.posBottom")], ["top", t("extPanel.posTop")]] as [string, string][]).map(([v, label]) => (
+                  <Button key={v} size="xs" borderRadius="full" colorScheme="primary"
+                    variant={imp.position === v ? "solid" : "outline"} onClick={() => setImp({ ...imp, position: v })}>
+                    {label}
+                  </Button>
+                ))}
+              </HStack>
+              <Text fontSize="xs" color="gray.500" mt={1}>{t("extPanel.manageHint")}</Text>
             </FormControl>
             <FormControl>
               <FormLabel fontSize="sm">{t("extPanel.importScope")}</FormLabel>

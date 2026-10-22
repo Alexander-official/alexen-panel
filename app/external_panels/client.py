@@ -81,6 +81,11 @@ class BaseClient:
         remap ({real_port: mapped_port}) and fake-location copies ([{host,port,label}])."""
         return []
 
+    def share_links_grouped(self, host: str = "", port_map: dict = None, fake: list = None) -> List[Tuple[str, List[str]]]:
+        """[(inbound name, [links])] — one group per inbound so each can be managed
+        (positioned/ordered) on its own in External configs."""
+        return []
+
 
 class ThreeXUI(BaseClient):
     kind = "3xui"
@@ -169,6 +174,27 @@ class ThreeXUI(BaseClient):
                 out += _links.inbound_links(ib, f.get("host") or host, f.get("port") or mapped,
                                             remark_suffix=f" ({f.get('label') or f.get('host') or 'alt'})")
         return out
+
+    def share_links_grouped(self, host: str = "", port_map: dict = None, fake: list = None) -> List[Tuple[str, List[str]]]:
+        import urllib.parse as _u
+        from app.external_panels import links as _links
+        host = host or _u.urlparse(self.base).hostname or ""
+        port_map = port_map or {}
+        fake = fake or []
+        groups: List[Tuple[str, List[str]]] = []
+        for ib in self.raw_inbounds():
+            if ib.get("enable") is False:
+                continue
+            real = ib.get("port")
+            mapped = port_map.get(str(real)) or port_map.get(real) or real
+            name = ib.get("remark") or ib.get("tag") or f"inbound-{real}"
+            ls = [l for _, l in _links.inbound_links(ib, host, mapped)]
+            for f in fake:
+                ls += [l for _, l in _links.inbound_links(ib, f.get("host") or host, f.get("port") or mapped,
+                                                          remark_suffix=f" ({f.get('label') or f.get('host') or 'alt'})")]
+            if ls:
+                groups.append((name, ls))
+        return groups
 
 
 class SUI(BaseClient):

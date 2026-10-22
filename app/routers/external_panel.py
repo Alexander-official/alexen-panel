@@ -154,6 +154,7 @@ class ImportOptions(BaseModel):
     fake: list = []                # [{host,port,label}] extra "fake location" copies
     scope_all: bool = False        # add to every user (the general external configs)
     scope_admins: list = []        # else add to these admins' users
+    position: str = "bottom"       # where the imported configs sit: "top" | "bottom"
 
 
 @router.post("/{panel_id}/import/preview")
@@ -181,22 +182,30 @@ def import_configs(panel_id: int, opts: ImportOptions, db: Session = Depends(get
     try:
         client = BaseClient.from_panel(p)
         client.login()
-        links = client.share_links(host=opts.host, port_map=opts.port_map, fake=opts.fake)
+        groups = client.share_links_grouped(host=opts.host, port_map=opts.port_map, fake=opts.fake)
     except PanelError as e:
         p.last_error = str(e)
         db.commit()
         raise HTTPException(400, str(e))
-    if not links:
-        raise HTTPException(400, "The panel has no client configs to import")
+    if not groups:
+        raise HTTPException(400, "The panel has no client configs to import (s-ui link import is not supported yet)")
 
-    cfg_id = f"extpanel-{panel_id}"
-    text = "\n".join(l for _, l in links)
-    cfg = _external.ExternalConfig(id=cfg_id, name=p.name, kind="links", links=text, position="bottom")
+    prefix = f"extpanel-{panel_id}-"
+    pos = "top" if opts.position == "top" else "bottom"
+    # one external config per inbound, so each can be positioned/ordered in External configs
+    new_cfgs = [
+        _external.ExternalConfig(id=f"{prefix}{i}", name=f"{p.name}: {name}", kind="links",
+                                 links="\n".join(ls), position=pos)
+        for i, (name, ls) in enumerate(groups)
+    ]
+    total = sum(len(ls) for _, ls in groups)
 
     settings = _external.load(db)
 
     def _put(lst):
-        return [c for c in lst if c.id != cfg_id] + [cfg]
+        # drop this panel's previous import (old single id + per-inbound ids), add the new set
+        kept = [c for c in lst if not (c.id == f"extpanel-{panel_id}" or c.id.startswith(prefix))]
+        return kept + new_cfgs
 
     targets = []
     if opts.scope_all:
@@ -212,8 +221,8 @@ def import_configs(panel_id: int, opts: ImportOptions, db: Session = Depends(get
 
     _external.save(db, settings)
     from app.subscription import external_sources
-    external_sources.forget([cfg_id])
+    external_sources.forget([c.id for c in new_cfgs])
     p.last_sync = datetime.utcnow()
     p.last_error = None
     db.commit()
-    return {"imported": len(links), "scope": targets}
+    return {"imported": total, "inbounds": len(groups), "scope": targets}

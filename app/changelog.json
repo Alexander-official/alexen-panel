@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.20.3",
+    "date": "2026-10-22",
+    "tr": [
+      "Harici panel içe aktarma artık her inbound’u ayrı bir External-config girdisi yapar (External configs sayfasında tek tek sıra/konum/aç-kapa yönetilir) + içe aktarırken üst/alt konum seçimi"
+    ],
+    "en": [
+      "External panel import now creates one External-config entry per inbound (manage each one’s order/position/on-off on the External configs page) + a top/bottom position choice at import"
+    ]
+  },
+  {
     "version": "1.20.2",
     "date": "2026-10-21",
     "tr": [

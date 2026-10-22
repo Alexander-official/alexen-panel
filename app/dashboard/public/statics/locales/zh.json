@@ -1692,5 +1692,9 @@
   "sub.rateLimit": "Sub rate limit (sec)",
   "sub.rateLimitHelp": "Minimum seconds between two subscription fetches for one user. 0 = no limit.",
   "sub.fingerprintDevices": "Count Hiddify-style apps (no hardware id)",
-  "sub.fingerprintDevicesHelp": "Apps that send no hardware id (e.g. Hiddify) are counted toward the device limit by an app+IP fingerprint. Approximate — same app on the same IP counts once."
+  "sub.fingerprintDevicesHelp": "Apps that send no hardware id (e.g. Hiddify) are counted toward the device limit by an app+IP fingerprint. Approximate — same app on the same IP counts once.",
+  "extPanel.position": "Position",
+  "extPanel.posTop": "Top",
+  "extPanel.posBottom": "Bottom",
+  "extPanel.manageHint": "Each inbound becomes its own entry on the External configs page, where you can reorder, reposition or disable it."
 }
