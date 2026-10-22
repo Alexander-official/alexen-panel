@@ -11,7 +11,7 @@ from fastapi.routing import APIRoute
 
 from config import ALLOWED_ORIGINS, DOCS, XRAY_SUBSCRIPTION_PATH
 
-__version__ = "1.26.2"
+__version__ = "1.26.3"
 
 app = FastAPI(
     title="AlexenAPI",

@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.26.3",
+    "date": "2026-10-22",
+    "tr": [
+      "Düzeltme: harici panelden gelen VLESS config'lerine zorunlu 'encryption=none' parametresi eklendi — bu eksik olduğu için v2rayNG/Hiddify gibi istemciler vless config'ini reddediyordu (bağlanmıyordu). Hysteria2 zaten doğruydu. Düzeltmenin geçerli olması için panelde provision'ı bir kez daha çalıştır."
+    ],
+    "en": [
+      "Fix: VLESS configs from an external panel now include the mandatory 'encryption=none' parameter — without it clients like v2rayNG/Hiddify rejected the vless config (wouldn't connect). Hysteria2 was already correct. Re-run provision once so the stored configs pick up the fix."
+    ]
+  },
+  {
     "version": "1.26.2",
     "date": "2026-10-22",
     "tr": [

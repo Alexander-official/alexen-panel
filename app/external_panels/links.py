@@ -138,6 +138,7 @@ def inbound_links(inbound: dict, host: str, port: Optional[int] = None,
         remark = f"{base_remark}{('-' + email) if email else ''}{remark_suffix}"
         if protocol == "vless":
             q = _stream_query(ss)
+            q["encryption"] = "none"  # mandatory in a VLESS share link; clients reject it otherwise
             if c.get("flow"):
                 q["flow"] = c["flow"]
             query = urllib.parse.urlencode(q, safe="/,")
