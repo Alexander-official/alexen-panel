@@ -15,7 +15,8 @@ def remove_expired_users():
         cfg = crud.get_setting(db, "user_cleanup") or {}
         if cfg.get("auto_delete_enabled"):
             deleted_users = crud.autodelete_expired_users_after(
-                db, int(cfg.get("auto_delete_hours") or 24), bool(cfg.get("include_limited")))
+                db, int(cfg.get("auto_delete_hours") or 24),
+                bool(cfg.get("include_limited")), bool(cfg.get("include_disabled")))
         else:
             # legacy per-user auto_delete_in_days / USERS_AUTODELETE_DAYS (.env) path
             deleted_users = crud.autodelete_expired_users(db, USER_AUTODELETE_INCLUDE_LIMITED_ACCOUNTS)

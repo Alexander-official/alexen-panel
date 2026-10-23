@@ -27,9 +27,9 @@ except Exception:
     PANEL_XRAY = "/usr/local/bin/xray"
 
 COMPOSE = """services:
-  alexen-node:
+  {cname}:
     image: gozargah/marzban-node:latest
-    container_name: alexen-node
+    container_name: {cname}
     restart: always
     network_mode: host
     logging:            # the node logs every ping: keep its log small
@@ -41,10 +41,46 @@ COMPOSE = """services:
       SERVICE_PROTOCOL: "rest"
       SSL_CLIENT_CERT_FILE: "/var/lib/marzban-node/ssl_client_cert.pem"
 {xray_env}    volumes:
-      - /var/lib/alexen-node:/var/lib/marzban-node
+      - {data_dir}:/var/lib/marzban-node
 """
+# default (first/legacy) instance; a named node gets its own -<slug> suffix so one VPS can host
+# several nodes (one per panel) without clashing
 NODE_DIR = "/opt/alexen-node"
 DATA_DIR = "/var/lib/alexen-node"
+
+
+def _slug(name: str, port: int) -> str:
+    """a shell/docker-safe instance id from the node's name (unique per VPS). Falls back to the
+    service port when the name has no usable characters."""
+    s = re.sub(r"[^a-z0-9]+", "-", (name or "").strip().lower()).strip("-")[:32]
+    return s or f"p{int(port)}"
+
+
+def _node_paths(slug: str):
+    """(container_name, compose_dir, data_dir, cli_path) for an instance. The default instance keeps
+    the legacy names so existing single-node setups are untouched."""
+    if slug in ("", "default"):
+        return "alexen-node", NODE_DIR, DATA_DIR, "/usr/local/bin/alexen-node"
+    return f"alexen-node-{slug}", f"/opt/alexen-node-{slug}", f"/var/lib/alexen-node-{slug}", f"/usr/local/bin/{slug}"
+
+
+def _cli_script(cname: str, compose_dir: str) -> str:
+    """a small control command dropped on the VPS so the node can be managed by its name"""
+    return f"""#!/bin/sh
+# Alexen node control for {cname}
+C="{cname}"; D="{compose_dir}"
+dc() {{ (cd "$D" && (docker compose "$@" 2>/dev/null || docker-compose "$@")); }}
+case "${{1:-status}}" in
+  status) docker ps -a --filter "name=^${{C}}$" --format '{{{{.Names}}}}: {{{{.Status}}}}';;
+  logs) docker logs --tail "${{2:-200}}" "$C";;
+  follow) docker logs --tail 100 -f "$C";;
+  restart) dc restart; echo restarted;;
+  stop) dc stop; echo stopped;;
+  start|up) dc up -d; echo started;;
+  update|pull) dc pull && dc up -d --force-recreate; echo updated;;
+  *) echo "usage: $(basename "$0") {{status|logs [N]|follow|restart|stop|start|update}}";;
+esac
+"""
 
 
 class InstallError(Exception):
@@ -268,24 +304,32 @@ def install(job: dict, *, host: str, port: int, username: str, password: str, ke
             log("ports: " + ", ".join(f"{p}/{proto}" for p, proto in ports))
         if node:
             step("node", "installing the Alexen node")
-            s.upload(cert.encode(), f"{DATA_DIR}/ssl_client_cert.pem")
+            slug = _slug(node.get("name", ""), node["port"])
+            cname, node_dir, data_dir, cli_path = _node_paths(slug)
+            log(f"instance: {cname} (control it on the VPS with: {os.path.basename(cli_path)} status|logs|restart)")
+            s.upload(cert.encode(), f"{data_dir}/ssl_client_cert.pem")
             xray_env = ""
             if os.path.exists(PANEL_XRAY) and arch == _panel_arch():
                 log("copying the panel's Xray (same version as the panel)")
                 with open(PANEL_XRAY, "rb") as f:
-                    s.upload(f.read(), f"{DATA_DIR}/xray-core/xray", 0o755)
+                    s.upload(f.read(), f"{data_dir}/xray-core/xray", 0o755)
                 xray_env = '      XRAY_EXECUTABLE_PATH: "/var/lib/marzban-node/xray-core/xray"\n'
             else:
                 log("the node's own Xray is used (different CPU type)")
-            compose = COMPOSE.format(port=int(node["port"]), api_port=int(node["api_port"]), xray_env=xray_env)
-            s.upload(compose.encode(), f"{NODE_DIR}/docker-compose.yml")
-            # a node installed by hand earlier (Marzban's script) would hold the same ports: it's replaced
-            s.run("for d in /opt/marzban-node; do [ -f $d/docker-compose.yml ] && (cd $d && (docker compose down || docker-compose down)) "
-                  ">/dev/null 2>&1 && echo \"stopped the old node in $d\"; done; "
-                  "docker rm -f alexen-node >/dev/null 2>&1; true", check=False)
-            s.run(f"cd {NODE_DIR} && (docker compose pull -q || docker-compose pull -q || true) && "
+            compose = COMPOSE.format(cname=cname, port=int(node["port"]), api_port=int(node["api_port"]),
+                                     xray_env=xray_env, data_dir=data_dir)
+            s.upload(compose.encode(), f"{node_dir}/docker-compose.yml")
+            # drop a control command named after the node, so it can be managed from the VPS terminal
+            s.upload(_cli_script(cname, node_dir).encode(), cli_path, 0o755)
+            # for the DEFAULT instance only, replace a hand-installed Marzban node on the same ports;
+            # named instances never touch other containers (so multiple panels can share one VPS)
+            if slug in ("", "default"):
+                s.run("for d in /opt/marzban-node; do [ -f $d/docker-compose.yml ] && (cd $d && (docker compose down || docker-compose down)) "
+                      ">/dev/null 2>&1 && echo \"stopped the old node in $d\"; done; true", check=False)
+            s.run(f"docker rm -f {cname} >/dev/null 2>&1; true", check=False)
+            s.run(f"cd {node_dir} && (docker compose pull -q || docker-compose pull -q || true) && "
                   "(docker compose up -d --force-recreate || docker-compose up -d --force-recreate)")
-            s.run("sleep 3; docker ps --filter name=alexen-node --format '{{.Names}}: {{.Status}}'", check=False)
+            s.run(f"sleep 3; docker ps --filter name={cname} --format '{{{{.Names}}}}: {{{{.Status}}}}'", check=False)
         if agent:
             step("agent", "installing the Alexen agent (the first build takes a few minutes)")
             s.upload(_agent_bundle(), "/tmp/alexen-agent.tar.gz")

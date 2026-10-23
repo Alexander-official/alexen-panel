@@ -1746,5 +1746,9 @@
   "cleanup.close": "بستن",
   "cleanup.save": "ذخیره",
   "cleanup.saved": "ذخیره شد",
-  "cleanup.deleted": "{{count}} کاربر منقضی حذف شد"
+  "cleanup.deleted": "{{count}} کاربر منقضی حذف شد",
+  "userDialog.unitDays": "روز",
+  "userDialog.unitHours": "ساعت",
+  "userDialog.unitMinutes": "دقیقه",
+  "cleanup.includeDisabled": "کاربران غیرفعال هم حذف شوند"
 }

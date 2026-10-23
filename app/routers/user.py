@@ -642,14 +642,19 @@ def delete_expired_users(
 def delete_all_expired_users(
     bg: BackgroundTasks,
     include_limited: bool = Query(False, description="also delete data-limited users"),
+    include_disabled: bool = Query(False, description="also delete disabled users"),
     db: Session = Depends(get_db),
     admin: Admin = Depends(Admin.get_current),
 ):
     """Delete ALL currently expired users in one go (no date range, no grace period).
-    With include_limited, data-limited users are removed too. Scoped to the admin's own
-    users unless the admin is sudo."""
+    With include_limited/include_disabled, those users are removed too. Scoped to the admin's
+    own users unless the admin is sudo."""
     dbadmin = crud.get_admin(db, admin.username)
-    target = [UserStatus.expired] + ([UserStatus.limited] if include_limited else [])
+    target = [UserStatus.expired]
+    if include_limited:
+        target.append(UserStatus.limited)
+    if include_disabled:
+        target.append(UserStatus.disabled)
     users = crud.get_users(db, status=target, admin=None if admin.is_sudo else dbadmin)
     removed = [(u.username, u.admin) for u in users]   # capture before delete
     if users:

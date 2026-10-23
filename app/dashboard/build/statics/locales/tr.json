@@ -1744,5 +1744,9 @@
   "cleanup.close": "Kapat",
   "cleanup.save": "Kaydet",
   "cleanup.saved": "Kaydedildi",
-  "cleanup.deleted": "{{count}} süresi dolan kullanıcı silindi"
+  "cleanup.deleted": "{{count}} süresi dolan kullanıcı silindi",
+  "userDialog.unitDays": "Gün",
+  "userDialog.unitHours": "Saat",
+  "userDialog.unitMinutes": "Dakika",
+  "cleanup.includeDisabled": "Devre dışı kullanıcıları da sil"
 }

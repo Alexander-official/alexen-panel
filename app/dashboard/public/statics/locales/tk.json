@@ -1744,5 +1744,9 @@
   "cleanup.close": "Ýap",
   "cleanup.save": "Ýatda sakla",
   "cleanup.saved": "Ýatda saklandy",
-  "cleanup.deleted": "{{count}} möhleti dolan ulanyjy pozuldy"
+  "cleanup.deleted": "{{count}} möhleti dolan ulanyjy pozuldy",
+  "userDialog.unitDays": "Gün",
+  "userDialog.unitHours": "Sagat",
+  "userDialog.unitMinutes": "Minut",
+  "cleanup.includeDisabled": "Öçürilen ulanyjylary hem poz"
 }

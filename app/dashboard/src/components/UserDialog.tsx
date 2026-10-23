@@ -227,9 +227,10 @@ const schema = z.discriminatedUnion("status", [
     status: z.literal("on_hold"),
     on_hold_expire_duration: z.coerce
       .number()
-      .min(0.1, "Required")
+      .gt(0, "Required")
       .transform((d) => {
-        return d * (24 * 60 * 60);
+        // stored in (possibly fractional) days; the unit selector sets days accordingly
+        return Math.round(d * (24 * 60 * 60));
       }),
     ...baseSchema,
   }),
@@ -261,6 +262,11 @@ export const UserDialog: FC<UserDialogProps> = () => {
   const isOpen = isCreatingNewUser || isEditing;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>("");
+  // on-hold duration unit: the stored field is in (fractional) days; this lets the seller
+  // enter the duration in days/hours/minutes when creating a user
+  const DURATION_FACTOR: Record<string, number> = { days: 1, hours: 1 / 24, minutes: 1 / 1440 };
+  const [durationUnit, setDurationUnit] = useState<"days" | "hours" | "minutes">("days");
+  const [durationAmount, setDurationAmount] = useState<string>("");
   const toast = useToast();
   const { t, i18n } = useTranslation();
 
@@ -286,6 +292,18 @@ export const UserDialog: FC<UserDialogProps> = () => {
       ),
     []
   );
+
+  // when editing an existing on-hold user, show its duration in days by default
+  useEffect(() => {
+    const d = editingUser?.on_hold_expire_duration;
+    if (d) {
+      setDurationUnit("days");
+      setDurationAmount(String(d / (24 * 60 * 60)));
+    } else {
+      setDurationAmount("");
+      setDurationUnit("days");
+    }
+  }, [editingUser, isOpen]);
 
   const [dataLimit, userStatus] = useWatch({
     control: form.control,
@@ -687,27 +705,40 @@ export const UserDialog: FC<UserDialogProps> = () => {
                             control={form.control}
                             name="on_hold_expire_duration"
                             render={({ field }) => {
+                              const setDur = (amount: string, unit: "days" | "hours" | "minutes") => {
+                                setDurationAmount(amount);
+                                setDurationUnit(unit);
+                                form.setValue("expire", null);
+                                const n = parseFloat(amount);
+                                field.onChange({
+                                  target: { value: isNaN(n) ? "" : n * DURATION_FACTOR[unit] },
+                                });
+                              };
                               return (
-                                <Input
-                                  endAdornment="Days"
-                                  type="number"
-                                  size="sm"
-                                  borderRadius="8px"
-                                  onChange={(on_hold) => {
-                                    form.setValue("expire", null);
-                                    field.onChange({
-                                      target: {
-                                        value: on_hold,
-                                      },
-                                    });
-                                  }}
-                                  disabled={disabled}
-                                  error={
-                                    form.formState.errors
-                                      .on_hold_expire_duration?.message
-                                  }
-                                  value={field.value ? String(field.value) : ""}
-                                />
+                                <HStack spacing={2} align="stretch">
+                                  <Input
+                                    type="number"
+                                    size="sm"
+                                    borderRadius="8px"
+                                    onChange={(e: any) => setDur(e.target.value, durationUnit)}
+                                    disabled={disabled}
+                                    error={form.formState.errors.on_hold_expire_duration?.message}
+                                    value={durationAmount}
+                                  />
+                                  <Select
+                                    size="sm"
+                                    borderRadius="8px"
+                                    w="110px"
+                                    flexShrink={0}
+                                    value={durationUnit}
+                                    isDisabled={disabled}
+                                    onChange={(e) => setDur(durationAmount, e.target.value as any)}
+                                  >
+                                    <option value="days">{t("userDialog.unitDays")}</option>
+                                    <option value="hours">{t("userDialog.unitHours")}</option>
+                                    <option value="minutes">{t("userDialog.unitMinutes")}</option>
+                                  </Select>
+                                </HStack>
                               );
                             }}
                           />
@@ -730,7 +761,10 @@ export const UserDialog: FC<UserDialogProps> = () => {
                                 <>
                                   <ReactDatePicker
                                     locale={i18n.language.toLocaleLowerCase()}
-                                    dateFormat={t("dateFormat")}
+                                    dateFormat={`${t("dateFormat")} HH:mm`}
+                                    showTimeSelect
+                                    timeFormat="HH:mm"
+                                    timeIntervals={15}
                                     minDate={new Date()}
                                     selected={
                                       field.value
@@ -742,17 +776,20 @@ export const UserDialog: FC<UserDialogProps> = () => {
                                         "on_hold_expire_duration",
                                         null
                                       );
+                                      // if the user picked only a day (midnight), default to end of
+                                      // day; otherwise keep the exact hour/minute they chose
+                                      const picked = dayjs(date);
+                                      const atMidnight =
+                                        picked.hour() === 0 &&
+                                        picked.minute() === 0 &&
+                                        picked.second() === 0;
+                                      const final = atMidnight
+                                        ? picked.set("hour", 23).set("minute", 59).set("second", 59)
+                                        : picked.set("second", 0);
                                       field.onChange({
                                         target: {
                                           value: date
-                                            ? dayjs(
-                                              dayjs(date)
-                                                .set("hour", 23)
-                                                .set("minute", 59)
-                                                .set("second", 59)
-                                            )
-                                              .utc()
-                                              .valueOf() / 1000
+                                            ? dayjs(final).utc().valueOf() / 1000
                                             : 0,
                                           name: "expire",
                                         },

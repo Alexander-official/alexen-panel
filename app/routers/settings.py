@@ -98,7 +98,8 @@ class UserCleanupSettings(BaseModel):
     # automatically delete users once they've been expired for `auto_delete_hours`
     auto_delete_enabled: bool = False
     auto_delete_hours: int = 24
-    include_limited: bool = False   # also delete data-limited users, not just time-expired
+    include_limited: bool = False    # also delete data-limited users, not just time-expired
+    include_disabled: bool = False   # also delete manually-disabled users
 
 
 @router.get("/user-cleanup", response_model=UserCleanupSettings)

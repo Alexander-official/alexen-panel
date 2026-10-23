@@ -1751,5 +1751,9 @@
   "cleanup.close": "Закрыть",
   "cleanup.save": "Сохранить",
   "cleanup.saved": "Сохранено",
-  "cleanup.deleted": "Удалено истёкших: {{count}}"
+  "cleanup.deleted": "Удалено истёкших: {{count}}",
+  "userDialog.unitDays": "Дней",
+  "userDialog.unitHours": "Часов",
+  "userDialog.unitMinutes": "Минут",
+  "cleanup.includeDisabled": "Также удалять отключённых"
 }

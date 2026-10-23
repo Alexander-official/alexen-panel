@@ -1744,5 +1744,9 @@
   "cleanup.close": "Close",
   "cleanup.save": "Save",
   "cleanup.saved": "Saved",
-  "cleanup.deleted": "{{count}} expired user(s) deleted"
+  "cleanup.deleted": "{{count}} expired user(s) deleted",
+  "userDialog.unitDays": "Days",
+  "userDialog.unitHours": "Hours",
+  "userDialog.unitMinutes": "Minutes",
+  "cleanup.includeDisabled": "Also delete disabled users"
 }

@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.32.0",
+    "date": "2026-10-23",
+    "tr": [
+      "Çoklu node: bir VPS artık birden fazla Alexen paneline node olabilir. Her node kendi adına göre ayrı instance kurulur (konteyner/dizin/portlar ayrı) — ikinci panel birincisini bozmaz. ÖNEMLİ: aynı VPS'e ikinci node için SERVICE/API portlarını ve xray inbound portlarını farklı seç.",
+      "VPS terminalinden node kontrolü: kurulumda node'un adıyla bir komut bırakılır (ör. 'usa status', 'usa logs', 'usa restart', 'usa update').",
+      "Temizliğe devre dışı kullanıcılar da dahil edilebiliyor (hem otomatik hem 'tümünü sil').",
+      "Kullanıcı oluştururken süre artık gün/saat/dakika olarak ayarlanabiliyor (on-hold süresi birim seçici; normal son kullanma tarihinde saat:dakika seçimi)."
+    ],
+    "en": [
+      "Multi-node: one VPS can now be a node for several Alexen panels. Each node installs as its own instance named after the node (separate container/dir/ports) — a second panel no longer breaks the first. NOTE: for a second node on the same VPS, pick different SERVICE/API ports and different xray inbound ports.",
+      "Control a node from the VPS terminal: the install drops a command named after the node (e.g. 'usa status', 'usa logs', 'usa restart', 'usa update').",
+      "Cleanup can also include disabled users (both auto-delete and the one-shot 'delete all').",
+      "User expiry can be set in days/hours/minutes at creation (unit selector for the on-hold duration; hour:minute picker for the absolute expiry date)."
+    ]
+  },
+  {
     "version": "1.31.0",
     "date": "2026-10-23",
     "tr": [

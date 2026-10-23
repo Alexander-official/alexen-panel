@@ -1742,5 +1742,9 @@
   "cleanup.close": "关闭",
   "cleanup.save": "保存",
   "cleanup.saved": "已保存",
-  "cleanup.deleted": "已删除 {{count}} 个过期用户"
+  "cleanup.deleted": "已删除 {{count}} 个过期用户",
+  "userDialog.unitDays": "天",
+  "userDialog.unitHours": "小时",
+  "userDialog.unitMinutes": "分钟",
+  "cleanup.includeDisabled": "同时删除已禁用用户"
 }

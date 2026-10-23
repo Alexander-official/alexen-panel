@@ -25,7 +25,7 @@ import { useTranslation } from "react-i18next";
 import { fetch } from "service/http";
 import { serverMessage } from "utils/serverMessage";
 
-type Cleanup = { auto_delete_enabled: boolean; auto_delete_hours: number; include_limited: boolean };
+type Cleanup = { auto_delete_enabled: boolean; auto_delete_hours: number; include_limited: boolean; include_disabled: boolean };
 
 export const ExpiredCleanupModal: FC<{ isOpen: boolean; onClose: () => void; onDeleted?: () => void }> = ({
   isOpen,
@@ -34,7 +34,7 @@ export const ExpiredCleanupModal: FC<{ isOpen: boolean; onClose: () => void; onD
 }) => {
   const { t } = useTranslation();
   const toast = useToast();
-  const [cfg, setCfg] = useState<Cleanup>({ auto_delete_enabled: false, auto_delete_hours: 24, include_limited: false });
+  const [cfg, setCfg] = useState<Cleanup>({ auto_delete_enabled: false, auto_delete_hours: 24, include_limited: false, include_disabled: false });
   const [savingBusy, setSaving] = useState(false);
   const [delBusy, setDel] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -61,7 +61,7 @@ export const ExpiredCleanupModal: FC<{ isOpen: boolean; onClose: () => void; onD
 
   const deleteNow = () => {
     setDel(true);
-    fetch(`/users/delete-expired?include_limited=${cfg.include_limited}`, { method: "POST" })
+    fetch(`/users/delete-expired?include_limited=${cfg.include_limited}&include_disabled=${cfg.include_disabled}`, { method: "POST" })
       .then((names: string[]) => {
         toast({ status: "success", position: "top", duration: 5000, title: t("cleanup.deleted", { count: names.length }) });
         setConfirm(false);
@@ -98,6 +98,9 @@ export const ExpiredCleanupModal: FC<{ isOpen: boolean; onClose: () => void; onD
             </HStack>
             <Checkbox size="sm" isChecked={cfg.include_limited} onChange={(e) => setCfg({ ...cfg, include_limited: e.target.checked })}>
               {t("cleanup.includeLimited")}
+            </Checkbox>
+            <Checkbox size="sm" isChecked={cfg.include_disabled} onChange={(e) => setCfg({ ...cfg, include_disabled: e.target.checked })}>
+              {t("cleanup.includeDisabled")}
             </Checkbox>
             <Divider />
             <Box>

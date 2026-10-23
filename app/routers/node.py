@@ -477,7 +477,7 @@ def install_node(body: InstallIn, request: Request, dbnode: NodeResponse = Depen
         password=secret if login.auth == "password" else "",
         key=secret if login.auth == "key" else "",
         passphrase=node_extras.decrypt(login.passphrase),
-        node={"port": dbnode.port, "api_port": dbnode.api_port} if body.node else None,
+        node={"port": dbnode.port, "api_port": dbnode.api_port, "name": dbnode.name} if body.node else None,
         agent=body.agent, panel_url=str(request.base_url).rstrip("/"), cert=cert,
         open_ports=sorted(open_ports), on_done=connected)
     return {"job": job}
