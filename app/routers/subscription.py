@@ -131,13 +131,26 @@ def register_device(request: Request, db: Session, dbuser, user_agent: str) -> b
         hwid = "fp-" + hashlib.sha256(f"{user_agent}|{ip}".encode()).hexdigest()[:24]
         platform = platform or "app"
         device_model = device_model or (user_agent.split("/")[0] or "app")[:60]
-    return crud.register_hwid_device(
+    ok = crud.register_hwid_device(
         db, dbuser, hwid,
         platform=platform,
         os_version=os_version,
         device_model=device_model,
         user_agent=user_agent,
     )
+    if not ok:
+        # a new device was blocked by the user's device limit — log it in the activity log
+        try:
+            from app import activity
+            ip = request.client.host if request.client else ""
+            activity.record(action="hwid_rejected", method="GET", path=f"/sub/{dbuser.username}",
+                            status=403, ip=ip, user_agent=(user_agent or "")[:400],
+                            detail=(f"device limit reached for {dbuser.username} "
+                                    f"({dbuser.hwid_count}/{dbuser.hwid_limit}); blocked device "
+                                    f"{device_model or '?'} hwid={hwid[:40]}")[:4000])
+        except Exception:
+            pass
+    return ok
 
 
 def _absolute_sub_url(request: Request, user: UserResponse) -> str:

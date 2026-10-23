@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.35.0",
+    "date": "2026-10-23",
+    "tr": [
+      "Kullanıcı satırında, adın altında artık kullanıcının aboneliği hangi uygulamaya eklediyse o uygulamanın simgesi/adı görünüyor (Hiddify, v2box, v2rayNG, Streisand, Clash, sing-box, Shadowrocket... — son User-Agent'tan).",
+      "Cihaz (HWID) limiti aşma denemeleri artık aktivite loglarına ayrıntılı yazılıyor (kullanıcı, engellenen cihaz, IP, uygulama). Not: Hiddify/v2box gibi donanım kimliği göndermeyen uygulamaların sayılması için Ayarlar › Abonelik'teki 'Parmak izi cihazları' seçeneğini açman gerekir (uygulama+IP ile sayar)."
+    ],
+    "en": [
+      "The user row now shows, under the name, the app the subscription was imported into (Hiddify, v2box, v2rayNG, Streisand, Clash, sing-box, Shadowrocket... — from the last User-Agent).",
+      "Device (HWID) limit breach attempts are now written to the activity log in detail (user, blocked device, IP, app). Note: to count apps that send no hardware id (Hiddify/v2box), enable 'Fingerprint devices' in Settings › Subscription (counts by app+IP)."
+    ]
+  },
+  {
     "version": "1.34.1",
     "date": "2026-10-23",
     "tr": [

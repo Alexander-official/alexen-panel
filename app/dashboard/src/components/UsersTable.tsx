@@ -236,6 +236,33 @@ export const Sort: FC<SortType> = ({ sort, column }) => {
     );
   return null;
 };
+// which client app the user last imported the sub into (from its User-Agent)
+const appOf = (ua?: string | null): { name: string; icon: string } | null => {
+  if (!ua) return null;
+  const u = ua.toLowerCase();
+  const m: [RegExp, string, string][] = [
+    [/hiddify/, "Hiddify", "🟣"],
+    [/v2box/, "v2box", "📦"],
+    [/streisand/, "Streisand", "🎗️"],
+    [/happ/, "Happ", "🐰"],
+    [/(clash-verge|clash.?meta|mihomo|flclash)/, "Clash Meta", "⚡"],
+    [/(clash|stash)/, "Clash", "⚡"],
+    [/(sing-?box|sfa|sfi|sfm|sft|karing)/, "sing-box", "📦"],
+    [/shadowrocket/, "Shadowrocket", "🚀"],
+    [/(v2rayng)/, "v2rayNG", "🅥"],
+    [/(v2rayn)/, "v2rayN", "🅥"],
+    [/(nekoray|nekobox)/, "NekoBox", "🐱"],
+    [/(loon)/, "Loon", "🌙"],
+    [/(quantumult)/, "Quantumult", "🧩"],
+    [/(surge)/, "Surge", "🌊"],
+    [/(throne|hiddifynext)/, "Hiddify", "🟣"],
+  ];
+  for (const [re, name, icon] of m) if (re.test(u)) return { name, icon };
+  // fall back to the first token of the UA (e.g. "MyApp/1.2" -> "MyApp")
+  const t = ua.split("/")[0].trim();
+  return t && !/^mozilla$/i.test(t) ? { name: t.slice(0, 18), icon: "📱" } : null;
+};
+
 type UsersTableProps = {} & TableProps;
 export const UsersTable: FC<UsersTableProps> = (props) => {
   const {
@@ -403,6 +430,11 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                               {user.hwid_limit ? `/${user.hwid_limit}` : ""}
                             </IconText>
                           </Text>
+                          {appOf(user.sub_last_user_agent) && (
+                            <Text as="div" fontSize="xs" color="gray.500" title={user.sub_last_user_agent || ""}>
+                              {appOf(user.sub_last_user_agent)!.icon} {appOf(user.sub_last_user_agent)!.name}
+                            </Text>
+                          )}
                           <ProviderTag username={user.username} />
                           <UserLiveTag username={user.username} />
                         </HStack>
@@ -682,6 +714,11 @@ const UserRow: FC<{ user: User; isLast: boolean; isSudo: boolean; onEdit: (u: Us
                           {isSudo && user.admin?.username && (
                             <Text as="div">
                               <IconText icon={UserIcon}>{user.admin.username}</IconText>
+                            </Text>
+                          )}
+                          {appOf(user.sub_last_user_agent) && (
+                            <Text as="div" title={user.sub_last_user_agent || ""}>
+                              {appOf(user.sub_last_user_agent)!.icon} {appOf(user.sub_last_user_agent)!.name}
                             </Text>
                           )}
                         </HStack>

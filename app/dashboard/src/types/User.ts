@@ -66,6 +66,7 @@ export type User = {
   admin?: { username: string } | null;
   online_ip_count?: number;
   hwid_count?: number;
+  sub_last_user_agent?: string | null;
 };
 
 export type UserCreate = Pick<
