@@ -1121,38 +1121,63 @@ const AccordionInbound: FC<AccordionInboundType> = ({
                               display="flex"
                               pb={1}
                               alignItems="center"
-                              gap={1}
+                              gap={2}
                               justifyContent="space-between"
                               m="0"
                             >
                               <span>{t("hostsDialog.xhttpExtra")}</span>
-                              <Popover isLazy placement="right">
-                                <PopoverTrigger>
-                                  <InfoIcon />
-                                </PopoverTrigger>
-                                <Portal>
-                                  <PopoverContent p={2}>
-                                    <PopoverArrow />
-                                    <PopoverCloseButton />
-                                    <Text fontSize="xs" pr={5}>
-                                      {t("hostsDialog.xhttpExtra.info")}
-                                    </Text>
-                                    <Text fontSize="xs" pr={5} pt={2}>
-                                      {'{"scMaxEachPostBytes":1000000,"xPaddingBytes":"100-1000"}'}
-                                    </Text>
-                                  </PopoverContent>
-                                </Portal>
-                              </Popover>
+                              <HStack gap={1}>
+                                <Switch
+                                  size="sm"
+                                  isChecked={
+                                    !!(form.watch as any)(
+                                      hostKey + "." + index + ".xhttp_extra"
+                                    )
+                                  }
+                                  onChange={(e) =>
+                                    (form.setValue as any)(
+                                      (hostKey +
+                                        "." +
+                                        index +
+                                        ".xhttp_extra") as any,
+                                      e.target.checked
+                                        ? '{"scMaxEachPostBytes":1000000,"scMaxConcurrentPosts":100,"scMinPostsIntervalMs":30,"xPaddingBytes":"100-1000"}'
+                                        : ""
+                                    )
+                                  }
+                                />
+                                <Popover isLazy placement="right">
+                                  <PopoverTrigger>
+                                    <InfoIcon />
+                                  </PopoverTrigger>
+                                  <Portal>
+                                    <PopoverContent p={2}>
+                                      <PopoverArrow />
+                                      <PopoverCloseButton />
+                                      <Text fontSize="xs" pr={5}>
+                                        {t("hostsDialog.xhttpExtra.info")}
+                                      </Text>
+                                      <Text fontSize="xs" pr={5} pt={2}>
+                                        {'{"scMaxEachPostBytes":1000000,"xPaddingBytes":"100-1000"}'}
+                                      </Text>
+                                    </PopoverContent>
+                                  </Portal>
+                                </Popover>
+                              </HStack>
                             </FormLabel>
-                            <Input
-                              size="sm"
-                              borderRadius="4px"
-                              fontFamily="mono"
-                              placeholder='{"xPaddingBytes":"100-1000"}'
-                              {...form.register(
-                                hostKey + "." + index + ".xhttp_extra"
-                              )}
-                            />
+                            {!!(form.watch as any)(
+                              (hostKey + "." + index + ".xhttp_extra") as any
+                            ) && (
+                              <Input
+                                size="sm"
+                                borderRadius="4px"
+                                fontFamily="mono"
+                                placeholder='{"xPaddingBytes":"100-1000"}'
+                                {...form.register(
+                                  hostKey + "." + index + ".xhttp_extra"
+                                )}
+                              />
+                            )}
                             {accordionErrors &&
                               (accordionErrors[index] as any)?.xhttp_extra && (
                                 <Error>

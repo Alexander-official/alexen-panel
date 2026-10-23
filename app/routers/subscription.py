@@ -79,15 +79,26 @@ def build_sub_page(db: Session, user: UserResponse, token: str = ""):
         admin_name = dbuser.admin.username if dbuser and dbuser.admin else ""
     template = _pick_template(cfg, user, admin_name)
     prefix_lines, directives = render(template, user.__dict__, token=token)
+    def _safe(value: str) -> str:
+        # HTTP headers are latin-1 only; an emoji/non-ASCII directive value (not already base64)
+        # would raise and 500. Auto-encode it so e.g. "#Profile-title: 🇫🇮 VIP" just works.
+        if not value or value.startswith("base64:"):
+            return value
+        try:
+            value.encode("latin-1")
+            return value
+        except UnicodeEncodeError:
+            return encode_title(value)
+
     headers = {}
     if directives.get("profile-title"):
-        headers["profile-title"] = directives["profile-title"]
+        headers["profile-title"] = _safe(directives["profile-title"])
     else:
         headers["profile-title"] = encode_title(SUB_PROFILE_TITLE)
     if directives.get("announce"):
-        headers["announce"] = directives["announce"]
+        headers["announce"] = _safe(directives["announce"])
     if directives.get("support-url"):
-        headers["support-url"] = directives["support-url"]
+        headers["support-url"] = _safe(directives["support-url"])
     if cfg.update_interval:
         headers["profile-update-interval"] = str(cfg.update_interval)
     return prefix_lines, headers

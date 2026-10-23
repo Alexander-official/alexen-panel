@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.33.1",
+    "date": "2026-10-23",
+    "tr": [
+      "Düzeltme: sub mesajında #Profile-title / #announce / #support-url'e emoji (ASCII-dışı) koyunca 500 hatası veriyordu — artık otomatik base64'leniyor, sorunsuz çalışıyor.",
+      "Host xHTTP extra alanına aç/kapa anahtarı: kapatınca temizlenir/gizlenir, açınca hazır bir şablonla gelir."
+    ],
+    "en": [
+      "Fix: an emoji (non-ASCII) in a sub message's #Profile-title / #announce / #support-url caused a 500 — it's now auto-base64'd and works.",
+      "On/off switch for the host xHTTP extra field: off clears/hides it, on seeds a starter template."
+    ]
+  },
+  {
     "version": "1.33.0",
     "date": "2026-10-23",
     "tr": [
