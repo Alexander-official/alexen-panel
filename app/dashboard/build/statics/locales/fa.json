@@ -1750,5 +1750,7 @@
   "userDialog.unitDays": "روز",
   "userDialog.unitHours": "ساعت",
   "userDialog.unitMinutes": "دقیقه",
-  "cleanup.includeDisabled": "کاربران غیرفعال هم حذف شوند"
+  "cleanup.includeDisabled": "کاربران غیرفعال هم حذف شوند",
+  "hostsDialog.xhttpExtra": "xHTTP extra (JSON)",
+  "hostsDialog.xhttpExtra.info": "اختیاری. فقط برای inboundهای xHTTP. یک شیء JSON که در «extra» ی xhttp ادغام می‌شود (scMaxEachPostBytes، xPaddingBytes، xmux...). خالی = پیش‌فرض inbound."
 }

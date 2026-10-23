@@ -1748,5 +1748,7 @@
   "userDialog.unitDays": "Days",
   "userDialog.unitHours": "Hours",
   "userDialog.unitMinutes": "Minutes",
-  "cleanup.includeDisabled": "Also delete disabled users"
+  "cleanup.includeDisabled": "Also delete disabled users",
+  "hostsDialog.xhttpExtra": "xHTTP extra (JSON)",
+  "hostsDialog.xhttpExtra.info": "Optional. Only for xHTTP inbounds. A JSON object merged into the config's xhttp \"extra\" (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Leave empty to use the inbound defaults."
 }

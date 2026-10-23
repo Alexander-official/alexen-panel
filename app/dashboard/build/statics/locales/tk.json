@@ -1748,5 +1748,7 @@
   "userDialog.unitDays": "Gün",
   "userDialog.unitHours": "Sagat",
   "userDialog.unitMinutes": "Minut",
-  "cleanup.includeDisabled": "Öçürilen ulanyjylary hem poz"
+  "cleanup.includeDisabled": "Öçürilen ulanyjylary hem poz",
+  "hostsDialog.xhttpExtra": "xHTTP extra (JSON)",
+  "hostsDialog.xhttpExtra.info": "Islege bagly. Diňe xHTTP inbound-lary üçin. Config-iň xhttp \"extra\" obýektine goşulýan JSON (scMaxEachPostBytes, xPaddingBytes, xmux...). Boş goýsaň inbound deslapky bahalary ulanylýar."
 }

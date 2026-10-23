@@ -1755,5 +1755,7 @@
   "userDialog.unitDays": "Дней",
   "userDialog.unitHours": "Часов",
   "userDialog.unitMinutes": "Минут",
-  "cleanup.includeDisabled": "Также удалять отключённых"
+  "cleanup.includeDisabled": "Также удалять отключённых",
+  "hostsDialog.xhttpExtra": "xHTTP extra (JSON)",
+  "hostsDialog.xhttpExtra.info": "Необязательно. Только для xHTTP инбаундов. JSON-объект, добавляемый в \"extra\" xhttp (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Пусто — настройки инбаунда."
 }

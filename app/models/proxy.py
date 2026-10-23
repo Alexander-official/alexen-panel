@@ -169,7 +169,21 @@ class ProxyHost(BaseModel):
     noise_setting: Optional[str] = Field(None, nullable=True)
     random_user_agent: Union[bool, None] = None
     use_sni_as_host: Union[bool, None] = None
+    xhttp_extra: Optional[str] = Field(None, nullable=True)
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("xhttp_extra", check_fields=False)
+    @classmethod
+    def validate_xhttp_extra(cls, v):
+        if v and v.strip():
+            import json
+            try:
+                obj = json.loads(v)
+            except Exception:
+                raise ValueError("xHTTP extra must be valid JSON (an object).")
+            if not isinstance(obj, dict):
+                raise ValueError("xHTTP extra must be a JSON object, e.g. {\"scMaxEachPostBytes\": 1000000}.")
+        return v
 
     @field_validator("remark", mode="after")
     def validate_remark(cls, v):

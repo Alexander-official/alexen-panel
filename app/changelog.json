@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.33.0",
+    "date": "2026-10-23",
+    "tr": [
+      "Host başına xHTTP 'extra': xHTTP inbound'larında her host için isteğe bağlı bir JSON 'extra' objesi girilebiliyor (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Boşsa inbound varsayılanları kullanılır; dolu ise abonelik linkindeki xhttp ayarlarına eklenir. Host Ayarları'nda yeni alan (geçerli JSON kontrolü ile)."
+    ],
+    "en": [
+      "Per-host xHTTP 'extra': for xHTTP inbounds each host can carry an optional JSON 'extra' object (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Empty = inbound defaults; set = merged into the subscription link's xhttp settings. New field in Host Settings (validated as JSON)."
+    ]
+  },
+  {
     "version": "1.32.0",
     "date": "2026-10-23",
     "tr": [

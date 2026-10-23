@@ -1746,5 +1746,7 @@
   "userDialog.unitDays": "天",
   "userDialog.unitHours": "小时",
   "userDialog.unitMinutes": "分钟",
-  "cleanup.includeDisabled": "同时删除已禁用用户"
+  "cleanup.includeDisabled": "同时删除已禁用用户",
+  "hostsDialog.xhttpExtra": "xHTTP extra (JSON)",
+  "hostsDialog.xhttpExtra.info": "可选。仅用于 xHTTP 入站。合并到配置 xhttp \"extra\" 的 JSON 对象（scMaxEachPostBytes、scMaxConcurrentPosts、scMinPostsIntervalMs、xPaddingBytes、noGRPCHeader、xmux...）。留空则用入站默认值。"
 }

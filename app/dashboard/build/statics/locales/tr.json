@@ -1748,5 +1748,7 @@
   "userDialog.unitDays": "Gün",
   "userDialog.unitHours": "Saat",
   "userDialog.unitMinutes": "Dakika",
-  "cleanup.includeDisabled": "Devre dışı kullanıcıları da sil"
+  "cleanup.includeDisabled": "Devre dışı kullanıcıları da sil",
+  "hostsDialog.xhttpExtra": "xHTTP extra (JSON)",
+  "hostsDialog.xhttpExtra.info": "İsteğe bağlı. Sadece xHTTP inbound'ları için. Config'in xhttp \"extra\" objesine eklenen JSON (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Boş bırakırsan inbound varsayılanları kullanılır."
 }

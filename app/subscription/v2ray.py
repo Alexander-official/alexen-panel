@@ -651,6 +651,7 @@ class V2rayJsonConfig(str):
                          mode: str = "auto",
                          noGRPCHeader: bool = False,
                          keepAlivePeriod: int = 0,
+                         xhttp_extra: str = None,
                          ) -> dict:
         config = copy.deepcopy(self.settings.get("splithttpSettings", {}))
 
@@ -671,6 +672,14 @@ class V2rayJsonConfig(str):
             config["xmux"] = xmux
         if keepAlivePeriod > 0:
             config["keepAlivePeriod"] = keepAlivePeriod
+        # per-host xHTTP "extra" object (valid JSON, validated on save): merged over the defaults
+        if xhttp_extra:
+            try:
+                extra = json.loads(xhttp_extra)
+                if isinstance(extra, dict):
+                    config["extra"] = {**config.get("extra", {}), **extra}
+            except Exception:
+                pass
         # core will ignore unknown variables
 
         return config
@@ -977,6 +986,7 @@ class V2rayJsonConfig(str):
                             noGRPCHeader: bool = False,
                             heartbeatPeriod: int = 0,
                             keepAlivePeriod: int = 0,
+                            xhttp_extra: str = None,
                             ) -> dict:
 
         if net == "ws":
@@ -1010,6 +1020,7 @@ class V2rayJsonConfig(str):
                                                     mode=mode,
                                                     noGRPCHeader=noGRPCHeader,
                                                     keepAlivePeriod=keepAlivePeriod,
+                                                    xhttp_extra=xhttp_extra,
                                                     )
         else:
             network_setting = {}
@@ -1127,6 +1138,7 @@ class V2rayJsonConfig(str):
             noGRPCHeader=inbound.get("noGRPCHeader", False),
             heartbeatPeriod=inbound.get("heartbeatPeriod", 0),
             keepAlivePeriod=inbound.get("keepAlivePeriod", 0),
+            xhttp_extra=inbound.get("xhttp_extra"),
         )
 
         if protocol == 'hysteria':

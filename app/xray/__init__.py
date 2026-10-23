@@ -66,6 +66,7 @@ def hosts(storage: dict):
                     "noise_setting": host.noise_setting,
                     "random_user_agent": host.random_user_agent,
                     "use_sni_as_host": host.use_sni_as_host,
+                    "xhttp_extra": host.xhttp_extra,
                 } for host in inbound_hosts if not host.is_disabled
             ]
 
