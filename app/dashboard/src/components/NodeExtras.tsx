@@ -44,9 +44,10 @@ export type SSHDraft = {
   password: string;
   private_key: string;
   passphrase: string;
+  key_id?: string;    // a saved key from the library (instead of pasting one)
 };
-export const emptySSH = (): SSHDraft => ({ host: "", port: 22, username: "root", auth: "password", password: "", private_key: "", passphrase: "" });
-export const sshFilled = (s: SSHDraft) => (s.auth === "password" ? !!s.password : !!s.private_key.trim());
+export const emptySSH = (): SSHDraft => ({ host: "", port: 22, username: "root", auth: "password", password: "", private_key: "", passphrase: "", key_id: "" });
+export const sshFilled = (s: SSHDraft) => (s.auth === "password" ? !!s.password : (!!s.key_id || !!s.private_key.trim()));
 
 type ExtraOut = { flag: string; ssh: null | { host: string; port: number; username: string; auth: "password" | "key"; saved: boolean } };
 export type SysInfo = {
@@ -98,9 +99,23 @@ export const FlagSelect: FC<{ value: string; onChange: (v: string) => void }> = 
 };
 
 // ---------------- SSH login ----------------
+type SavedKey = { id: string; name: string; public: string; created: string };
 export const SSHFields: FC<{ value: SSHDraft; onChange: (v: SSHDraft) => void; addressHint?: string; saved?: boolean }> = ({ value, onChange, addressHint, saved }) => {
   const { t } = useTranslation();
+  const toast = useToast();
+  const qc = useQueryClient();
   const set = (p: Partial<SSHDraft>) => onChange({ ...value, ...p });
+  const { data: keys = [] } = useQuery<SavedKey[]>({ queryKey: "ssh-keys", queryFn: () => fetch("/ssh-keys"), staleTime: 30000 });
+  const addKey = (body: any) =>
+    fetch("/ssh-keys", { method: "POST", body })
+      .then((k: SavedKey) => {
+        qc.invalidateQueries("ssh-keys");
+        set({ key_id: k.id, private_key: "", passphrase: "" });
+        if (k.public)
+          toast({ status: "success", position: "top", duration: 15000, isClosable: true,
+            title: t("nodeExtra.keyGenerated"), description: k.public });
+      })
+      .catch((e: any) => toast({ status: "error", position: "top", title: serverMessage(t, e?.response?._data?.detail) || t("errors.generic") }));
   return (
     <VStack align="stretch" spacing={2}>
       <SimpleGrid columns={3} spacing={2}>
@@ -148,17 +163,51 @@ export const SSHFields: FC<{ value: SSHDraft; onChange: (v: SSHDraft) => void; a
       ) : (
         <>
           <FormControl>
-            <FormLabel fontSize="xs" mb={0.5}>
-              {t("nodeExtra.privateKey")}
+            <FormLabel fontSize="xs" mb={0.5} display="flex" justifyContent="space-between" alignItems="center">
+              <span>{t("nodeExtra.savedKey")}</span>
+              <Button size="xs" variant="link" colorScheme="primary" onClick={() => {
+                const name = window.prompt(t("nodeExtra.keyName") || "Key name", "node-key");
+                if (name !== null) addKey({ generate: true, name });
+              }}>
+                {t("nodeExtra.generateKey")}
+              </Button>
             </FormLabel>
-            <Textarea size="sm" borderRadius="md" rows={4} fontFamily="mono" fontSize="2xs" value={value.private_key} placeholder={saved ? t("nodeExtra.savedKeep") : "-----BEGIN OPENSSH PRIVATE KEY-----"} onChange={(e) => set({ private_key: e.target.value })} />
+            <Select size="sm" borderRadius="md" value={value.key_id || ""} onChange={(e) => set({ key_id: e.target.value, private_key: "", passphrase: "" })}>
+              <option value="">{t("nodeExtra.pasteKey")}</option>
+              {keys.map((k) => (
+                <option key={k.id} value={k.id}>{k.name}</option>
+              ))}
+            </Select>
+            {value.key_id && keys.find((k) => k.id === value.key_id)?.public && (
+              <Text fontSize="2xs" color="gray.500" mt={1} wordBreak="break-all">
+                {t("nodeExtra.keyPublicHint")}: {keys.find((k) => k.id === value.key_id)?.public}
+              </Text>
+            )}
           </FormControl>
-          <FormControl>
-            <FormLabel fontSize="xs" mb={0.5}>
-              {t("nodeExtra.passphrase")}
-            </FormLabel>
-            <Input size="sm" borderRadius="md" type="password" autoComplete="new-password" value={value.passphrase} placeholder={t("userDialog.optional")} onChange={(e) => set({ passphrase: e.target.value })} />
-          </FormControl>
+          {!value.key_id && (
+            <>
+              <FormControl>
+                <FormLabel fontSize="xs" mb={0.5}>
+                  {t("nodeExtra.privateKey")}
+                </FormLabel>
+                <Textarea size="sm" borderRadius="md" rows={4} fontFamily="mono" fontSize="2xs" value={value.private_key} placeholder={saved ? t("nodeExtra.savedKeep") : "-----BEGIN OPENSSH PRIVATE KEY-----"} onChange={(e) => set({ private_key: e.target.value })} />
+              </FormControl>
+              <FormControl>
+                <FormLabel fontSize="xs" mb={0.5}>
+                  {t("nodeExtra.passphrase")}
+                </FormLabel>
+                <Input size="sm" borderRadius="md" type="password" autoComplete="new-password" value={value.passphrase} placeholder={t("userDialog.optional")} onChange={(e) => set({ passphrase: e.target.value })} />
+              </FormControl>
+              {value.private_key.trim() && (
+                <Button size="xs" variant="outline" alignSelf="flex-start" onClick={() => {
+                  const name = window.prompt(t("nodeExtra.keyName") || "Key name", "node-key");
+                  if (name !== null) addKey({ name, private_key: value.private_key, passphrase: value.passphrase });
+                }}>
+                  {t("nodeExtra.saveKey")}
+                </Button>
+              )}
+            </>
+          )}
         </>
       )}
       {value.username !== "root" && (

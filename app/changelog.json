@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.34.0",
+    "date": "2026-10-23",
+    "tr": [
+      "Kayıtlı SSH anahtar kütüphanesi: anahtarları bir kez kaydet/üret, node kurarken listeden seç — her seferinde yapıştırmaya gerek yok. SSH (key) formunda 'Kayıtlı anahtar' seçici + 'Yeni üret' (panelde Ed25519 üretir, açık anahtarı gösterir: VPS'in authorized_keys'ine ekle) + yapıştırılan anahtarı 'Kütüphaneye kaydet'. Anahtarlar şifreli saklanır; özel anahtar hiçbir zaman geri döndürülmez."
+    ],
+    "en": [
+      "Saved SSH key library: save/generate a key once and pick it from a list when installing nodes — no more pasting each time. The SSH (key) form gets a 'Saved key' picker + 'Generate new' (makes an Ed25519 key in the panel and shows the public key to add to the VPS authorized_keys) + 'Save to library' for a pasted key. Keys are stored encrypted; the private key is never returned."
+    ]
+  },
+  {
     "version": "1.33.1",
     "date": "2026-10-23",
     "tr": [

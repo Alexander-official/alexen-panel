@@ -1750,5 +1750,12 @@
   "userDialog.unitMinutes": "Minut",
   "cleanup.includeDisabled": "Öçürilen ulanyjylary hem poz",
   "hostsDialog.xhttpExtra": "xHTTP extra (JSON)",
-  "hostsDialog.xhttpExtra.info": "Islege bagly. Diňe xHTTP inbound-lary üçin. Config-iň xhttp \"extra\" obýektine goşulýan JSON (scMaxEachPostBytes, xPaddingBytes, xmux...). Boş goýsaň inbound deslapky bahalary ulanylýar."
+  "hostsDialog.xhttpExtra.info": "Islege bagly. Diňe xHTTP inbound-lary üçin. Config-iň xhttp \"extra\" obýektine goşulýan JSON (scMaxEachPostBytes, xPaddingBytes, xmux...). Boş goýsaň inbound deslapky bahalary ulanylýar.",
+  "nodeExtra.savedKey": "Ýatda saklanan açar",
+  "nodeExtra.pasteKey": "— Açar ýelmeşdir —",
+  "nodeExtra.generateKey": "Täze döret",
+  "nodeExtra.saveKey": "Kitaphana sakla",
+  "nodeExtra.keyName": "Açar ady",
+  "nodeExtra.keyPublicHint": "Bu açyk açary VPS-e goş (~/.ssh/authorized_keys)",
+  "nodeExtra.keyGenerated": "Açar döredildi — bu AÇYK açary VPS-e goş"
 }

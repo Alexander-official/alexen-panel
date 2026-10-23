@@ -249,6 +249,7 @@ class SSHIn(BaseModel):
     password: str = ""            # empty: keep the saved one
     private_key: str = ""
     passphrase: str = ""
+    key_id: str = ""              # use a saved key from the SSH key library instead of pasting one
 
 
 class NodeExtraIn(BaseModel):
@@ -267,6 +268,13 @@ def _extra_out(extra: node_extras.NodeExtra, node_id=None) -> dict:
 
 
 def _merge_ssh(old: _Optional[node_extras.SSHLogin], new: SSHIn) -> node_extras.SSHLogin:
+    # a saved key from the library: resolve it to this login's secret/passphrase
+    if new.auth == "key" and new.key_id:
+        priv, passp = node_extras.get_key(None, new.key_id)
+        if priv:
+            return node_extras.SSHLogin(
+                host=new.host.strip(), port=new.port, username=new.username.strip(), auth="key",
+                secret=node_extras.encrypt(priv), passphrase=node_extras.encrypt(passp or ""))
     secret_plain = new.password if new.auth == "password" else new.private_key
     keep = old is not None and old.auth == new.auth
     return node_extras.SSHLogin(
@@ -278,6 +286,40 @@ def _merge_ssh(old: _Optional[node_extras.SSHLogin], new: SSHIn) -> node_extras.
 @router.get("/nodes/extras")
 def nodes_extras(db: Session = Depends(get_db), _: Admin = Depends(Admin.check_sudo_admin)):
     return {k: _extra_out(v, k) for k, v in node_extras.load(db).nodes.items()}
+
+
+# ---- SSH key library (reusable keys for node installs) ----
+
+class SSHKeyIn(BaseModel):
+    name: str = Field("", max_length=64)
+    private_key: str = ""     # paste an existing key; empty + generate=True makes a new one
+    passphrase: str = ""
+    generate: bool = False
+
+
+@router.get("/ssh-keys")
+def list_ssh_keys(db: Session = Depends(get_db), _: Admin = Depends(Admin.check_sudo_admin)):
+    """saved SSH keys (names + public keys only; private keys are never returned)"""
+    return node_extras.list_keys(db)
+
+
+@router.post("/ssh-keys")
+def add_ssh_key(body: SSHKeyIn, db: Session = Depends(get_db), _: Admin = Depends(Admin.check_sudo_admin)):
+    try:
+        if body.generate:
+            return node_extras.generate_key(db, body.name)
+        if not body.private_key.strip():
+            raise HTTPException(400, "Paste a private key or choose generate")
+        return node_extras.add_key(db, body.name, body.private_key, body.passphrase)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.delete("/ssh-keys/{key_id}")
+def delete_ssh_key(key_id: str, db: Session = Depends(get_db), _: Admin = Depends(Admin.check_sudo_admin)):
+    if not node_extras.delete_key(db, key_id):
+        raise HTTPException(404, "Key not found")
+    return {"detail": "deleted"}
 
 
 @router.put("/node/{node_id}/extra")

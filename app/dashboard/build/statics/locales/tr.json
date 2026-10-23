@@ -1750,5 +1750,12 @@
   "userDialog.unitMinutes": "Dakika",
   "cleanup.includeDisabled": "Devre dışı kullanıcıları da sil",
   "hostsDialog.xhttpExtra": "xHTTP extra (JSON)",
-  "hostsDialog.xhttpExtra.info": "İsteğe bağlı. Sadece xHTTP inbound'ları için. Config'in xhttp \"extra\" objesine eklenen JSON (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Boş bırakırsan inbound varsayılanları kullanılır."
+  "hostsDialog.xhttpExtra.info": "İsteğe bağlı. Sadece xHTTP inbound'ları için. Config'in xhttp \"extra\" objesine eklenen JSON (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Boş bırakırsan inbound varsayılanları kullanılır.",
+  "nodeExtra.savedKey": "Kayıtlı anahtar",
+  "nodeExtra.pasteKey": "— Anahtar yapıştır —",
+  "nodeExtra.generateKey": "Yeni üret",
+  "nodeExtra.saveKey": "Kütüphaneye kaydet",
+  "nodeExtra.keyName": "Anahtar adı",
+  "nodeExtra.keyPublicHint": "Bu açık anahtarı VPS'e ekle (~/.ssh/authorized_keys)",
+  "nodeExtra.keyGenerated": "Anahtar üretildi — bu AÇIK anahtarı VPS'e ekle"
 }

@@ -1757,5 +1757,12 @@
   "userDialog.unitMinutes": "Минут",
   "cleanup.includeDisabled": "Также удалять отключённых",
   "hostsDialog.xhttpExtra": "xHTTP extra (JSON)",
-  "hostsDialog.xhttpExtra.info": "Необязательно. Только для xHTTP инбаундов. JSON-объект, добавляемый в \"extra\" xhttp (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Пусто — настройки инбаунда."
+  "hostsDialog.xhttpExtra.info": "Необязательно. Только для xHTTP инбаундов. JSON-объект, добавляемый в \"extra\" xhttp (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Пусто — настройки инбаунда.",
+  "nodeExtra.savedKey": "Сохранённый ключ",
+  "nodeExtra.pasteKey": "— Вставить ключ —",
+  "nodeExtra.generateKey": "Сгенерировать",
+  "nodeExtra.saveKey": "Сохранить в библиотеку",
+  "nodeExtra.keyName": "Имя ключа",
+  "nodeExtra.keyPublicHint": "Добавьте этот публичный ключ на VPS (~/.ssh/authorized_keys)",
+  "nodeExtra.keyGenerated": "Ключ создан — добавьте этот ПУБЛИЧНЫЙ ключ на VPS"
 }

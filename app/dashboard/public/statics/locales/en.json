@@ -1750,5 +1750,12 @@
   "userDialog.unitMinutes": "Minutes",
   "cleanup.includeDisabled": "Also delete disabled users",
   "hostsDialog.xhttpExtra": "xHTTP extra (JSON)",
-  "hostsDialog.xhttpExtra.info": "Optional. Only for xHTTP inbounds. A JSON object merged into the config's xhttp \"extra\" (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Leave empty to use the inbound defaults."
+  "hostsDialog.xhttpExtra.info": "Optional. Only for xHTTP inbounds. A JSON object merged into the config's xhttp \"extra\" (scMaxEachPostBytes, scMaxConcurrentPosts, scMinPostsIntervalMs, xPaddingBytes, noGRPCHeader, xmux...). Leave empty to use the inbound defaults.",
+  "nodeExtra.savedKey": "Saved key",
+  "nodeExtra.pasteKey": "— Paste a key —",
+  "nodeExtra.generateKey": "Generate new",
+  "nodeExtra.saveKey": "Save to library",
+  "nodeExtra.keyName": "Key name",
+  "nodeExtra.keyPublicHint": "Add this public key to the VPS (~/.ssh/authorized_keys)",
+  "nodeExtra.keyGenerated": "Key generated — add this PUBLIC key on the VPS"
 }
