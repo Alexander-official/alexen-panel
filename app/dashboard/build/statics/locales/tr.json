@@ -1729,5 +1729,20 @@
   "extPanel.provision": "Kullanıcıları panelde aç",
   "extPanel.provisionHelp": "Seçili Alexen kullanıcılarını bu panelin seçtiğin inbound(lar)ında CLIENT olarak oluşturur; her kullanıcının UUID'si aynen kullanılır (kimlikler eşleşir). Trafik/online Trafik sekmesinde görünür.",
   "extPanel.chooseInbounds": "Hedef inbound(lar)",
-  "extPanel.provisioned": "Bitti: {{created}} oluşturuldu, {{exists}} zaten vardı, {{failed}} başarısız"
+  "extPanel.provisioned": "Bitti: {{created}} oluşturuldu, {{exists}} zaten vardı, {{failed}} başarısız",
+  "cleanup.title": "Süresi dolan kullanıcı temizliği",
+  "cleanup.autoEnable": "Süresi dolanları otomatik sil",
+  "cleanup.autoHelp": "Kullanıcıları, süreleri dolduktan bir süre sonra otomatik siler.",
+  "cleanup.after": "Sil:",
+  "cleanup.hours": "saat sonra (süre dolunca)",
+  "cleanup.includeLimited": "Limiti dolan kullanıcıları da sil",
+  "cleanup.manualTitle": "Tüm süresi dolanları şimdi sil",
+  "cleanup.manualHelp": "Şu an süresi dolmuş tüm kullanıcıları tek seferde siler (yukarıdaki limit seçeneğine uyar).",
+  "cleanup.deleteNow": "Tüm süresi dolanları sil",
+  "cleanup.confirmDelete": "Evet, sil",
+  "cleanup.cancel": "Vazgeç",
+  "cleanup.close": "Kapat",
+  "cleanup.save": "Kaydet",
+  "cleanup.saved": "Kaydedildi",
+  "cleanup.deleted": "{{count}} süresi dolan kullanıcı silindi"
 }

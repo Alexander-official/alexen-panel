@@ -1729,5 +1729,20 @@
   "extPanel.provision": "Ulanyjylary panelde döret",
   "extPanel.provisionHelp": "Saýlanan Alexen ulanyjylaryny bu paneliň saýlanan inbound(lar)ynda CLIENT hökmünde döredýär, her ulanyjynyň UUID-sini gaýtadan ulanyp. Trafik/onlaýn soňra Trafik bölüminde görünýär.",
   "extPanel.chooseInbounds": "Niýetlenen inbound(lar)",
-  "extPanel.provisioned": "Taýýar: {{created}} döredildi, {{exists}} eýýäm bar, {{failed}} şowsuz"
+  "extPanel.provisioned": "Taýýar: {{created}} döredildi, {{exists}} eýýäm bar, {{failed}} şowsuz",
+  "cleanup.title": "Möhleti dolan ulanyjylary arassalamak",
+  "cleanup.autoEnable": "Möhleti dolanlary awtomatik poz",
+  "cleanup.autoHelp": "Ulanyjylary möhleti dolandan biraz soň awtomatik pozýar.",
+  "cleanup.after": "Poz:",
+  "cleanup.hours": "sagat soň (möhlet dolansoň)",
+  "cleanup.includeLimited": "Limiti dolan ulanyjylary hem poz",
+  "cleanup.manualTitle": "Ähli möhleti dolany häzir poz",
+  "cleanup.manualHelp": "Häzir möhleti dolan ähli ulanyjyny bir gezekde pozýar (ýokardaky limit saýlawyna eýerýär).",
+  "cleanup.deleteNow": "Ähli möhleti dolany poz",
+  "cleanup.confirmDelete": "Hawa, poz",
+  "cleanup.cancel": "Ýatyr",
+  "cleanup.close": "Ýap",
+  "cleanup.save": "Ýatda sakla",
+  "cleanup.saved": "Ýatda saklandy",
+  "cleanup.deleted": "{{count}} möhleti dolan ulanyjy pozuldy"
 }

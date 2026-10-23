@@ -1736,5 +1736,20 @@
   "extPanel.provision": "Создать пользователей на панели",
   "extPanel.provisionHelp": "Создаёт выбранных пользователей Alexen КАК КЛИЕНТОВ на выбранных inbound(ах) панели, с тем же UUID. Трафик/онлайн затем видны во вкладке Трафик.",
   "extPanel.chooseInbounds": "Целевые inbound(ы)",
-  "extPanel.provisioned": "Готово: создано {{created}}, уже было {{exists}}, ошибок {{failed}}"
+  "extPanel.provisioned": "Готово: создано {{created}}, уже было {{exists}}, ошибок {{failed}}",
+  "cleanup.title": "Очистка истёкших пользователей",
+  "cleanup.autoEnable": "Автоудаление истёкших",
+  "cleanup.autoHelp": "Автоматически удаляет пользователей через некоторое время после истечения.",
+  "cleanup.after": "Удалять через",
+  "cleanup.hours": "часов после истечения",
+  "cleanup.includeLimited": "Также удалять с исчерпанным лимитом",
+  "cleanup.manualTitle": "Удалить все истёкшие сейчас",
+  "cleanup.manualHelp": "Удаляет всех сейчас истёкших пользователей за один раз (с учётом опции лимита выше).",
+  "cleanup.deleteNow": "Удалить все истёкшие",
+  "cleanup.confirmDelete": "Да, удалить",
+  "cleanup.cancel": "Отмена",
+  "cleanup.close": "Закрыть",
+  "cleanup.save": "Сохранить",
+  "cleanup.saved": "Сохранено",
+  "cleanup.deleted": "Удалено истёкших: {{count}}"
 }

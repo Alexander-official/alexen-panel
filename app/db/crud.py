@@ -835,6 +835,24 @@ def autodelete_expired_users(db: Session,
     return expired_users
 
 
+def autodelete_expired_users_after(db: Session, hours: int,
+                                   include_limited_users: bool = False) -> List[User]:
+    """Delete users that have been expired (optionally also limited) for at least `hours`.
+    Panel-configurable auto-cleanup (hour granularity). A per-user negative auto_delete_in_days
+    is honoured as "never delete"."""
+    target_status = ([UserStatus.expired] if not include_limited_users
+                     else [UserStatus.expired, UserStatus.limited])
+    cutoff = datetime.utcnow() - timedelta(hours=max(0, int(hours or 0)))
+    users = db.query(User).filter(
+        User.status.in_(target_status),
+        User.last_status_change <= cutoff,
+        or_(User.auto_delete_in_days.is_(None), User.auto_delete_in_days >= 0),
+    ).options(joinedload(User.admin)).all()
+    if users:
+        remove_users(db, users)
+    return users
+
+
 def get_all_users_usages(
         db: Session, admin: Admin, start: datetime, end: datetime
 ) -> List[UserUsageResponse]:

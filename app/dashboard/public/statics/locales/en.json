@@ -1729,5 +1729,20 @@
   "extPanel.provision": "Create users on panel",
   "extPanel.provisionHelp": "Creates the selected Alexen users AS CLIENTS on the chosen inbound(s) of this panel, reusing each user's UUID (identities match). Traffic/online then show in the Traffic tab.",
   "extPanel.chooseInbounds": "Target inbound(s)",
-  "extPanel.provisioned": "Done: {{created}} created, {{exists}} already there, {{failed}} failed"
+  "extPanel.provisioned": "Done: {{created}} created, {{exists}} already there, {{failed}} failed",
+  "cleanup.title": "Expired user cleanup",
+  "cleanup.autoEnable": "Auto-delete expired users",
+  "cleanup.autoHelp": "Automatically delete users some time after they expire.",
+  "cleanup.after": "Delete",
+  "cleanup.hours": "hours after expiry",
+  "cleanup.includeLimited": "Also delete data-limited users",
+  "cleanup.manualTitle": "Delete all expired now",
+  "cleanup.manualHelp": "Remove every currently expired user in one go (respects the limited option above).",
+  "cleanup.deleteNow": "Delete all expired users",
+  "cleanup.confirmDelete": "Yes, delete them",
+  "cleanup.cancel": "Cancel",
+  "cleanup.close": "Close",
+  "cleanup.save": "Save",
+  "cleanup.saved": "Saved",
+  "cleanup.deleted": "{{count}} expired user(s) deleted"
 }

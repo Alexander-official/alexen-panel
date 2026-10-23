@@ -1731,5 +1731,20 @@
   "extPanel.provision": "ساخت کاربران روی پنل",
   "extPanel.provisionHelp": "کاربران انتخاب‌شده Alexen را به‌عنوان کلاینت روی inbound(های) انتخابی این پنل می‌سازد، با همان UUID. ترافیک/آنلاین سپس در تب ترافیک دیده می‌شود.",
   "extPanel.chooseInbounds": "inbound(های) هدف",
-  "extPanel.provisioned": "انجام شد: {{created}} ساخته شد، {{exists}} از قبل بود، {{failed}} ناموفق"
+  "extPanel.provisioned": "انجام شد: {{created}} ساخته شد، {{exists}} از قبل بود، {{failed}} ناموفق",
+  "cleanup.title": "پاک‌سازی کاربران منقضی",
+  "cleanup.autoEnable": "حذف خودکار کاربران منقضی",
+  "cleanup.autoHelp": "کاربران را مدتی پس از انقضا به‌طور خودکار حذف می‌کند.",
+  "cleanup.after": "حذف پس از",
+  "cleanup.hours": "ساعت پس از انقضا",
+  "cleanup.includeLimited": "کاربران با محدودیت حجم هم حذف شوند",
+  "cleanup.manualTitle": "حذف همه منقضی‌ها اکنون",
+  "cleanup.manualHelp": "همه کاربران منقضی فعلی را یک‌جا حذف می‌کند (طبق گزینه محدودیت بالا).",
+  "cleanup.deleteNow": "حذف همه کاربران منقضی",
+  "cleanup.confirmDelete": "بله، حذف کن",
+  "cleanup.cancel": "لغو",
+  "cleanup.close": "بستن",
+  "cleanup.save": "ذخیره",
+  "cleanup.saved": "ذخیره شد",
+  "cleanup.deleted": "{{count}} کاربر منقضی حذف شد"
 }

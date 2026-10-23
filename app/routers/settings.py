@@ -91,6 +91,32 @@ def update_sub_settings(settings: SubscriptionSettings,
     return settings
 
 
+CLEANUP_KEY = "user_cleanup"
+
+
+class UserCleanupSettings(BaseModel):
+    # automatically delete users once they've been expired for `auto_delete_hours`
+    auto_delete_enabled: bool = False
+    auto_delete_hours: int = 24
+    include_limited: bool = False   # also delete data-limited users, not just time-expired
+
+
+@router.get("/user-cleanup", response_model=UserCleanupSettings)
+def read_user_cleanup(db: Session = Depends(get_db),
+                      admin: Admin = Depends(Admin.check_sudo_admin)):
+    """Auto-delete settings for expired users."""
+    return UserCleanupSettings(**(crud.get_setting(db, CLEANUP_KEY) or {}))
+
+
+@router.put("/user-cleanup", response_model=UserCleanupSettings)
+def update_user_cleanup(settings: UserCleanupSettings,
+                        db: Session = Depends(get_db),
+                        admin: Admin = Depends(Admin.check_sudo_admin)):
+    settings.auto_delete_hours = max(1, min(int(settings.auto_delete_hours or 24), 8760))
+    crud.set_setting(db, CLEANUP_KEY, settings.model_dump())
+    return settings
+
+
 # ---- external configs + link ordering (see app/subscription/external.py) ----
 from typing import List as _List
 

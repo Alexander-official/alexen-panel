@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.31.0",
+    "date": "2026-10-23",
+    "tr": [
+      "Süresi dolan kullanıcı temizliği (kullanıcılar sayfasındaki çöp kutusu ikonu, sudo): (1) Otomatik silme — kullanıcılar süreleri dolduktan ayarlanabilir süre sonra (ör. 24 saat) otomatik silinir; limiti dolanları da dahil etme seçeneği var. (2) Manuel — 'Tüm süresi dolanları sil' butonuyla şu an süresi dolmuş tüm kullanıcılar tek seferde (onaylı) silinir. Temizlik job'u artık 15 dakikada bir çalışıyor."
+    ],
+    "en": [
+      "Expired-user cleanup (trash icon on the users page, sudo): (1) Auto-delete — users are removed a configurable time after they expire (e.g. 24 hours), with an option to include data-limited users. (2) Manual — a 'Delete all expired' button removes every currently expired user at once (with confirmation). The cleanup job now runs every 15 minutes."
+    ]
+  },
+  {
     "version": "1.30.0",
     "date": "2026-10-22",
     "tr": [

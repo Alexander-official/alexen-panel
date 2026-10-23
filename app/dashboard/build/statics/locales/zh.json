@@ -1727,5 +1727,20 @@
   "extPanel.provision": "在面板上创建用户",
   "extPanel.provisionHelp": "在该面板选定的入站上将所选 Alexen 用户创建为客户端，复用各自的 UUID。流量/在线随后显示在“流量”标签。",
   "extPanel.chooseInbounds": "目标入站",
-  "extPanel.provisioned": "完成：创建 {{created}}，已存在 {{exists}}，失败 {{failed}}"
+  "extPanel.provisioned": "完成：创建 {{created}}，已存在 {{exists}}，失败 {{failed}}",
+  "cleanup.title": "过期用户清理",
+  "cleanup.autoEnable": "自动删除过期用户",
+  "cleanup.autoHelp": "在用户过期一段时间后自动删除。",
+  "cleanup.after": "过期后",
+  "cleanup.hours": "小时后删除",
+  "cleanup.includeLimited": "同时删除流量超限用户",
+  "cleanup.manualTitle": "立即删除所有过期用户",
+  "cleanup.manualHelp": "一次性删除当前所有过期用户（遵循上面的超限选项）。",
+  "cleanup.deleteNow": "删除所有过期用户",
+  "cleanup.confirmDelete": "是，删除",
+  "cleanup.cancel": "取消",
+  "cleanup.close": "关闭",
+  "cleanup.save": "保存",
+  "cleanup.saved": "已保存",
+  "cleanup.deleted": "已删除 {{count}} 个过期用户"
 }

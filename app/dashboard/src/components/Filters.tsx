@@ -17,6 +17,7 @@ import {
   ArrowPathIcon,
   Bars3BottomLeftIcon,
   MagnifyingGlassIcon,
+  TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { lazy, Suspense } from "react";
@@ -56,6 +57,7 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
   const { userData } = useGetUser();
   const isSudo = !!userData?.is_sudo;
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
   // the admins a sudo may filter by (names only); regular admins don't see this
   const { data: admins } = useQuery<{ username: string; is_sudo: boolean }[]>({
     queryKey: "filter-admins",
@@ -194,6 +196,17 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
               <chakra.span display="inline-flex"><Bars3BottomLeftIcon width={18} /></chakra.span>
             </IconButton>
           )}
+          {isSudo && (
+            <IconButton
+              aria-label={t("cleanup.title")}
+              title={t("cleanup.title")}
+              size="sm"
+              variant="outline"
+              onClick={() => setCleanupOpen(true)}
+            >
+              <chakra.span display="inline-flex"><TrashIcon width={18} /></chakra.span>
+            </IconButton>
+          )}
           <Button
             colorScheme="primary"
             size="sm"
@@ -210,8 +223,14 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
           <BulkProtocol isOpen={bulkOpen} onClose={() => setBulkOpen(false)} adminFilter={filters.admin} />
         </Suspense>
       )}
+      {cleanupOpen && (
+        <Suspense fallback={null}>
+          <ExpiredCleanup isOpen={cleanupOpen} onClose={() => setCleanupOpen(false)} onDeleted={refetchUsers} />
+        </Suspense>
+      )}
     </Grid>
   );
 };
 
 const BulkProtocol = lazy(() => import("components/BulkProtocolModal"));
+const ExpiredCleanup = lazy(() => import("components/ExpiredCleanupModal"));

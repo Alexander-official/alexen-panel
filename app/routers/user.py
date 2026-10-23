@@ -636,3 +636,25 @@ def delete_expired_users(
         )
 
     return removed_users
+
+
+@router.post("/users/delete-expired", response_model=List[str])
+def delete_all_expired_users(
+    bg: BackgroundTasks,
+    include_limited: bool = Query(False, description="also delete data-limited users"),
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(Admin.get_current),
+):
+    """Delete ALL currently expired users in one go (no date range, no grace period).
+    With include_limited, data-limited users are removed too. Scoped to the admin's own
+    users unless the admin is sudo."""
+    dbadmin = crud.get_admin(db, admin.username)
+    target = [UserStatus.expired] + ([UserStatus.limited] if include_limited else [])
+    users = crud.get_users(db, status=target, admin=None if admin.is_sudo else dbadmin)
+    removed = [(u.username, u.admin) for u in users]   # capture before delete
+    if users:
+        crud.remove_users(db, users)
+    for username, user_admin in removed:
+        logger.info(f'User "{username}" deleted (bulk expired cleanup)')
+        bg.add_task(report.user_deleted, username=username, user_admin=user_admin, by=admin)
+    return [u for u, _ in removed]
