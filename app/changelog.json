@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.34.1",
+    "date": "2026-10-23",
+    "tr": [
+      "Dokümantasyon yeniden düzenlendi: token/REST API referansı artık sadece CREATOR'larda; adminler ve sudolar yalnızca kendi detaylı kullanım kılavuzlarını görür (creator ikisini de + token/API). Paneldeki tüm GitHub linkleri kaldırıldı (API referansı artık panelin kendi /api/docs'una işaret ediyor)."
+    ],
+    "en": [
+      "Documentation reworked: the token/REST API reference is now CREATOR-only; resellers and sudos see only their own detailed usage guide (creators see both + token/API). All GitHub links removed from the panel (the API reference now points to the panel's own /api/docs)."
+    ]
+  },
+  {
     "version": "1.34.0",
     "date": "2026-10-23",
     "tr": [

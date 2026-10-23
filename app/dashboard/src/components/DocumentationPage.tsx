@@ -11,7 +11,6 @@ import {
   HStack,
   Heading,
   Icon,
-  Link,
   Text,
   VStack,
 } from "@chakra-ui/react";
@@ -31,7 +30,6 @@ import {
   ChartPieIcon,
   ShareIcon,
   CommandLineIcon,
-  KeyIcon,
 } from "@heroicons/react/24/outline";
 import useGetUser from "hooks/useGetUser";
 import { FC, useState } from "react";
@@ -228,6 +226,10 @@ export const DocumentationPage: FC = () => {
   const { userData } = useGetUser();
   const lang = (i18n.language || "en").slice(0, 2) === "tr" ? "tr" : "en";
   const g = G[lang as "tr" | "en"];
+  const isCreator = !!(userData as any)?.is_creator;
+  // creators get BOTH guides + the token/API reference; sudos and resellers get only their own
+  // usage guide (no token/API). A single-role user has no toggle.
+  const roles: ("admin" | "sudo")[] = isCreator ? ["admin", "sudo"] : [userData?.is_sudo ? "sudo" : "admin"];
   const [role, setRole] = useState<"admin" | "sudo">(userData?.is_sudo ? "sudo" : "admin");
 
   return (
@@ -258,9 +260,10 @@ export const DocumentationPage: FC = () => {
         <Text mt={1.5} maxW="560px" opacity={0.92} fontSize="sm">
           {g.heroSub}
         </Text>
-        {/* role toggle */}
+        {/* role toggle — only when the user may see more than one guide (creator) */}
+        {roles.length > 1 && (
         <HStack mt={4} spacing={1} bg="whiteAlpha.200" p={1} borderRadius="12px" w="fit-content">
-          {(["admin", "sudo"] as const).map((r) => (
+          {roles.map((r) => (
             <Button
               key={r}
               size="sm"
@@ -279,6 +282,7 @@ export const DocumentationPage: FC = () => {
             </Button>
           ))}
         </HStack>
+        )}
       </Box>
 
       {/* quick start — a real sequence, so numbered */}
@@ -305,7 +309,8 @@ export const DocumentationPage: FC = () => {
         </Grid>
       </Box>
 
-      {/* subscriptions & token */}
+      {/* subscriptions & token + API — creators only */}
+      {isCreator && (<>
       <Box className="alexen-page" borderWidth="1px" borderRadius="16px" p={{ base: 4, md: 6 }}>
         <HStack spacing={2} mb={2}>
           <Icon as={LinkIcon} boxSize="18px" color="primary.500" _dark={{ color: "primary.200" }} />
@@ -337,22 +342,11 @@ export const DocumentationPage: FC = () => {
           {g.apiBody}
         </Text>
         <CodeBlock>{g.apiCode}</CodeBlock>
-        <Text mt={3} fontSize="sm">
-          {g.apiLinks}{" "}
-          <Link color="primary.500" href="https://alexander-official.github.io/alexen-panel/api.html" isExternal>
-            API reference
-          </Link>{" "}
-          ·{" "}
-          <Link color="primary.500" href="https://github.com/Alexander-official/alexen-panel/blob/main/docs/API.md" isExternal>
-            docs/API.md
-          </Link>
+        <Text mt={3} fontSize="sm" color="gray.600" _dark={{ color: "gray.400" }}>
+          {g.apiLinks} <Code fontSize="xs">/api/docs</Code>
         </Text>
       </Box>
-
-      <HStack justify="center" spacing={2} color="gray.500" fontSize="xs" pb={2}>
-        <Icon as={KeyIcon} boxSize="14px" />
-        <Text>github.com/Alexander-official/alexen-panel</Text>
-      </HStack>
+      </>)}
     </VStack>
   );
 };
