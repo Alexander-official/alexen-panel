@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 from app import logger
 from app.xray.config import XRayConfig
-from config import DEBUG
+from config import DEBUG, XRAY_PORT_REMAP_FROM, XRAY_PORT_REMAP_TO
 
 
 class XRayCore:
@@ -38,8 +38,25 @@ class XRayCore:
         if m:
             return m.groups()[0]
 
+    def _remap_ports(self, config: XRayConfig) -> XRayConfig:
+        """Move any inbound that wants XRAY_PORT_REMAP_FROM to XRAY_PORT_REMAP_TO.
+
+        For panels that sit behind a reverse proxy already holding a port (e.g. nginx
+        on 80, with the panel served through it): the inbound binds the free local port
+        and the proxy forwards to it. Off unless both env values are set, so default
+        installs keep binding the ports exactly as configured."""
+        if not (XRAY_PORT_REMAP_FROM and XRAY_PORT_REMAP_TO):
+            return config
+        import copy
+        cfg = copy.deepcopy(config)
+        for inbound in cfg.get("inbounds", []):
+            if inbound.get("port") == XRAY_PORT_REMAP_FROM:
+                inbound["port"] = XRAY_PORT_REMAP_TO
+        return cfg
+
     def test_config(self, config: XRayConfig):
         """Raise ValueError with Xray's own message when it would refuse to start with this config"""
+        config = self._remap_ports(config)
         cmd = [self.executable_path, "run", "-test", "-config", "stdin:"]
         try:
             result = subprocess.run(cmd, input=config.to_json(), env=self._env, text=True,
@@ -92,10 +109,25 @@ class XRayCore:
                 elif not self.process or self.process.poll() is not None:
                     break
 
+        def capture_stderr():
+            # drain stderr too (so a chatty core can't block on a full pipe) and surface
+            # the reason a core refused to start / crashed, which stdout doesn't carry
+            while self.process and self.process.stderr:
+                line = self.process.stderr.readline()
+                if line:
+                    line = line.strip()
+                    self._logs_buffer.append(line)
+                    for buf in list(self._temp_log_buffers.values()):
+                        buf.append(line)
+                    logger.warning(f"Xray core: {line}")
+                elif not self.process or self.process.poll() is not None:
+                    break
+
         if DEBUG:
             threading.Thread(target=capture_and_debug_log).start()
         else:
             threading.Thread(target=capture_only).start()
+        threading.Thread(target=capture_stderr).start()
 
     @contextmanager
     def get_logs(self):
@@ -128,6 +160,7 @@ class XRayCore:
         # relay links of the master (app/xray/chain.py)
         from app.xray import chain
         config = chain.apply(chain.MASTER, config)
+        config = self._remap_ports(config)
 
         cmd = [
             self.executable_path,

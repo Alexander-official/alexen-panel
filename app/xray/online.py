@@ -97,8 +97,37 @@ def refresh():
     except Exception as exc:
         logger.warning(f"online: VPN sessions: {exc}")
 
-    # carry first_seen across refreshes; look up each IP's provider (cached)
     now = time.time()
+    # fallback for cores that don't expose GetUsersStats (a standard Xray build): nothing
+    # came back from any core, so derive the online set from very recent per-node usage
+    # plus each user's online_at. These entries carry no real IP (keyed "Active"), so the
+    # IP limit (which ran on xray_users above, still empty here) never acts on them.
+    if not users:
+        try:
+            from datetime import timedelta
+            from app.db.models import NodeUserUsage
+            with GetDB() as db:
+                three_min_ago = datetime.utcnow() - timedelta(minutes=3)
+                recent_users = db.query(User.id, User.online_at).filter(User.online_at >= three_min_ago).all()
+                if recent_users:
+                    uids = [u[0] for u in recent_users]
+                    recent_usages = db.query(NodeUserUsage.user_id, NodeUserUsage.node_id).filter(
+                        NodeUserUsage.user_id.in_(uids),
+                        NodeUserUsage.created_at >= three_min_ago
+                    ).order_by(NodeUserUsage.id.desc()).all()
+                    user_node_map = {}
+                    for uid, nid in recent_usages:
+                        if uid not in user_node_map and nid in node_names:
+                            user_node_map[uid] = node_names[nid]
+                    for uid, online_at in recent_users:
+                        nname = user_node_map.get(uid, "Online")
+                        ts = int(online_at.timestamp()) if online_at else int(now)
+                        users[uid] = {"Active": {"nodes": [nname], "inbounds": [],
+                                                 "last_seen": ts, "first_seen": ts, "provider": "Active"}}
+        except Exception as exc:
+            logger.warning(f"online fallback: {exc}")
+
+    # carry first_seen across refreshes; look up each IP's provider (cached)
     for uid, ips in users.items():
         prev = online_users.get(uid, {})
         for ip, entry in ips.items():

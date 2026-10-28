@@ -223,16 +223,51 @@ self_signed() {
     CERT=/var/lib/marzban/certs/panel.crt; KEY=/var/lib/marzban/certs/panel.key; CA=private
 }
 
+# run a certbot command that must bind port 80; if a reverse proxy (nginx) already
+# holds it on this host, free it just for the moment and put it back afterwards
+certbot_80() {
+    local freed="" rc
+    if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE ':80$'; then
+        if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet nginx 2>/dev/null; then
+            systemctl stop nginx && freed=nginx
+        fi
+    fi
+    docker run --rm -p 80:80 "$@"; rc=$?
+    [ -n "$freed" ] && systemctl start "$freed" >/dev/null 2>&1
+    return $rc
+}
+
 le_cert() {
-    local domain="$1" email="$2"
-    docker run --rm -p 80:80 -v "$DATA_DIR/certs/le:/etc/letsencrypt" certbot/certbot certonly --standalone \
-        --non-interactive --agree-tos -m "${email:-admin@$domain}" -d "$domain" >/dev/null 2>&1 || return 1
+    local domain="$1" email="$2" le="$DATA_DIR/certs/le"
+    # reuse a certificate we already hold for this domain (no port 80 needed)
+    if [ -f "$le/live/$domain/fullchain.pem" ] && [ -f "$le/live/$domain/privkey.pem" ]; then
+        say "reusing the existing certificate for $domain" "$G"
+    else
+        certbot_80 -v "$le:/etc/letsencrypt" certbot/certbot certonly --standalone \
+            --non-interactive --agree-tos -m "${email:-admin@$domain}" -d "$domain" >/dev/null 2>&1 || return 1
+    fi
     CERT=/var/lib/marzban/certs/le/live/$domain/fullchain.pem
     KEY=/var/lib/marzban/certs/le/live/$domain/privkey.pem
     CA=public
+    # renew wrapper: binds port 80 (freeing nginx briefly) only when the certificate is
+    # actually near expiry, so the daily check never disturbs a reverse proxy on port 80
+    cat > "$DATA_DIR/renew-cert.sh" <<EOF
+#!/bin/sh
+le="$DATA_DIR/certs/le"; domain="$domain"; container="$CONTAINER"
+openssl x509 -checkend 2592000 -noout -in "\$le/live/\$domain/fullchain.pem" >/dev/null 2>&1 && exit 0
+freed=""
+if ss -ltn 2>/dev/null | awk '{print \$4}' | grep -qE ':80\$'; then
+    if systemctl is-active --quiet nginx 2>/dev/null; then systemctl stop nginx && freed=nginx; fi
+fi
+docker run --rm -p 80:80 -v "\$le:/etc/letsencrypt" certbot/certbot renew --quiet --deploy-hook "touch /etc/letsencrypt/.renewed"
+[ -n "\$freed" ] && systemctl start "\$freed" >/dev/null 2>&1
+[ -f "\$le/.renewed" ] && rm -f "\$le/.renewed" && docker restart "\$container" >/dev/null 2>&1
+exit 0
+EOF
+    chmod +x "$DATA_DIR/renew-cert.sh"
     cat > /etc/cron.d/$APP-cert <<EOF
-# Alexen: renew the panel certificate, restart the panel when it changed
-17 3 * * * root docker run --rm -p 80:80 -v $DATA_DIR/certs/le:/etc/letsencrypt certbot/certbot renew --quiet --deploy-hook "touch /etc/letsencrypt/.renewed" && [ -f $DATA_DIR/certs/le/.renewed ] && rm -f $DATA_DIR/certs/le/.renewed && docker restart $CONTAINER >/dev/null
+# Alexen: renew the panel certificate when it nears expiry, restart the panel when it changed
+17 3 * * * root sh $DATA_DIR/renew-cert.sh >/dev/null 2>&1
 EOF
 }
 
@@ -1052,7 +1087,7 @@ cmd_cert() {
         renew)
             [ -f /etc/cron.d/$APP-cert ] || fail "this panel has no Let's Encrypt certificate (a self-signed one doesn't need renewing)"
             say "renewing"
-            docker run --rm -p 80:80 -v "$DATA_DIR/certs/le:/etc/letsencrypt" certbot/certbot renew --force-renewal --quiet \
+            certbot_80 -v "$DATA_DIR/certs/le:/etc/letsencrypt" certbot/certbot renew --force-renewal --quiet \
                 || fail "renewing failed: port 80 must be free and the domain must point here"
             restart_and_wait; say "renewed: $(cert_days) days" "$G" ;;
         domain)

@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.36.0",
+    "date": "2026-10-28",
+    "tr": [
+      "Kurulum artık sunucuda nginx (ya da 80 portunu tutan başka bir ön proxy) varken de sorunsuz: Let's Encrypt sertifikası alınırken 80 portu geçici olarak boşaltılıp sonra geri açılıyor, mevcut sertifika varsa yeniden kullanılıyor. Sertifika yenileme de yalnızca gerçekten gerektiğinde 80'e dokunuyor.",
+      "Online kullanıcı listesi, GetUsersStats desteklemeyen standart Xray çekirdeklerinde de artık doluyor: çekirdek veri döndürmezse son dakikalardaki node trafiği + online_at'tan online kullanıcılar türetiliyor (finland gibi panelleri de kapsar).",
+      "Xray çökme/başlamama nedenleri artık loglara yazılıyor (stderr yakalama), teşhis kolaylaşıyor.",
+      "Gelişmiş: isteğe bağlı abonelik ağ geçidi — /yol?url=.../sub/<token> biçimindeki eski/dış linkler panel tarafından doğrudan sunulabiliyor (SUB_GATEWAY_PATHS ayarıyla açılır; varsayılan kapalı). Ön proxy'nin tuttuğu bir portla çakışan Xray inbound'u başka bir yerel porta taşıma seçeneği (varsayılan kapalı)."
+    ],
+    "en": [
+      "Installs now work cleanly when the server already runs nginx (or any front proxy holding port 80): the Let's Encrypt step frees port 80 for the moment and restores it afterwards, and reuses an existing certificate when there is one. Renewal also only touches port 80 when a renewal is actually due.",
+      "The online list now fills in on standard Xray cores that don't support GetUsersStats: when the core returns nothing, online users are derived from recent per-node usage + online_at (covers panels like finland too).",
+      "Xray start/crash reasons are now written to the logs (stderr capture), making diagnosis easier.",
+      "Advanced: an optional subscription gateway — legacy/external links shaped /path?url=.../sub/<token> can be served by the panel directly (enabled via SUB_GATEWAY_PATHS; off by default). Option to move an Xray inbound off a port a front proxy already holds to another local port (off by default)."
+    ]
+  },
+  {
     "version": "1.35.0",
     "date": "2026-10-23",
     "tr": [

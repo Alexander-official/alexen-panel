@@ -35,6 +35,17 @@ XRAY_EXCLUDE_INBOUND_TAGS = config("XRAY_EXCLUDE_INBOUND_TAGS", default='').spli
 XRAY_SUBSCRIPTION_URL_PREFIX = config("XRAY_SUBSCRIPTION_URL_PREFIX", default="").strip("/")
 XRAY_SUBSCRIPTION_PATH = config("XRAY_SUBSCRIPTION_PATH", default="sub").strip("/")
 
+# optional query-param subscription gateway(s): a GET /<path>?url=<...>/sub/<token>
+# re-serves that subscription. Keeps legacy links that were issued through an external
+# front (an aggregator, a happ/macros service) working once the panel takes the gateway
+# over itself. Comma-separated list of paths; empty = disabled (no such route exists).
+SUB_GATEWAY_PATHS = [p.strip().strip("/") for p in config("SUB_GATEWAY_PATHS", default="").split(",") if p.strip().strip("/")]
+
+# when a reverse proxy already holds a port an Xray inbound wants (e.g. nginx on 80 in
+# front of the panel), move that inbound to another local port. 0 = off (no remapping).
+XRAY_PORT_REMAP_FROM = config("XRAY_PORT_REMAP_FROM", cast=int, default=0)
+XRAY_PORT_REMAP_TO = config("XRAY_PORT_REMAP_TO", cast=int, default=0)
+
 TELEGRAM_API_TOKEN = config("TELEGRAM_API_TOKEN", default="")
 TELEGRAM_ADMIN_ID = config(
     'TELEGRAM_ADMIN_ID',
