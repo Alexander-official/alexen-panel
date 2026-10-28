@@ -1,6 +1,7 @@
 {
   "active": "aktif",
   "activeUsers": "aktif kullanıcılar",
+  "expiringSoon": "süresi dolmaya yakın",
   "apply": "Uygula",
   "cancel": "İptal",
   "core.configuration": "Yapılandırma",
@@ -133,6 +134,7 @@
   "revokeUserSub.title": "Kullanıcı Aboneliğini İptal Et",
   "search": "Ara",
   "status.active": "Aktif",
+  "status.expiring_soon": "Süresi dolmaya yakın",
   "status.disabled": "Devre dışı",
   "status.expired": "Süresi doldu",
   "status.limited": "Limit doldu",

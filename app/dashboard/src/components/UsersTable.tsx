@@ -236,31 +236,77 @@ export const Sort: FC<SortType> = ({ sort, column }) => {
     );
   return null;
 };
-// which client app the user last imported the sub into (from its User-Agent)
-const appOf = (ua?: string | null): { name: string; icon: string } | null => {
+// which client app the user last imported the sub into (from its User-Agent).
+// slug -> /statics/app-icons/<slug>.png (real logo; falls back to hidden if the file is absent)
+const appOf = (ua?: string | null): { name: string; slug: string } | null => {
   if (!ua) return null;
   const u = ua.toLowerCase();
   const m: [RegExp, string, string][] = [
-    [/hiddify/, "Hiddify", "🟣"],
-    [/v2box/, "v2box", "📦"],
-    [/streisand/, "Streisand", "🎗️"],
-    [/happ/, "Happ", "🐰"],
-    [/(clash-verge|clash.?meta|mihomo|flclash)/, "Clash Meta", "⚡"],
-    [/(clash|stash)/, "Clash", "⚡"],
-    [/(sing-?box|sfa|sfi|sfm|sft|karing)/, "sing-box", "📦"],
-    [/shadowrocket/, "Shadowrocket", "🚀"],
-    [/(v2rayng)/, "v2rayNG", "🅥"],
-    [/(v2rayn)/, "v2rayN", "🅥"],
-    [/(nekoray|nekobox)/, "NekoBox", "🐱"],
-    [/(loon)/, "Loon", "🌙"],
-    [/(quantumult)/, "Quantumult", "🧩"],
-    [/(surge)/, "Surge", "🌊"],
-    [/(throne|hiddifynext)/, "Hiddify", "🟣"],
+    [/hiddify|hiddifynext|throne/, "Hiddify", "hiddify"],
+    [/v2box/, "v2box", "v2box"],
+    [/streisand/, "Streisand", "streisand"],
+    [/happ/, "Happ", "happ"],
+    [/(clash-verge|clash.?meta|mihomo|flclash)/, "Clash Meta", "clashmeta"],
+    [/(clash|stash)/, "Clash", "clash"],
+    [/(sing-?box|sfa|sfi|sfm|sft|karing)/, "sing-box", "singbox"],
+    [/shadowrocket/, "Shadowrocket", "shadowrocket"],
+    [/(v2rayng)/, "v2rayNG", "v2rayng"],
+    [/(v2rayn)/, "v2rayN", "v2rayn"],
+    [/(nekoray|nekobox)/, "NekoBox", "nekobox"],
+    [/(loon)/, "Loon", "loon"],
+    [/(quantumult)/, "Quantumult", "quantumult"],
+    [/(surge)/, "Surge", "surge"],
   ];
-  for (const [re, name, icon] of m) if (re.test(u)) return { name, icon };
-  // fall back to the first token of the UA (e.g. "MyApp/1.2" -> "MyApp")
+  for (const [re, name, slug] of m) if (re.test(u)) return { name, slug };
+  // fall back to the first token of the UA (e.g. "MyApp/1.2" -> "MyApp"); no icon file
   const t = ua.split("/")[0].trim();
-  return t && !/^mozilla$/i.test(t) ? { name: t.slice(0, 18), icon: "📱" } : null;
+  return t && !/^mozilla$/i.test(t) ? { name: t.slice(0, 18), slug: "" } : null;
+};
+// a soft colour per app for the monogram fallback (original design, not the real logo)
+const APP_COLORS: Record<string, string> = {
+  hiddify: "#2E7CF6", v2box: "#00B894", streisand: "#8E44AD", happ: "#111827",
+  clashmeta: "#E6007A", clash: "#E6007A", singbox: "#F59E0B", shadowrocket: "#2D6CDF",
+  v2rayng: "#16A34A", v2rayn: "#16A34A", nekobox: "#EF4444", loon: "#7C3AED",
+  quantumult: "#0EA5E9", surge: "#F97316",
+};
+// the app badge shown right under the online dot. Shows the official logo if one was
+// dropped into /statics/app-icons/<slug>.png; otherwise an original monogram chip
+// (coloured square with the app's initial) so the app is still recognisable, never blank.
+const AppDot: FC<{ ua?: string | null }> = ({ ua }) => {
+  const a = appOf(ua);
+  const [imgOk, setImgOk] = useState(true);
+  if (!a || !a.name) return null;
+  if (a.slug && imgOk) {
+    return (
+      <img
+        src={`/statics/app-icons/${a.slug}.png`}
+        alt={a.name}
+        title={a.name}
+        width={16}
+        height={16}
+        style={{ borderRadius: 4, objectFit: "contain", display: "block" }}
+        onError={() => setImgOk(false)}
+      />
+    );
+  }
+  const letter = (a.name.replace(/[^A-Za-z0-9]/g, "").charAt(0) || "?").toUpperCase();
+  const color = (a.slug && APP_COLORS[a.slug]) || "#64748B";
+  return (
+    <Box
+      title={a.name}
+      w="16px"
+      h="16px"
+      bg={color}
+      color="white"
+      borderRadius="4px"
+      fontSize="10px"
+      fontWeight="bold"
+      lineHeight="16px"
+      textAlign="center"
+    >
+      {letter}
+    </Box>
+  );
 };
 
 type UsersTableProps = {} & TableProps;
@@ -411,7 +457,10 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                         maxW="calc(100vw - 50px - 32px - 100px - 48px)"
                       >
                         <div className="flex-status">
-                          <OnlineBadge lastOnline={user.online_at} />
+                          <VStack spacing="3px" align="center" flexShrink={0}>
+                            <OnlineBadge lastOnline={user.online_at} />
+                            <AppDot ua={user.sub_last_user_agent} />
+                          </VStack>
                           <Text isTruncated>{user.username}</Text>
                           <WarningMark text={user.warning} />
                         </div>
@@ -432,7 +481,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                           </Text>
                           {appOf(user.sub_last_user_agent) && (
                             <Text as="div" fontSize="xs" color="gray.500" title={user.sub_last_user_agent || ""}>
-                              {appOf(user.sub_last_user_agent)!.icon} {appOf(user.sub_last_user_agent)!.name}
+                              {appOf(user.sub_last_user_agent)!.name}
                             </Text>
                           )}
                           <ProviderTag username={user.username} />
@@ -700,7 +749,10 @@ const UserRow: FC<{ user: User; isLast: boolean; isSudo: boolean; onEdit: (u: Us
                     <HStack justifyContent="space-between" spacing={3}>
                       <Box minW={0}>
                         <div className="flex-status">
-                          <OnlineBadge lastOnline={user.online_at} />
+                          <VStack spacing="3px" align="center" flexShrink={0}>
+                            <OnlineBadge lastOnline={user.online_at} />
+                            <AppDot ua={user.sub_last_user_agent} />
+                          </VStack>
                           <Text as="span" fontWeight="medium" isTruncated>
                             {user.username}
                           </Text>
@@ -718,7 +770,7 @@ const UserRow: FC<{ user: User; isLast: boolean; isSudo: boolean; onEdit: (u: Us
                           )}
                           {appOf(user.sub_last_user_agent) && (
                             <Text as="div" title={user.sub_last_user_agent || ""}>
-                              {appOf(user.sub_last_user_agent)!.icon} {appOf(user.sub_last_user_agent)!.name}
+                              {appOf(user.sub_last_user_agent)!.name}
                             </Text>
                           )}
                         </HStack>

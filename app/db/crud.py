@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, List, Optional, Tuple, Union
 
-from sqlalchemy import and_, delete, func, or_
+from sqlalchemy import String, and_, cast, delete, func, or_
 from sqlalchemy.orm import Query, Session, joinedload, selectinload
 from sqlalchemy.sql.functions import coalesce
 
@@ -248,6 +248,7 @@ def get_users(db: Session,
               admin: Optional[Admin] = None,
               admins: Optional[List[str]] = None,
               reset_strategy: Optional[Union[UserDataLimitResetStrategy, list]] = None,
+              expiring_within: Optional[int] = None,
               return_with_count: bool = False) -> Union[List[User], Tuple[List[User], int]]:
     """
     Retrieves users based on various filters and options.
@@ -271,7 +272,14 @@ def get_users(db: Session,
     query = get_user_queryset(db)
 
     if search:
-        query = query.filter(or_(User.username.ilike(f"%{search}%"), User.note.ilike(f"%{search}%")))
+        term = f"%{search}%"
+        # username, note, and the proxy settings text (so a client UUID / subId can be
+        # pasted straight into the search box to find whose account it belongs to)
+        query = query.filter(or_(
+            User.username.ilike(term),
+            User.note.ilike(term),
+            User.proxies.any(cast(Proxy.settings, String).ilike(term)),
+        ))
 
     if usernames:
         query = query.filter(User.username.in_(usernames))
@@ -293,6 +301,11 @@ def get_users(db: Session,
 
     if admins:
         query = query.filter(User.admin.has(Admin.username.in_(admins)))
+
+    if expiring_within is not None:
+        now = int(datetime.utcnow().timestamp())
+        query = query.filter(User.expire.isnot(None), User.expire > now,
+                             User.expire <= now + expiring_within)
 
     if return_with_count:
         count = query.count()
@@ -351,7 +364,8 @@ def get_user_usages(db: Session, dbuser: User, start: datetime, end: datetime) -
     return list(usages.values())
 
 
-def get_users_count(db: Session, status: UserStatus = None, admin: Admin = None) -> int:
+def get_users_count(db: Session, status: UserStatus = None, admin: Admin = None,
+                    expiring_within: Optional[int] = None) -> int:
     """
     Retrieves the count of users based on status and admin filters.
 
@@ -359,6 +373,8 @@ def get_users_count(db: Session, status: UserStatus = None, admin: Admin = None)
         db (Session): Database session.
         status (UserStatus, optional): Status to filter users by.
         admin (Admin, optional): Admin to filter users by.
+        expiring_within (int, optional): Only count users whose expiry falls within the
+            next this-many seconds from now (soon-to-expire users).
 
     Returns:
         int: Count of users matching the criteria.
@@ -368,6 +384,10 @@ def get_users_count(db: Session, status: UserStatus = None, admin: Admin = None)
         query = query.filter(User.admin == admin)
     if status:
         query = query.filter(User.status == status)
+    if expiring_within is not None:
+        now = int(datetime.utcnow().timestamp())
+        query = query.filter(User.expire.isnot(None), User.expire > now,
+                             User.expire <= now + expiring_within)
     return query.count()
 
 

@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.37.0",
+    "date": "2026-10-28",
+    "tr": [
+      "Kullanıcı satırında noktanın altında artık uygulama simgesi görünüyor: resmî logo dosyası varsa (panelde /statics/app-icons/ altına PNG eklenince) o, yoksa uygulamanın baş harfiyle özgün renkli bir rozet — hiçbir zaman boş kalmaz, emoji değil.",
+      "Aramaya UUID/subId desteği: bir istemcinin UUID'sini (veya subId'sini) arama kutusuna yapıştırarak hangi kullanıcıya ait olduğunu bulabilirsin (kullanıcı adı ve nota ek olarak).",
+      "Genel görünüme 'Süresi dolmaya yakın' kutusu eklendi (önümüzdeki 3 gün içinde dolacak aktif kullanıcı sayısı); üstüne tıklayınca kullanıcı listesi doğrudan o kullanıcılara süreye göre sıralı filtrelenir. Aynı filtre durum menüsünde de 'Süresi dolmaya yakın' olarak var.",
+      "Güncelleyici artık standart-dışı veri yoluna sahip kurulumlarda da çalışıyor: güncelleme-öncesi yedek ve bütünlük kontrolü, veritabanı yolunu panelin kendi ayarından okuyor (sabit yol varsaymıyor)."
+    ],
+    "en": [
+      "The user row now shows an app badge under the dot: the official logo if a file was added (drop a PNG into /statics/app-icons/ on the panel), otherwise an original coloured chip with the app's initial — never blank, never an emoji.",
+      "Search now matches UUID/subId: paste a client's UUID (or subId) into the search box to find which user it belongs to (in addition to username and note).",
+      "The overview gained an 'Expiring soon' card (active users whose subscription ends within the next 3 days); clicking it filters the user list to exactly those users, sorted by remaining time. The same filter is available in the status menu as 'Expiring soon'.",
+      "The updater now works on installs with a non-standard data path too: the pre-update backup and the integrity check read the database path from the panel's own setting instead of assuming a fixed path."
+    ]
+  },
+  {
     "version": "1.36.0",
     "date": "2026-10-28",
     "tr": [

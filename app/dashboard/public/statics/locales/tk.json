@@ -1,6 +1,7 @@
 {
   "active": "işjeň",
   "activeUsers": "işjeň ulanyjylar",
+  "expiringSoon": "möhleti ýakynlaýar",
   "apply": "Ulanmak",
   "cancel": "Ýatyr",
   "core.configuration": "Sazlama",
@@ -133,6 +134,7 @@
   "revokeUserSub.title": "Ulanyjynyň abunasyny ýatyr",
   "search": "Gözle",
   "status.active": "Işjeň",
+  "status.expiring_soon": "Möhleti ýakyn",
   "status.disabled": "Öçürilen",
   "status.expired": "Möhleti gutardy",
   "status.limited": "Çäk doldy",

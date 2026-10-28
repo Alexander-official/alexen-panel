@@ -40,6 +40,11 @@ def get_system_stats(
     users_limited = crud.get_users_count(
         db, status=UserStatus.limited, admin=dbadmin if not admin.is_sudo else None
     )
+    # active users whose subscription expires within the next 3 days
+    users_expiring_soon = crud.get_users_count(
+        db, status=UserStatus.active, expiring_within=3 * 86400,
+        admin=dbadmin if not admin.is_sudo else None
+    )
     online_users = crud.count_online_users(db, 24)
     realtime_bandwidth_stats = realtime_bandwidth()
 
@@ -70,6 +75,7 @@ def get_system_stats(
         users_disabled=users_disabled,
         users_expired=users_expired,
         users_limited=users_limited,
+        users_expiring_soon=users_expiring_soon,
         users_on_hold=users_on_hold,
         incoming_bandwidth=incoming_bandwidth,
         outgoing_bandwidth=outgoing_bandwidth,

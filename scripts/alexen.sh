@@ -537,8 +537,15 @@ snapshot_data() {
     rm -f "$UPD_DIR/db-before.sqlite3" "$UPD_DIR/xray_config-before.json"
     [ -f "$DATA_DIR/xray_config.json" ] && cp -p "$DATA_DIR/xray_config.json" "$UPD_DIR/xray_config-before.json"
     grep -qE '^SQLALCHEMY_DATABASE_URL *= *"?sqlite' "$ENV_FILE" || return 0
+    # the in-container sqlite path comes from the running container's own env, so installs
+    # with a non-standard data dir (e.g. /var/lib/alexen instead of /var/lib/marzban) back
+    # up just the same. The snapshot lands in <dbdir>/update, which maps to the host UPD_DIR.
     docker exec "$CONTAINER" python3 -c "
-import sqlite3; s = sqlite3.connect('/var/lib/marzban/db.sqlite3'); d = sqlite3.connect('/var/lib/marzban/update/db-before.sqlite3')
+import os, sqlite3
+url = os.environ.get('SQLALCHEMY_DATABASE_URL', 'sqlite:////var/lib/marzban/db.sqlite3')
+src = '/' + url.split('sqlite://', 1)[-1].lstrip('/')
+updir = os.path.join(os.path.dirname(src), 'update'); os.makedirs(updir, exist_ok=True)
+s = sqlite3.connect(src); d = sqlite3.connect(os.path.join(updir, 'db-before.sqlite3'))
 s.backup(d); d.close()" 2>>"$UPD_LOG"
 }
 
@@ -932,7 +939,10 @@ cmd_doctor() {
     else warn "no certificate file found (UVICORN_SSL_CERTFILE)"; fi
     if container_up; then
         local qc; qc=$(docker exec "$CONTAINER" python3 -c "
-import sqlite3; print(sqlite3.connect('/var/lib/marzban/db.sqlite3').execute('PRAGMA quick_check').fetchone()[0])" 2>/dev/null | tail -1)
+import os, sqlite3
+url = os.environ.get('SQLALCHEMY_DATABASE_URL', 'sqlite:////var/lib/marzban/db.sqlite3')
+src = '/' + url.split('sqlite://', 1)[-1].lstrip('/')
+print(sqlite3.connect(src).execute('PRAGMA quick_check').fetchone()[0])" 2>/dev/null | tail -1)
         if [ "$qc" = ok ]; then ok "the database is healthy"
         elif [ -n "$qc" ]; then bad "the database reports: $qc (restore a backup: alexen restore)"; problems=$((problems+1))
         else warn "the database couldn't be checked (not SQLite?)"; fi

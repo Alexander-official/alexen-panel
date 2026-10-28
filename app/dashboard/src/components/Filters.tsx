@@ -133,6 +133,7 @@ export const Filters: FC<FilterProps> = ({ ...props }) => {
           >
             <option value="">{t("filters.allStatus")}</option>
             <option value="active">{t("status.active")}</option>
+            <option value="expiring_soon">{t("status.expiring_soon")}</option>
             <option value="on_hold">{t("status.on_hold")}</option>
             <option value="disabled">{t("status.disabled")}</option>
             <option value="limited">{t("status.limited")}</option>

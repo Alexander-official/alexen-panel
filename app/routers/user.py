@@ -301,6 +301,7 @@ def get_users(
     owner: Union[List[str], None] = Query(None, alias="admin"),
     status: UserStatus = None,
     sort: str = None,
+    expiring_within: Optional[int] = Query(None, description="only users whose expiry is within this many seconds from now"),
     db: Session = Depends(get_db),
     admin: Admin = Depends(Admin.get_current),
 ):
@@ -324,6 +325,7 @@ def get_users(
         usernames=username,
         status=status,
         sort=sort,
+        expiring_within=expiring_within,
         admins=owner if admin.is_sudo else [admin.username],
         return_with_count=True,
     )

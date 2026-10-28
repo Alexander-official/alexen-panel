@@ -11,6 +11,7 @@ import {
 import {
   ChartBarIcon,
   ChartPieIcon,
+  ClockIcon,
   SignalIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
@@ -41,6 +42,15 @@ const NetworkIcon = chakra(ChartBarIcon, {
 });
 
 const OnlineIcon = chakra(SignalIcon, {
+  baseStyle: {
+    w: 5,
+    h: 5,
+    position: "relative",
+    zIndex: "2",
+  },
+});
+
+const ExpiringIcon = chakra(ClockIcon, {
   baseStyle: {
     w: 5,
     h: 5,
@@ -208,6 +218,22 @@ export const Statistics: FC<BoxProps> = (props) => {
           )
         }
         icon={<OnlineIcon />}
+      />
+      <StatisticCard
+        title={t("expiringSoon")}
+        onClick={() =>
+          useDashboard
+            .getState()
+            .onFilterChange({ status: "expiring_soon", sort: "expire", offset: 0 })
+        }
+        content={
+          systemData && (
+            <HStack alignItems="flex-end" spacing={1} flexWrap="wrap">
+              <Text>{numberWithCommas(systemData.users_expiring_soon || 0)}</Text>
+            </HStack>
+          )
+        }
+        icon={<ExpiringIcon />}
       />
       <StatisticCard
         title={t("memoryUsage")}

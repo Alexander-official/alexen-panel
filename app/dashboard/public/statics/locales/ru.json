@@ -1,6 +1,7 @@
 {
   "active": "active",
   "activeUsers": "Пользователи",
+  "expiringSoon": "скоро истекают",
   "apply": "Применить",
   "cancel": "Отмена",
   "core.configuration": "Конфигурация",
@@ -133,6 +134,7 @@
   "revokeUserSub.title": "Отозвать подписку пользователя",
   "search": "Поиск",
   "status.active": "Active",
+  "status.expiring_soon": "Скоро истекает",
   "status.disabled": "Disabled",
   "status.expired": "Expired",
   "status.limited": "Limited",

@@ -12,7 +12,7 @@ export type FilterType = {
   limit?: number;
   offset?: number;
   sort: string;
-  status?: "active" | "disabled" | "limited" | "expired" | "on_hold";
+  status?: "active" | "disabled" | "limited" | "expired" | "on_hold" | "expiring_soon";
   admin?: string;   // a sudo admin: show only this owner's users (backend param "admin")
 };
 export type ProtocolType =
@@ -89,6 +89,12 @@ type DashboardStateType = {
 const fetchUsers = (query: FilterType): Promise<User[]> => {
   for (const key in query) {
     if (!query[key as keyof FilterType]) delete query[key as keyof FilterType];
+  }
+  // "expiring soon" is a view over active users, not a real status: ask the backend for
+  // active users whose expiry is within the next 3 days (app/routers/user.py)
+  if ((query as any).status === "expiring_soon") {
+    (query as any).status = "active";
+    (query as any).expiring_within = 3 * 86400;
   }
   useDashboard.setState({ loading: true });
   return fetch("/users", { query })

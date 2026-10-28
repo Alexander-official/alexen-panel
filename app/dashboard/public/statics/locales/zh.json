@@ -1,6 +1,7 @@
 {
   "active": "激活",
   "activeUsers": "活跃用户",
+  "expiringSoon": "即将到期",
   "apply": "应用",
   "cancel": "取消",
   "core.configuration": "配置",
@@ -133,6 +134,7 @@
   "revokeUserSub.title": "撤销用户订阅",
   "search": "搜索",
   "status.active": "活跃",
+  "status.expiring_soon": "即将到期",
   "status.disabled": "禁用",
   "status.expired": "过期",
   "status.limited": "受限",

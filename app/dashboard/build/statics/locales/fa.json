@@ -1,6 +1,7 @@
 {
   "active": "فعال",
   "activeUsers": "کاربران فعال",
+  "expiringSoon": "در حال انقضا",
   "apply": "تایید",
   "cancel": "لغو",
   "core.configuration": "پیکربندی",
@@ -138,6 +139,7 @@
   "revokeUserSub.title": "بازنشانی اشتراک کاربر",
   "search": "جستجو",
   "status.active": "فعال",
+  "status.expiring_soon": "در حال انقضا",
   "status.disabled": "غیرفعال",
   "status.expired": "منقضی شده",
   "status.limited": "اتمام حد مصرف",

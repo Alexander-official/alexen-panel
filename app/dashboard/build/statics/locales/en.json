@@ -1,6 +1,7 @@
 {
   "active": "active",
   "activeUsers": "active users",
+  "expiringSoon": "expiring soon",
   "apply": "Apply",
   "cancel": "Cancel",
   "core.configuration": "Configuration",
@@ -133,6 +134,7 @@
   "revokeUserSub.title": "Revoke User Subscription",
   "search": "Search",
   "status.active": "Active",
+  "status.expiring_soon": "Expiring soon",
   "status.disabled": "Disabled",
   "status.expired": "Expired",
   "status.limited": "Limited",
