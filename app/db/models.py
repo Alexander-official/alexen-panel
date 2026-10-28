@@ -482,6 +482,13 @@ class AdminMessage(Base):
     from_sudo = Column(Boolean, nullable=False, default=False)
     text = Column(String(4000), nullable=False)
     read = Column(Boolean, nullable=False, default=False)     # by the other side
+    # optional attachment (image/audio/video/file) stored on disk under the data dir
+    media_path = Column(String(255), nullable=True)
+    media_type = Column(String(16), nullable=True)            # image | audio | video | file
+    media_mime = Column(String(128), nullable=True)
+    media_name = Column(String(255), nullable=True)
+    media_size = Column(Integer, nullable=True)
+    edited_at = Column(DateTime, nullable=True)               # set when the sender edits the text
 
 
 class NotificationReminder(Base):

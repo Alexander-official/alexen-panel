@@ -1759,5 +1759,20 @@
   "nodeExtra.saveKey": "Kitaphana sakla",
   "nodeExtra.keyName": "Açar ady",
   "nodeExtra.keyPublicHint": "Bu açyk açary VPS-e goş (~/.ssh/authorized_keys)",
-  "nodeExtra.keyGenerated": "Açar döredildi — bu AÇYK açary VPS-e goş"
+  "nodeExtra.keyGenerated": "Açar döredildi — bu AÇYK açary VPS-e goş",
+  "online.external": "Daşarky",
+  "online.sortByExternal": "Daşarky boýunça",
+  "online.externalHint": "Daşarky panel arkaly onlaýn ulanyjylar",
+  "messages.attach": "Surat, ses ýa-da wideo goş",
+  "messages.edit": "Üýtget",
+  "messages.delete": "Poz",
+  "messages.deleteConfirm": "Bu habar pozulsynmy?",
+  "messages.edited": "üýtgedildi",
+  "messages.photo": "Surat",
+  "messages.audio": "Ses",
+  "messages.video": "Wideo",
+  "messages.save": "Ýatda sakla",
+  "messages.cancel": "Goý",
+  "messages.tooLarge": "Faýl gaty uly (iň köp 25 MB)",
+  "messages.uploadFailed": "Faýl ýüklenip bilinmedi"
 }

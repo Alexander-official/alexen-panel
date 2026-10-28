@@ -1,7 +1,28 @@
 // Messages between the sudo admins and each admin: the sudo admin picks an
-// admin on the left, an admin only has its own conversation.
-import { Badge, Box, Button, HStack, Text, Textarea, VStack } from "@chakra-ui/react";
-import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
+// admin on the left, an admin only has its own conversation. Supports image /
+// audio / video attachments and editing or deleting your own messages.
+import {
+  Badge,
+  Box,
+  Button,
+  HStack,
+  IconButton,
+  Image,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Spinner,
+  Text,
+  Textarea,
+  VStack,
+  useToast,
+} from "@chakra-ui/react";
+import {
+  EllipsisVerticalIcon,
+  PaperAirplaneIcon,
+  PaperClipIcon,
+} from "@heroicons/react/24/outline";
 import dayjs from "dayjs";
 import useGetUser from "hooks/useGetUser";
 import { FC, useEffect, useRef, useState } from "react";
@@ -9,17 +30,92 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "react-query";
 import { fetch } from "service/http";
 
-type Thread = { thread: string; unread: number; last: null | { text: string; time: number; sender: string } };
-type Msg = { id: number; time: number; sender: string; from_sudo: boolean; text: string; read: boolean };
+type Media = { type: string; mime: string; name: string; size: number };
+type Thread = {
+  thread: string;
+  unread: number;
+  last: null | { text: string; media: string | null; time: number; sender: string };
+};
+type Msg = {
+  id: number;
+  time: number;
+  sender: string;
+  from_sudo: boolean;
+  text: string;
+  read: boolean;
+  edited: number;
+  media?: Media;
+};
+
+// one attachment: fetched with auth as a blob, then shown from an object URL
+const Attachment: FC<{ id: number; media: Media }> = ({ id, media }) => {
+  const [url, setUrl] = useState("");
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    let obj = "";
+    fetch<Blob>(`/messages/media/${id}`, { responseType: "blob" } as any)
+      .then((blob) => {
+        if (!alive) return;
+        obj = URL.createObjectURL(blob);
+        setUrl(obj);
+      })
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+      if (obj) URL.revokeObjectURL(obj);
+    };
+  }, [id]);
+  if (failed)
+    return (
+      <Text fontSize="xs" color="red.300">
+        ⚠
+      </Text>
+    );
+  if (!url) return <Spinner size="sm" my={2} />;
+  if (media.type === "image")
+    return (
+      <Image
+        src={url}
+        alt={media.name}
+        maxH="240px"
+        maxW="100%"
+        borderRadius="8px"
+        my={1}
+        cursor="pointer"
+        onClick={() => window.open(url, "_blank")}
+      />
+    );
+  if (media.type === "audio")
+    return <audio src={url} controls style={{ maxWidth: "240px", marginTop: 4, marginBottom: 4 }} />;
+  if (media.type === "video")
+    return (
+      <video
+        src={url}
+        controls
+        style={{ maxWidth: "280px", maxHeight: "320px", borderRadius: 8, marginTop: 4, marginBottom: 4 }}
+      />
+    );
+  return (
+    <a href={url} download={media.name}>
+      {media.name}
+    </a>
+  );
+};
 
 const Chat: FC<{ thread: string; mine: (m: Msg) => boolean }> = ({ thread, mine }) => {
   const { t } = useTranslation();
+  const toast = useToast();
   const queryClient = useQueryClient();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(0);
+  const [editText, setEditText] = useState("");
   const box = useRef<HTMLDivElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const last = useRef(0);
+  const refreshThreads = () => queryClient.invalidateQueries("message-threads");
   const load = (reset = false) =>
     fetch(`/messages/${encodeURIComponent(thread)}?after=${reset ? 0 : last.current}`).then((list: Msg[]) => {
       if (list.length) last.current = list[list.length - 1].id;
@@ -29,6 +125,7 @@ const Chat: FC<{ thread: string; mine: (m: Msg) => boolean }> = ({ thread, mine 
   useEffect(() => {
     last.current = 0;
     setMsgs([]);
+    setEditing(0);
     load(true);
     const h = setInterval(() => load(), 6000);
     return () => clearInterval(h);
@@ -36,6 +133,7 @@ const Chat: FC<{ thread: string; mine: (m: Msg) => boolean }> = ({ thread, mine 
   useEffect(() => {
     box.current?.scrollTo({ top: box.current.scrollHeight });
   }, [msgs.length]);
+
   const send = () => {
     if (!text.trim()) return;
     setBusy(true);
@@ -43,10 +141,52 @@ const Chat: FC<{ thread: string; mine: (m: Msg) => boolean }> = ({ thread, mine 
       .then(() => {
         setText("");
         load();
-        queryClient.invalidateQueries("message-threads");
+        refreshThreads();
       })
       .finally(() => setBusy(false));
   };
+
+  const upload = (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (text.trim()) fd.append("text", text.trim());
+    setBusy(true);
+    fetch(`/messages/${encodeURIComponent(thread)}/media`, { method: "POST", body: fd } as any)
+      .then(() => {
+        setText("");
+        load();
+        refreshThreads();
+      })
+      .catch((err: any) => {
+        const status = err?.response?.status;
+        toast({
+          title: status === 413 ? t("messages.tooLarge") : t("messages.uploadFailed"),
+          status: "error",
+          isClosable: true,
+          position: "top",
+          duration: 4000,
+        });
+      })
+      .finally(() => setBusy(false));
+  };
+
+  const saveEdit = (id: number) => {
+    if (!editText.trim()) return;
+    fetch(`/messages/${encodeURIComponent(thread)}/${id}`, { method: "PUT", body: { text: editText } }).then(() => {
+      setEditing(0);
+      load(true);
+      refreshThreads();
+    });
+  };
+
+  const remove = (id: number) => {
+    if (!window.confirm(t("messages.deleteConfirm"))) return;
+    fetch(`/messages/${encodeURIComponent(thread)}/${id}`, { method: "DELETE" } as any).then(() => {
+      load(true);
+      refreshThreads();
+    });
+  };
+
   let day = "";
   return (
     <VStack align="stretch" spacing={0} h={{ base: "calc(100dvh - 210px)", md: "calc(100dvh - 190px)" }} minH="360px">
@@ -68,7 +208,36 @@ const Chat: FC<{ thread: string; mine: (m: Msg) => boolean }> = ({ thread, mine 
                   {d}
                 </Text>
               )}
-              <HStack justifyContent={me ? "flex-end" : "flex-start"} mb={1.5}>
+              <HStack justifyContent={me ? "flex-end" : "flex-start"} mb={1.5} role="group">
+                {me && editing !== m.id && (
+                  <Menu placement="bottom-end" isLazy>
+                    <MenuButton
+                      as={IconButton}
+                      aria-label="options"
+                      icon={<EllipsisVerticalIcon width={16} />}
+                      size="xs"
+                      variant="ghost"
+                      opacity={0}
+                      _groupHover={{ opacity: 0.7 }}
+                    />
+                    <MenuList minW="120px">
+                      {m.text && (
+                        <MenuItem
+                          fontSize="sm"
+                          onClick={() => {
+                            setEditing(m.id);
+                            setEditText(m.text);
+                          }}
+                        >
+                          {t("messages.edit")}
+                        </MenuItem>
+                      )}
+                      <MenuItem fontSize="sm" color="red.400" onClick={() => remove(m.id)}>
+                        {t("messages.delete")}
+                      </MenuItem>
+                    </MenuList>
+                  </Menu>
+                )}
                 <Box
                   maxW="78%"
                   px={3}
@@ -84,10 +253,35 @@ const Chat: FC<{ thread: string; mine: (m: Msg) => boolean }> = ({ thread, mine 
                       {m.sender}
                     </Text>
                   )}
-                  <Text fontSize="sm" whiteSpace="pre-wrap" wordBreak="break-word">
-                    {m.text}
-                  </Text>
+                  {m.media && <Attachment id={m.id} media={m.media} />}
+                  {editing === m.id ? (
+                    <VStack align="stretch" spacing={1} mt={1}>
+                      <Textarea
+                        rows={2}
+                        size="sm"
+                        bg="white"
+                        color="black"
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                      />
+                      <HStack justifyContent="flex-end" spacing={1}>
+                        <Button size="xs" variant="ghost" color="whiteAlpha.900" onClick={() => setEditing(0)}>
+                          {t("messages.cancel")}
+                        </Button>
+                        <Button size="xs" colorScheme="blackAlpha" onClick={() => saveEdit(m.id)}>
+                          {t("messages.save")}
+                        </Button>
+                      </HStack>
+                    </VStack>
+                  ) : (
+                    m.text && (
+                      <Text fontSize="sm" whiteSpace="pre-wrap" wordBreak="break-word">
+                        {m.text}
+                      </Text>
+                    )
+                  )}
                   <Text fontSize="2xs" opacity={0.7} textAlign="right">
+                    {m.edited > 0 && <>{t("messages.edited")} · </>}
                     {dayjs.unix(m.time).format("HH:mm")}
                     {me ? (m.read ? " ✓✓" : " ✓") : ""}
                   </Text>
@@ -97,7 +291,27 @@ const Chat: FC<{ thread: string; mine: (m: Msg) => boolean }> = ({ thread, mine 
           );
         })}
       </Box>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*,audio/*,video/*"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) upload(f);
+          e.target.value = "";
+        }}
+      />
       <HStack pt={2} alignItems="flex-end">
+        <IconButton
+          aria-label={t("messages.attach")}
+          title={t("messages.attach")}
+          icon={<PaperClipIcon width={18} />}
+          variant="ghost"
+          isDisabled={busy}
+          onClick={() => fileInput.current?.click()}
+          flexShrink={0}
+        />
         <Textarea
           rows={2}
           resize="none"
@@ -129,6 +343,15 @@ export const MessagesPage: FC = () => {
     if (!open && threads?.length) setOpen(isSudo ? "" : threads[0].thread);
   }, [threads]);
   const mine = (m: Msg) => (isSudo ? m.from_sudo : !m.from_sudo);
+  const preview = (last: NonNullable<Thread["last"]>) =>
+    last.text ||
+    (last.media === "image"
+      ? "🖼 " + t("messages.photo")
+      : last.media === "audio"
+      ? "🎵 " + t("messages.audio")
+      : last.media === "video"
+      ? "🎬 " + t("messages.video")
+      : "");
   if (!threads) return null;
   if (!isSudo) return threads[0] ? <Chat thread={threads[0].thread} mine={mine} /> : null;
   return (
@@ -158,7 +381,7 @@ export const MessagesPage: FC = () => {
               {th.unread > 0 && <Badge colorScheme="red">{th.unread}</Badge>}
             </HStack>
             <Text fontSize="xs" color="gray.500" noOfLines={1}>
-              {th.last ? `${th.last.sender}: ${th.last.text}` : t("messages.noMessages")}
+              {th.last ? `${th.last.sender}: ${preview(th.last)}` : t("messages.noMessages")}
             </Text>
           </Box>
         ))}

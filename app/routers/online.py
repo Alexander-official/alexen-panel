@@ -48,11 +48,16 @@ class OnlineUser(BaseModel):
     device_count: int = 0
     ip_limit: Optional[int] = None
     blocked_ips: int = 0
+    # how many external panels this user is currently connected through, and their names
+    external: int = 0
+    external_panels: List[str] = []
 
 
 class OnlineSummary(BaseModel):
     online_users: int
     online_ips: int
+    # users online through an external panel (included in `users` above)
+    external_online_users: int = 0
     updated_at: Optional[datetime] = None
     users: List[OnlineUser]
 
@@ -86,18 +91,49 @@ def get_online_summary(
     db: Session = Depends(get_db),
     admin: Admin = Depends(Admin.get_current),
 ):
-    """Online users right now (main core and nodes). sort: 'ip' (default) or 'devices'."""
+    """Online users right now (main core, nodes and external panels).
+    sort: 'ip' (default), 'devices' or 'external'."""
     visible = _visible_ip_counts(db, admin)
-    users = [
-        OnlineUser(username=username, admin=admin_username, ip_count=count, ip_limit=user_ip_limit,
-                   device_count=devices, blocked_ips=len(ip_limit.blocked_ips.get(uid, ())))
-        for uid, (username, admin_username, count, user_ip_limit, devices) in visible.items()
-    ]
-    key = (lambda u: u.device_count) if sort == "devices" else (lambda u: u.ip_count)
+    # who is online through an external panel right now (username -> {panels, last_seen})
+    ext: dict = {}
+    try:
+        from app.external_panels import live as _eplive
+        ext = _eplive.online_map()
+    except Exception:
+        ext = {}
+
+    users = []
+    present = set()
+    for uid, (username, admin_username, count, user_ip_limit, devices) in visible.items():
+        e = ext.get(username)
+        users.append(OnlineUser(
+            username=username, admin=admin_username, ip_count=count, ip_limit=user_ip_limit,
+            device_count=devices, blocked_ips=len(ip_limit.blocked_ips.get(uid, ())),
+            external=len(e["panels"]) if e else 0, external_panels=(e["panels"] if e else [])))
+        present.add(username)
+
+    # users online ONLY through an external panel (not on our Xray) still belong in the list;
+    # pull them in, respecting the admin's scope.
+    ext_only = [n for n in ext if n not in present]
+    if ext_only:
+        q = db.query(User.username, DBAdmin.username) \
+            .outerjoin(DBAdmin, User.admin_id == DBAdmin.id) \
+            .filter(User.username.in_(ext_only))
+        if not admin.is_sudo:
+            q = q.filter(DBAdmin.username == admin.username)
+        for username, admin_username in q.all():
+            e = ext[username]
+            users.append(OnlineUser(username=username, admin=admin_username, ip_count=0,
+                                    external=len(e["panels"]), external_panels=e["panels"]))
+
+    external_online_users = sum(1 for u in users if u.external > 0)
+    key = {"devices": lambda u: u.device_count,
+           "external": lambda u: u.external}.get(sort, lambda u: u.ip_count)
     users.sort(key=key, reverse=True)
     return OnlineSummary(
         online_users=len(users),
         online_ips=sum(u.ip_count for u in users),
+        external_online_users=external_online_users,
         updated_at=online.updated_at,
         users=users[:limit],
     )

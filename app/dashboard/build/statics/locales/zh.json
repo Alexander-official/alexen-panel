@@ -1757,5 +1757,20 @@
   "nodeExtra.saveKey": "保存到库",
   "nodeExtra.keyName": "密钥名称",
   "nodeExtra.keyPublicHint": "把这个公钥加到 VPS（~/.ssh/authorized_keys）",
-  "nodeExtra.keyGenerated": "已生成密钥 — 把这个公钥加到 VPS"
+  "nodeExtra.keyGenerated": "已生成密钥 — 把这个公钥加到 VPS",
+  "online.external": "外部",
+  "online.sortByExternal": "按外部",
+  "online.externalHint": "通过外部面板在线的用户",
+  "messages.attach": "添加图片、音频或视频",
+  "messages.edit": "编辑",
+  "messages.delete": "删除",
+  "messages.deleteConfirm": "删除这条消息？",
+  "messages.edited": "已编辑",
+  "messages.photo": "图片",
+  "messages.audio": "音频",
+  "messages.video": "视频",
+  "messages.save": "保存",
+  "messages.cancel": "取消",
+  "messages.tooLarge": "文件过大（最大 25 MB）",
+  "messages.uploadFailed": "文件上传失败"
 }

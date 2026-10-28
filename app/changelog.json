@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.38.0",
+    "date": "2026-10-28",
+    "tr": [
+      "Sohbete dosya ekleme: fotoğraf, ses ve video gönderebilirsin (ataç simgesi). Dosyalar panelde güvenli şekilde (veritabanının yanında, en fazla 25 MB) saklanır ve yalnızca ilgili admin ile sudo görebilir; yedeklere de dahil olur.",
+      "Mesaj düzenleme ve silme: kendi gönderdiğin mesajın üzerindeki ⋮ menüsünden mesajı düzenleyebilir ya da silebilirsin; düzenlenen mesajda 'düzenlendi' etiketi çıkar.",
+      "Online ekranı artık harici panel bağlantılarını da kapsıyor: harici panelden eklenen kullanıcılar online listesine dahil oldu, 'Harici' sütunu ve 'Hariciye göre' sıralama eklendi, ayrıca şu an kaç kullanıcının harici panel üzerinden online olduğu başlıkta 🌐 rozetiyle gösteriliyor.",
+      "Uygulama simgeleri panele hazır geldi: Hiddify, V2Box, Streisand, Happ, Clash Meta, Clash/Stash, sing-box, Shadowrocket, v2rayNG, NekoBox, Loon, Quantumult X ve Surge resmî simgeleri artık kullanıcı satırında noktanın altında görünüyor (tanınmayanlar için harf rozeti)."
+    ],
+    "en": [
+      "Chat attachments: send photos, audio and video (the paper-clip button). Files are stored safely on the panel (next to the database, max 25 MB) and only the admin and the sudo admin can see them; they are included in backups too.",
+      "Edit and delete messages: from the ⋮ menu on your own message you can edit or delete it; an edited message shows an 'edited' label.",
+      "The online view now includes external-panel connections: users added from an external panel appear in the online list, with an 'External' column, a 'By external' sort, and a 🌐 count of how many users are online through an external panel in the header.",
+      "App icons now ship with the panel: official icons for Hiddify, V2Box, Streisand, Happ, Clash Meta, Clash/Stash, sing-box, Shadowrocket, v2rayNG, NekoBox, Loon, Quantumult X and Surge show under the dot in the user row (a letter chip for anything unrecognised)."
+    ]
+  },
+  {
     "version": "1.37.0",
     "date": "2026-10-28",
     "tr": [

@@ -1761,5 +1761,20 @@
   "nodeExtra.saveKey": "ذخیره در کتابخانه",
   "nodeExtra.keyName": "نام کلید",
   "nodeExtra.keyPublicHint": "این کلید عمومی را روی VPS اضافه کنید (~/.ssh/authorized_keys)",
-  "nodeExtra.keyGenerated": "کلید ساخته شد — این کلید عمومی را روی VPS اضافه کنید"
+  "nodeExtra.keyGenerated": "کلید ساخته شد — این کلید عمومی را روی VPS اضافه کنید",
+  "online.external": "خارجی",
+  "online.sortByExternal": "بر اساس خارجی",
+  "online.externalHint": "کاربران آنلاین از طریق پنل خارجی",
+  "messages.attach": "افزودن عکس، صدا یا ویدیو",
+  "messages.edit": "ویرایش",
+  "messages.delete": "حذف",
+  "messages.deleteConfirm": "این پیام حذف شود؟",
+  "messages.edited": "ویرایش‌شده",
+  "messages.photo": "عکس",
+  "messages.audio": "صدا",
+  "messages.video": "ویدیو",
+  "messages.save": "ذخیره",
+  "messages.cancel": "لغو",
+  "messages.tooLarge": "فایل خیلی بزرگ است (حداکثر ۲۵ مگابایت)",
+  "messages.uploadFailed": "بارگذاری فایل ناموفق بود"
 }

@@ -53,6 +53,24 @@ def online_for(username: str) -> List[dict]:
     return out
 
 
+def online_map() -> dict:
+    """username -> {"panels": [names], "last_seen": epoch} for everyone online via any
+    external panel right now (for the online summary / sort). One entry per user even if
+    they are seen on several panels."""
+    out: dict = {}
+    now = time.time()
+    for d in list(_online_src.values()):
+        if now - d.get("at", 0) > 300:   # ignore stale panel data (sync stopped)
+            continue
+        for uname, ls in (d.get("users") or {}).items():
+            e = out.setdefault(uname, {"panels": [], "last_seen": 0.0})
+            if d["name"] not in e["panels"]:
+                e["panels"].append(d["name"])
+            if (ls or 0) > e["last_seen"]:
+                e["last_seen"] = ls or 0
+    return out
+
+
 def _link_hostport(line: str):
     try:
         if line.startswith("vmess://"):

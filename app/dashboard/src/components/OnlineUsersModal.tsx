@@ -31,6 +31,8 @@ export type OnlineUser = {
   device_count: number;
   ip_limit: number | null;
   blocked_ips: number;
+  external: number;
+  external_panels: string[];
 };
 
 type OnlineUsersModalProps = {
@@ -43,14 +45,15 @@ export const OnlineUsersModal: FC<OnlineUsersModalProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
-  const [sort, setSort] = useState<"ip" | "devices">("ip");
-  const { data } = useQuery<{ users: OnlineUser[] }>({
+  const [sort, setSort] = useState<"ip" | "devices" | "external">("ip");
+  const { data } = useQuery<{ users: OnlineUser[]; external_online_users: number }>({
     queryKey: ["online-modal", sort],
     queryFn: () => fetch(`/online?sort=${sort}&limit=100`),
     enabled: isOpen,
     refetchInterval: isOpen ? 5000 : false,
   });
   const users = data?.users ?? [];
+  const externalOnline = data?.external_online_users ?? 0;
 
   const openUser = (username: string) => {
     fetch<User>(`/user/${username}`).then((user) => {
@@ -65,9 +68,16 @@ export const OnlineUsersModal: FC<OnlineUsersModalProps> = ({
       <ModalContent mx="3">
         <ModalHeader pt={6}>
           <HStack justifyContent="space-between" pr={8}>
-            <Text fontWeight="semibold" fontSize="lg">
-              {t("online.title")}
-            </Text>
+            <HStack spacing={2}>
+              <Text fontWeight="semibold" fontSize="lg">
+                {t("online.title")}
+              </Text>
+              {externalOnline > 0 && (
+                <Badge colorScheme="purple" title={t("online.externalHint")}>
+                  🌐 {externalOnline}
+                </Badge>
+              )}
+            </HStack>
             <HStack spacing={1}>
               <Button
                 size="xs"
@@ -82,6 +92,13 @@ export const OnlineUsersModal: FC<OnlineUsersModalProps> = ({
                 onClick={() => setSort("devices")}
               >
                 {t("online.sortByDevice")}
+              </Button>
+              <Button
+                size="xs"
+                variant={sort === "external" ? "solid" : "ghost"}
+                onClick={() => setSort("external")}
+              >
+                {t("online.sortByExternal")}
               </Button>
             </HStack>
           </HStack>
@@ -101,6 +118,7 @@ export const OnlineUsersModal: FC<OnlineUsersModalProps> = ({
                     <Th>{t("online.admin")}</Th>
                     <Th isNumeric>{t("online.ips")}</Th>
                     <Th isNumeric>{t("online.devices")}</Th>
+                    <Th isNumeric>{t("online.external")}</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -127,6 +145,20 @@ export const OnlineUsersModal: FC<OnlineUsersModalProps> = ({
                         </Badge>
                       </Td>
                       <Td isNumeric>{user.device_count}</Td>
+                      <Td isNumeric>
+                        {user.external > 0 ? (
+                          <Badge
+                            colorScheme="purple"
+                            title={user.external_panels.join(", ")}
+                          >
+                            🌐 {user.external}
+                          </Badge>
+                        ) : (
+                          <Text as="span" color="gray.400">
+                            -
+                          </Text>
+                        )}
+                      </Td>
                     </Tr>
                   ))}
                 </Tbody>

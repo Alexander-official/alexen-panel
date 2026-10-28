@@ -1759,5 +1759,20 @@
   "nodeExtra.saveKey": "Save to library",
   "nodeExtra.keyName": "Key name",
   "nodeExtra.keyPublicHint": "Add this public key to the VPS (~/.ssh/authorized_keys)",
-  "nodeExtra.keyGenerated": "Key generated — add this PUBLIC key on the VPS"
+  "nodeExtra.keyGenerated": "Key generated — add this PUBLIC key on the VPS",
+  "online.external": "External",
+  "online.sortByExternal": "By external",
+  "online.externalHint": "Users online through an external panel",
+  "messages.attach": "Attach a photo, audio or video",
+  "messages.edit": "Edit",
+  "messages.delete": "Delete",
+  "messages.deleteConfirm": "Delete this message?",
+  "messages.edited": "edited",
+  "messages.photo": "Photo",
+  "messages.audio": "Audio",
+  "messages.video": "Video",
+  "messages.save": "Save",
+  "messages.cancel": "Cancel",
+  "messages.tooLarge": "File is too large (max 25 MB)",
+  "messages.uploadFailed": "Could not upload the file"
 }

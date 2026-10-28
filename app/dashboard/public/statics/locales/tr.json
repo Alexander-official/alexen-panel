@@ -1759,5 +1759,20 @@
   "nodeExtra.saveKey": "Kütüphaneye kaydet",
   "nodeExtra.keyName": "Anahtar adı",
   "nodeExtra.keyPublicHint": "Bu açık anahtarı VPS'e ekle (~/.ssh/authorized_keys)",
-  "nodeExtra.keyGenerated": "Anahtar üretildi — bu AÇIK anahtarı VPS'e ekle"
+  "nodeExtra.keyGenerated": "Anahtar üretildi — bu AÇIK anahtarı VPS'e ekle",
+  "online.external": "Harici",
+  "online.sortByExternal": "Hariciye göre",
+  "online.externalHint": "Harici panel üzerinden online olan kullanıcılar",
+  "messages.attach": "Fotoğraf, ses veya video ekle",
+  "messages.edit": "Düzenle",
+  "messages.delete": "Sil",
+  "messages.deleteConfirm": "Bu mesaj silinsin mi?",
+  "messages.edited": "düzenlendi",
+  "messages.photo": "Fotoğraf",
+  "messages.audio": "Ses",
+  "messages.video": "Video",
+  "messages.save": "Kaydet",
+  "messages.cancel": "Vazgeç",
+  "messages.tooLarge": "Dosya çok büyük (en fazla 25 MB)",
+  "messages.uploadFailed": "Dosya yüklenemedi"
 }
