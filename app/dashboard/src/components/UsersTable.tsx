@@ -258,9 +258,12 @@ const appOf = (ua?: string | null): { name: string; slug: string } | null => {
     [/(surge)/, "Surge", "surge"],
   ];
   for (const [re, name, slug] of m) if (re.test(u)) return { name, slug };
-  // fall back to the first token of the UA (e.g. "MyApp/1.2" -> "MyApp"); no icon file
+  // fall back to the first token of the UA (e.g. "MyApp/1.2" -> "MyApp"); no icon file.
+  // generic HTTP stacks / browsers / non-VPN clients are hidden (no badge, no label) so
+  // the row doesn't show junk like "Dalvik", "WhatsApp" or "Mozilla".
   const t = ua.split("/")[0].trim();
-  return t && !/^mozilla$/i.test(t) ? { name: t.slice(0, 18), slug: "" } : null;
+  const generic = /^(mozilla|dalvik|whatsapp|okhttp|cronet|curl|wget|go-http-client|python-requests|python-urllib|urllib|java|apache-httpclient|okio|axios|node-fetch|libcurl|postmanruntime|insomnia|httpie|fasthttp|aiohttp|reqwest|got|undici|ktor-client|dart|flutter)$/i;
+  return t && !generic.test(t) ? { name: t.slice(0, 18), slug: "" } : null;
 };
 // a soft colour per app for the monogram fallback (original design, not the real logo)
 const APP_COLORS: Record<string, string> = {

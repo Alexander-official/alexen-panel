@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.1",
+    "date": "2026-10-29",
+    "tr": [
+      "Online/kullanıcı satırındaki uygulama etiketi artık yalnızca gerçek istemci uygulamalarını gösteriyor; Dalvik, WhatsApp, Mozilla ve diğer genel HTTP/tarayıcı user-agent'ları artık uygulama olarak görünmüyor (etiket ve simge gizleniyor)."
+    ],
+    "en": [
+      "The app label in the online/user row now shows real client apps only; generic HTTP/browser user-agents such as Dalvik, WhatsApp and Mozilla are no longer shown as an app (label and icon hidden)."
+    ]
+  },
+  {
     "version": "1.39.0",
     "date": "2026-10-29",
     "tr": [
