@@ -1774,5 +1774,16 @@
   "messages.save": "Save",
   "messages.cancel": "Cancel",
   "messages.tooLarge": "File is too large (max 25 MB)",
-  "messages.uploadFailed": "Could not upload the file"
+  "messages.uploadFailed": "Could not upload the file",
+  "brand.title": "Brand",
+  "brand.desc": "Rename the panel for your customers. These change the name, vendor and support contact everywhere — sidebar, footer, guide and every screen. Leave a field empty to keep the default.",
+  "brand.name": "Panel name",
+  "brand.nameHelp": "Replaces the name shown in the sidebar, footer and throughout the panel.",
+  "brand.vendor": "Vendor / company",
+  "brand.supportTelegram": "Support (Telegram handle)",
+  "brand.supportUrl": "Support link",
+  "brand.supportHelp": "Where the support links point (e.g. https://t.me/yourchannel).",
+  "brand.save": "Save",
+  "brand.saved": "Brand saved",
+  "brand.saveFailed": "Could not save the brand"
 }

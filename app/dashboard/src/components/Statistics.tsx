@@ -10,7 +10,6 @@ import {
 } from "@chakra-ui/react";
 import {
   ChartBarIcon,
-  ChartPieIcon,
   ClockIcon,
   SignalIcon,
   UsersIcon,
@@ -51,15 +50,6 @@ const OnlineIcon = chakra(SignalIcon, {
 });
 
 const ExpiringIcon = chakra(ClockIcon, {
-  baseStyle: {
-    w: 5,
-    h: 5,
-    position: "relative",
-    zIndex: "2",
-  },
-});
-
-const MemoryIcon = chakra(ChartPieIcon, {
   baseStyle: {
     w: 5,
     h: 5,
@@ -234,27 +224,6 @@ export const Statistics: FC<BoxProps> = (props) => {
           )
         }
         icon={<ExpiringIcon />}
-      />
-      <StatisticCard
-        title={t("memoryUsage")}
-        content={
-          systemData && (
-            <HStack alignItems="flex-end" spacing={1} flexWrap="wrap">
-              <Text>{formatBytes(systemData.mem_used, 1, true)[0]}</Text>
-              <Text
-                fontWeight="normal"
-                fontSize={{ base: "xs", md: "lg" }}
-                as="span"
-                display="inline-block"
-                pb={{ base: "3px", md: "5px" }}
-              >
-                {formatBytes(systemData.mem_used, 1, true)[1]} /{" "}
-                {formatBytes(systemData.mem_total, 1)}
-              </Text>
-            </HStack>
-          )
-        }
-        icon={<MemoryIcon />}
       />
       <OnlineUsersModal
         isOpen={onlineModal.isOpen}

@@ -1772,5 +1772,16 @@
   "messages.save": "保存",
   "messages.cancel": "取消",
   "messages.tooLarge": "文件过大（最大 25 MB）",
-  "messages.uploadFailed": "文件上传失败"
+  "messages.uploadFailed": "文件上传失败",
+  "brand.title": "品牌",
+  "brand.desc": "为你的客户重命名面板。这些会在所有位置更改名称、公司和支持联系方式——侧边栏、页脚、指南和所有界面。留空则保持默认。",
+  "brand.name": "面板名称",
+  "brand.nameHelp": "更改侧边栏、页脚及整个面板中显示的名称。",
+  "brand.vendor": "公司 / 供应商",
+  "brand.supportTelegram": "支持（Telegram 账号）",
+  "brand.supportUrl": "支持链接",
+  "brand.supportHelp": "支持链接的指向地址（例如 https://t.me/yourchannel）。",
+  "brand.save": "保存",
+  "brand.saved": "品牌已保存",
+  "brand.saveFailed": "品牌保存失败"
 }

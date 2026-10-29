@@ -54,8 +54,9 @@ import {
   CloudArrowDownIcon,
   ChatBubbleOvalLeftEllipsisIcon,
   BookOpenIcon,
+  PaintBrushIcon,
 } from "@heroicons/react/24/outline";
-import { BRAND_NAME } from "constants/Project";
+import useBrand from "hooks/useBrand";
 import { useDashboard } from "contexts/DashboardContext";
 import useGetUser from "hooks/useGetUser";
 import { FC, ReactNode, useEffect, useState } from "react";
@@ -172,6 +173,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
   const here = pathname.replace(/^\/+|\/+$/g, "");
   const { userData, getUserIsSuccess } = useGetUser();
   const isSudo = getUserIsSuccess && userData.is_sudo;
+  const brand = useBrand();
   const version = useDashboard((s) => s.version);
   // the version for the header on any page (the users page sets it too, with its stats)
   useQuery({
@@ -257,6 +259,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
               { title: t("tg.title"), path: "telegram", icon: ic(ChatBubbleOvalLeftEllipsisIcon) },
               { title: t("update.title"), path: "update", icon: ic(CloudArrowDownIcon), badge: update?.available ? 1 : 0 },
               ...(isCreator ? [{ title: t("lic.title"), path: "license", icon: ic(KeyIcon) }] : []),
+              ...(isCreator ? [{ title: t("brand.title"), path: "brand", icon: ic(PaintBrushIcon) }] : []),
               {
                 title: t("resetAllUsage"),
                 icon: ic(ArrowPathIcon),
@@ -319,7 +322,7 @@ const SidebarContent: FC<{ collapsed?: boolean; onNavigate?: () => void }> = ({ 
               </Box>
               <Box minW={0} lineHeight="short">
                 <Text fontSize="sm" fontWeight="semibold" isTruncated>
-                  {BRAND_NAME}
+                  {brand.name}
                 </Text>
                 {version && (
                   <Text fontSize="xs" opacity={0.5} isTruncated>

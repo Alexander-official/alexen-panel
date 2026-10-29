@@ -1776,5 +1776,16 @@
   "messages.save": "ذخیره",
   "messages.cancel": "لغو",
   "messages.tooLarge": "فایل خیلی بزرگ است (حداکثر ۲۵ مگابایت)",
-  "messages.uploadFailed": "بارگذاری فایل ناموفق بود"
+  "messages.uploadFailed": "بارگذاری فایل ناموفق بود",
+  "brand.title": "برند",
+  "brand.desc": "نام پنل را برای مشتریانت تغییر بده. این موارد نام، شرکت و راه ارتباط پشتیبانی را همه‌جا عوض می‌کند — نوار کناری، پاورقی، راهنما و همه صفحه‌ها. فیلد خالی = مقدار پیش‌فرض.",
+  "brand.name": "نام پنل",
+  "brand.nameHelp": "نامی را که در نوار کناری، پاورقی و سراسر پنل دیده می‌شود تغییر می‌دهد.",
+  "brand.vendor": "شرکت / فروشنده",
+  "brand.supportTelegram": "پشتیبانی (آیدی تلگرام)",
+  "brand.supportUrl": "لینک پشتیبانی",
+  "brand.supportHelp": "مقصد لینک‌های پشتیبانی (مثلاً https://t.me/yourchannel).",
+  "brand.save": "ذخیره",
+  "brand.saved": "برند ذخیره شد",
+  "brand.saveFailed": "ذخیره برند ناموفق بود"
 }

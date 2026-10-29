@@ -32,6 +32,7 @@ import {
   CommandLineIcon,
 } from "@heroicons/react/24/outline";
 import useGetUser from "hooks/useGetUser";
+import useBrand from "hooks/useBrand";
 import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -226,6 +227,7 @@ export const DocumentationPage: FC = () => {
   const { userData } = useGetUser();
   const lang = (i18n.language || "en").slice(0, 2) === "tr" ? "tr" : "en";
   const g = G[lang as "tr" | "en"];
+  const brand = useBrand();
   const isCreator = !!(userData as any)?.is_creator;
   // creators get BOTH guides + the token/API reference; sudos and resellers get only their own
   // usage guide (no token/API). A single-role user has no toggle.
@@ -251,14 +253,14 @@ export const DocumentationPage: FC = () => {
             <Icon as={ShieldCheckIcon} boxSize="22px" />
           </Box>
           <Badge bg="whiteAlpha.300" color="white" borderRadius="full" px={2.5}>
-            Alexen
+            {brand.name}
           </Badge>
         </HStack>
         <Heading size="lg" letterSpacing="-0.01em">
           {g.heroTitle}
         </Heading>
         <Text mt={1.5} maxW="560px" opacity={0.92} fontSize="sm">
-          {g.heroSub}
+          {g.heroSub.replace(/Alexen/g, brand.name)}
         </Text>
         {/* role toggle — only when the user may see more than one guide (creator) */}
         {roles.length > 1 && (

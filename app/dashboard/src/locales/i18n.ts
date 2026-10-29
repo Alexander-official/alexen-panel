@@ -16,21 +16,38 @@ import HttpApi from "i18next-http-backend";
 import { registerLocale } from "react-datepicker";
 import { initReactI18next } from "react-i18next";
 
+import { getBrandName } from "utils/brandState";
+
 declare module "i18next" {
     interface CustomTypeOptions {
         returnNull: false;
     }
 }
 
+// white-label: replace the built-in product name in every translated string with
+// the creator's brand. Only the capitalised "Alexen" is touched, never the
+// lowercase CLI name ("alexen update"). A no-op while the brand is the default.
+const brandPostProcessor = {
+    type: "postProcessor" as const,
+    name: "brand",
+    process(value: string) {
+        const brand = getBrandName();
+        if (brand === "Alexen" || typeof value !== "string" || value.indexOf("Alexen") === -1) return value;
+        return value.split("Alexen").join(brand);
+    },
+};
+
 i18n
     .use(LanguageDetector)
     .use(initReactI18next)
     .use(HttpApi)
+    .use(brandPostProcessor)
     .init(
         {
             debug: import.meta.env.NODE_ENV === "development",
             returnNull: false,
             fallbackLng: "en",
+            postProcess: ["brand"],
             interpolation: {
                 escapeValue: false,
             },

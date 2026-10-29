@@ -1774,5 +1774,16 @@
   "messages.save": "Ýatda sakla",
   "messages.cancel": "Goý",
   "messages.tooLarge": "Faýl gaty uly (iň köp 25 MB)",
-  "messages.uploadFailed": "Faýl ýüklenip bilinmedi"
+  "messages.uploadFailed": "Faýl ýüklenip bilinmedi",
+  "brand.title": "Brend",
+  "brand.desc": "Paneli müşderileriň üçin täzeden atlandyr. Bu at, kompaniýa we goldaw habarlaşygyny ähli ýerde üýtgedýär — gapdal panel, aşaky bölek, gollanma we ähli ekranlar. Boş meýdan = başlangyç baha.",
+  "brand.name": "Panel ady",
+  "brand.nameHelp": "Gapdal panelde, aşaky bölekde we tutuş panelde görünýän ady üýtgedýär.",
+  "brand.vendor": "Kompaniýa / satyjy",
+  "brand.supportTelegram": "Goldaw (Telegram ady)",
+  "brand.supportUrl": "Goldaw salgysy",
+  "brand.supportHelp": "Goldaw baglanyşyklarynyň ugrukdyrýan salgysy (mysal: https://t.me/kanalyň).",
+  "brand.save": "Ýatda sakla",
+  "brand.saved": "Brend ýatda saklandy",
+  "brand.saveFailed": "Brend saklanyp bilinmedi"
 }

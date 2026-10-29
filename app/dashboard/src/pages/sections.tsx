@@ -145,6 +145,13 @@ export const SECTIONS: Section[] = [
     Component: named(() => import("components/LicensePage"), "LicensePage"),
   },
   {
+    path: "brand",
+    title: "brand.title",
+    sudo: true,
+    creator: true,
+    Component: named(() => import("components/BrandPage"), "BrandPage"),
+  },
+  {
     path: "update",
     title: "update.title",
     sudo: true,

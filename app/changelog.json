@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.39.0",
+    "date": "2026-10-29",
+    "tr": [
+      "Marka ayarları (yalnızca creator): panelin adını, firmayı ve destek bağlantısını creator kendi markasıyla değiştirebiliyor — kenar çubuğu, alt bilgi, kılavuz, lisans sayfası, tarayıcı sekmesi ve ekranlardaki tüm metinler dahil her yer anında değişiyor. Boş bırakılan alan varsayılana döner. (Beyaz etiket: paneli markasız satabilirsin; müşterilerin 'Alexen/@alexvpns' görmez.)",
+      "Kenar çubuğundaki yeni 'Marka' bölümünden ayarlanır; abonelik sayfası zaten profil-başlığı/destek-url ayarlarından markalanıyordu.",
+      "Uygulama simgeleri biraz büyütüldü (daha okunaklı) ve daha yüksek çözünürlüklü resmî simgelerle yenilendi.",
+      "RAM (bellek) kartı kullanıcılar sekmesinden kaldırıldı; yalnızca Genel Bakış'ta kalıyor."
+    ],
+    "en": [
+      "Brand settings (creator only): the creator can rename the panel and change the vendor and support contact to their own brand — the sidebar, footer, guide, license page, browser tab and every on-screen text update instantly. An empty field falls back to the default. (White-label: sell the panel unbranded; your customers never see 'Alexen/@alexvpns'.)",
+      "Set from the new 'Brand' section in the sidebar; the subscription page was already brandable via its profile-title / support-url settings.",
+      "App icons are a bit larger (easier to read) and refreshed with higher-resolution official icons.",
+      "The RAM (memory) card was removed from the Users tab; it stays on the Overview only."
+    ]
+  },
+  {
     "version": "1.38.0",
     "date": "2026-10-28",
     "tr": [

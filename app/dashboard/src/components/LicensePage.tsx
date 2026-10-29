@@ -21,6 +21,7 @@ import { FC, ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "react-query";
 import { useNavigate } from "react-router-dom";
+import useBrand from "hooks/useBrand";
 import { fetch } from "service/http";
 import { serverMessage } from "utils/serverMessage";
 import { PageLoading } from "./PageLoading";
@@ -192,6 +193,7 @@ const useCheckNow = () => {
 const LockScreen: FC<{ l: License; creator: boolean }> = ({ l, creator }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const brand = useBrand();
   const check = useCheckNow();
   return (
     <Box w="full" display="flex" justifyContent="center" pt={{ base: 4, md: 10 }} pb={6}>
@@ -236,8 +238,8 @@ const LockScreen: FC<{ l: License; creator: boolean }> = ({ l, creator }) => {
           <HStack justify="space-between" flexWrap="wrap" rowGap={2} pt={1}>
             <Text fontSize="xs" color="gray.500">
               {t("lic.support")}{" "}
-              <Text as="a" href="https://t.me/alexvpns" target="_blank" rel="noreferrer" color="primary.400">
-                @alexvpns
+              <Text as="a" href={brand.support_url} target="_blank" rel="noreferrer" color="primary.400">
+                {brand.support_telegram}
               </Text>
             </Text>
             <Button size="sm" variant="ghost" onClick={() => navigate("/login")}>

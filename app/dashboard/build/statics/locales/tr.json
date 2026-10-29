@@ -1774,5 +1774,16 @@
   "messages.save": "Kaydet",
   "messages.cancel": "Vazgeç",
   "messages.tooLarge": "Dosya çok büyük (en fazla 25 MB)",
-  "messages.uploadFailed": "Dosya yüklenemedi"
+  "messages.uploadFailed": "Dosya yüklenemedi",
+  "brand.title": "Marka",
+  "brand.desc": "Paneli müşterilerin için yeniden adlandır. Bunlar adı, firmayı ve destek bağlantısını her yerde değiştirir — kenar çubuğu, alt bilgi, kılavuz ve tüm ekranlar. Bir alanı boş bırakırsan varsayılan kalır.",
+  "brand.name": "Panel adı",
+  "brand.nameHelp": "Kenar çubuğu, alt bilgi ve panelin her yerinde görünen adı değiştirir.",
+  "brand.vendor": "Firma / şirket",
+  "brand.supportTelegram": "Destek (Telegram kullanıcı adı)",
+  "brand.supportUrl": "Destek bağlantısı",
+  "brand.supportHelp": "Destek bağlantılarının yönlendireceği adres (örn. https://t.me/kanalın).",
+  "brand.save": "Kaydet",
+  "brand.saved": "Marka kaydedildi",
+  "brand.saveFailed": "Marka kaydedilemedi"
 }

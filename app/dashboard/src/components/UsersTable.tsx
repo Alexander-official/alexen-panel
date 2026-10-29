@@ -282,9 +282,9 @@ const AppDot: FC<{ ua?: string | null }> = ({ ua }) => {
         src={`/statics/app-icons/${a.slug}.png`}
         alt={a.name}
         title={a.name}
-        width={16}
-        height={16}
-        style={{ borderRadius: 4, objectFit: "contain", display: "block" }}
+        width={22}
+        height={22}
+        style={{ borderRadius: 5, objectFit: "contain", display: "block" }}
         onError={() => setImgOk(false)}
       />
     );
@@ -294,14 +294,14 @@ const AppDot: FC<{ ua?: string | null }> = ({ ua }) => {
   return (
     <Box
       title={a.name}
-      w="16px"
-      h="16px"
+      w="22px"
+      h="22px"
       bg={color}
       color="white"
-      borderRadius="4px"
-      fontSize="10px"
+      borderRadius="5px"
+      fontSize="12px"
       fontWeight="bold"
-      lineHeight="16px"
+      lineHeight="22px"
       textAlign="center"
     >
       {letter}

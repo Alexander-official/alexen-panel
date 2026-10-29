@@ -91,6 +91,45 @@ def update_sub_settings(settings: SubscriptionSettings,
     return settings
 
 
+# ---------------- brand (white-label) ----------------
+BRAND_KEY = "brand"
+# the built-in defaults; any field left empty falls back here, so the panel is never unbranded
+BRAND_DEFAULTS = {"name": "Alexen", "vendor": "Alexander LLC",
+                  "support_telegram": "@alexvpns", "support_url": "https://t.me/alexvpns"}
+
+
+class BrandSettings(BaseModel):
+    name: str = ""
+    vendor: str = ""
+    support_telegram: str = ""
+    support_url: str = ""
+
+
+def get_brand(db: Session) -> dict:
+    """effective brand: stored overrides on top of the built-in defaults"""
+    stored = crud.get_setting(db, BRAND_KEY) or {}
+    out = dict(BRAND_DEFAULTS)
+    for key, val in stored.items():
+        if key in out and isinstance(val, str) and val.strip():
+            out[key] = val.strip()
+    return out
+
+
+@router.get("/brand", response_model=BrandSettings)
+def read_brand(db: Session = Depends(get_db)):
+    """the panel's brand (name, vendor, support). Public: the login page shows it before sign-in."""
+    return BrandSettings(**get_brand(db))
+
+
+@router.put("/brand", response_model=BrandSettings)
+def update_brand(settings: BrandSettings, db: Session = Depends(get_db),
+                 admin: Admin = Depends(Admin.check_creator_admin)):
+    """rebrand the whole panel — the creator only"""
+    data = {key: (getattr(settings, key) or "").strip() for key in BRAND_DEFAULTS}
+    crud.set_setting(db, BRAND_KEY, data)
+    return BrandSettings(**get_brand(db))
+
+
 CLEANUP_KEY = "user_cleanup"
 
 
