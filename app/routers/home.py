@@ -29,10 +29,19 @@ def _sub_gateway(
     if not url:
         raise HTTPException(status_code=400, detail="url parameter missing")
     from app.dependencies import get_validated_sub
-    from app.routers.subscription import user_subscription
-    token = url.split("/sub/", 1)[-1].split("?", 1)[0].strip("/")
+    from app.routers.subscription import (
+        client_config, user_subscription, _client_type_subscription)
+    # the part after /sub/ is "<token>" or "<token>/.../<client type>": Outline's
+    # ssconf deeplink appends /outline to the whole link, so keep the token (first
+    # segment) and honour a trailing client type instead of folding it into the token
+    rest = url.split("/sub/", 1)[-1].split("?", 1)[0].strip("/")
+    parts = [p for p in rest.split("/") if p]
+    token = parts[0] if parts else ""
+    client_type = next((p for p in parts[1:] if p in client_config), None)
     dbuser = get_validated_sub(token=token, db=db)
     request.scope.setdefault("path_params", {})["token"] = token
+    if client_type:
+        return _client_type_subscription(request, dbuser, client_type, db, user_agent)
     return user_subscription(request=request, db=db, dbuser=dbuser, user_agent=user_agent)
 
 

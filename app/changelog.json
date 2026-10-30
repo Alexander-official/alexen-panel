@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.2",
+    "date": "2026-10-30",
+    "tr": [
+      "Alt gateway linklerinde Outline ve diğer uygulama formatı düzeltildi: ssconf / uygulama linki (ör. /outline) artık doğru yapılandırmayı döndürüyor"
+    ],
+    "en": [
+      "Fixed Outline and other client formats over sub-gateway links: the ssconf / app link (e.g. /outline) now returns the right config"
+    ]
+  },
+  {
     "version": "1.39.1",
     "date": "2026-10-29",
     "tr": [
