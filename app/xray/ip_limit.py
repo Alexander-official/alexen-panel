@@ -35,6 +35,63 @@ _block_pending: Dict[int, int] = {}
 manual_bans: Dict[int, Dict[str, float]] = {}
 MANUAL_BAN_SECONDS = 300
 
+# ---- source IPs that are NOT the user's own (CDN / cloud fronts) -------------
+# A VLESS/VMESS WS host fronted through Google (Cloud Run) reaches the core from
+# Google's egress IPs, and Google spreads a single user across several of them. Without
+# this the IP limit counts those as "too many IPs" and blackholes the user's own tunnel
+# (the "one request works, the next doesn't" bug). Google's published ranges are bundled
+# (google_ip_ranges.json); extra CIDRs for other fronts can be added through the
+# IP_LIMIT_EXEMPT_CIDRS env (comma separated).
+import ipaddress
+import json as _json
+import os as _os
+
+
+def _load_exempt_networks() -> list:
+    nets = []
+    path = _os.path.join(_os.path.dirname(__file__), "google_ip_ranges.json")
+    try:
+        with open(path) as f:
+            data = _json.load(f)
+        for p in data.get("ipv4", []) + data.get("ipv6", []):
+            try:
+                nets.append(ipaddress.ip_network(p))
+            except ValueError:
+                pass
+    except Exception as e:
+        logger.warning(f"IP limit: couldn't load Google ranges ({e}); fronted IPs won't be exempt")
+    for p in (_os.environ.get("IP_LIMIT_EXEMPT_CIDRS", "") or "").replace(" ", "").split(","):
+        if p:
+            try:
+                nets.append(ipaddress.ip_network(p))
+            except ValueError:
+                logger.warning(f"IP limit: bad IP_LIMIT_EXEMPT_CIDRS entry {p!r}")
+    return nets
+
+
+_exempt_networks = _load_exempt_networks()
+_exempt_cache: Dict[str, bool] = {}
+
+
+def is_exempt_ip(ip: str) -> bool:
+    """True for a source IP that belongs to a CDN / cloud front (Google Cloud Run egress,
+    or an admin-listed range): it must never count toward, or be blocked by, the IP limit."""
+    hit = _exempt_cache.get(ip)
+    if hit is None:
+        try:
+            addr = ipaddress.ip_address(ip)
+            hit = any(addr in n for n in _exempt_networks)
+        except ValueError:
+            hit = False
+        _exempt_cache[ip] = hit
+    return hit
+
+
+def _without_exempt(online_users: Dict[int, Dict[str, dict]]) -> Dict[int, Dict[str, dict]]:
+    """drop CDN/front source IPs so they are neither counted nor blocked"""
+    return {uid: {ip: v for ip, v in ips.items() if not is_exempt_ip(ip)}
+            for uid, ips in online_users.items()}
+
 
 def ban_ip(user_id: int, ip: str, seconds: int = MANUAL_BAN_SECONDS):
     """Kick an online IP: block it for a while so its sessions drop (re-connects are refused)"""
@@ -203,6 +260,9 @@ def enforce_now():
 def enforce(apis: Dict[str, XRayAPI], online_users: Dict[int, Dict[str, dict]]):
     global blocked_ips
 
+    # IPs behind a CDN/cloud front (Google Cloud Run egress, …) are not the user's own
+    # and rotate, so counting them falsely trips the limit: leave them out entirely.
+    online_users = _without_exempt(online_users)
     _update_first_seen(online_users)
     rules = _desired_rules(online_users)
 

@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.3",
+    "date": "2026-10-30",
+    "tr": [
+      "IP limiti artık Google (Cloud Run) ve CDN çıkış IP'lerini saymıyor/engellemiyor — Google üzerinden fronted VLESS/VMESS WS'de kullanıcının kendi tünelinin yanlışlıkla engellenip aralıklı kopmasını (bir veri bir vermio) giderir; IP limiti gerçek/direkt IP'lerde çalışmaya devam eder. Ek aralıklar IP_LIMIT_EXEMPT_CIDRS ile eklenebilir."
+    ],
+    "en": [
+      "The IP limit no longer counts or blocks Google (Cloud Run) / CDN egress IPs — fixes fronted VLESS/VMESS WS being falsely blocked and cutting in and out; the IP limit still works for real/direct IPs. Extra ranges via IP_LIMIT_EXEMPT_CIDRS."
+    ]
+  },
+  {
     "version": "1.39.2",
     "date": "2026-10-30",
     "tr": [
